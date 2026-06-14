@@ -1,48 +1,22 @@
-import { allRuns } from '../../engine/puzzles/kakuro/rules';
+import { allRuns, type Run } from '../../engine/puzzles/kakuro/rules';
 import type { KakuroInstance } from '../../engine/puzzles/kakuro/types';
-import type { PlayableGame } from './playable';
-
-interface Snapshot {
-  cells: number[];
-  notes: number[][];
-}
+import { UndoableGame } from './base-game';
 
 /** Pure, framework-free Kakuro play state with undo/redo. */
-export class KakuroGame implements PlayableGame {
+export class KakuroGame extends UndoableGame {
   readonly instance: KakuroInstance;
   readonly solution: number[];
   readonly width: number;
   readonly height: number;
-  cells: number[];
-  notes: Set<number>[];
-  private undoStack: Snapshot[] = [];
-  private redoStack: Snapshot[] = [];
 
   constructor(instance: KakuroInstance, solution: number[]) {
+    const n = instance.width * instance.height;
+    // Black cells start at 0 and stay 0.
+    super(new Array<number>(n).fill(0), n);
     this.instance = instance;
     this.solution = solution;
     this.width = instance.width;
     this.height = instance.height;
-    const n = instance.width * instance.height;
-    // Black cells start at 0 and stay 0
-    this.cells = new Array<number>(n).fill(0);
-    this.notes = Array.from({ length: n }, () => new Set<number>());
-  }
-
-  private snapshot(): Snapshot {
-    return { cells: [...this.cells], notes: this.notes.map((s) => [...s]) };
-  }
-
-  private restore(s: Snapshot): void {
-    this.cells = [...s.cells];
-    this.notes = s.notes.map((ds) => new Set(ds));
-  }
-
-  private commit(mutate: () => void): void {
-    this.undoStack.push(this.snapshot());
-    this.redoStack = [];
-    mutate();
-    if (this.undoStack.length > 100) this.undoStack.shift();
   }
 
   /** Black (wall/clue) cells are non-editable — treated as "givens". */
@@ -50,88 +24,43 @@ export class KakuroGame implements PlayableGame {
     return this.instance.black[index];
   }
 
-  input(index: number, value: number): boolean {
-    if (this.isGiven(index)) return false;
-    if (value !== 0 && (value < 1 || value > 9)) return false;
-    this.commit(() => {
-      this.cells[index] = value;
-      this.notes[index].clear();
+  protected allows(_index: number, value: number): boolean {
+    return value === 0 || (value >= 1 && value <= 9);
+  }
+
+  /** Cells in a single run that violate uniqueness or (when full) the clue sum. */
+  private runConflicts(run: Run): number[] {
+    const vals = run.cells.map((i) => this.cells[i]);
+    const bad: number[] = [];
+
+    // Duplicate values within the run.
+    const byValue = new Map<number, number[]>();
+    vals.forEach((v, j) => {
+      if (v === 0) return;
+      const cells = byValue.get(v) ?? [];
+      cells.push(run.cells[j]);
+      byValue.set(v, cells);
     });
-    return true;
-  }
+    for (const cells of byValue.values()) if (cells.length > 1) bad.push(...cells);
 
-  erase(index: number): boolean {
-    if (this.isGiven(index)) return false;
-    this.commit(() => {
-      this.cells[index] = 0;
-      this.notes[index].clear();
-    });
-    return true;
-  }
+    // A completed run whose sum misses its clue.
+    if (run.clueIndex >= 0 && vals.every((v) => v !== 0)) {
+      const clue = this.instance.clues[run.clueIndex];
+      const target = clue && (run.dir === 'h' ? clue.right : clue.down);
+      if (target !== undefined && vals.reduce((s, v) => s + v, 0) !== target) {
+        bad.push(...run.cells);
+      }
+    }
 
-  toggleNote(index: number, digit: number): boolean {
-    if (this.isGiven(index) || this.cells[index] !== 0) return false;
-    this.commit(() => {
-      if (this.notes[index].has(digit)) this.notes[index].delete(digit);
-      else this.notes[index].add(digit);
-    });
-    return true;
-  }
-
-  undo(): void {
-    const s = this.undoStack.pop();
-    if (!s) return;
-    this.redoStack.push(this.snapshot());
-    this.restore(s);
-  }
-
-  redo(): void {
-    const s = this.redoStack.pop();
-    if (!s) return;
-    this.undoStack.push(this.snapshot());
-    this.restore(s);
+    return bad;
   }
 
   conflicts(): Set<number> {
     const bad = new Set<number>();
-    const runs = allRuns(this.instance);
-
-    for (const run of runs) {
+    for (const run of allRuns(this.instance)) {
       if (run.cells.length === 0) continue;
-
-      const vals = run.cells.map((i) => this.cells[i]);
-      const nonZero = vals.filter((v) => v !== 0);
-
-      // Check for duplicate values within the run
-      const seen = new Set<number>();
-      for (let k = 0; k < vals.length; k++) {
-        const v = vals[k];
-        if (v === 0) continue;
-        if (seen.has(v)) {
-          // Mark all cells with this value in this run as conflicts
-          for (let j = 0; j < vals.length; j++) {
-            if (vals[j] === v) bad.add(run.cells[j]);
-          }
-        }
-        seen.add(v);
-      }
-
-      // Check if run is complete and sum doesn't match clue
-      const allFilled = vals.every((v) => v !== 0);
-      if (allFilled && run.clueIndex >= 0) {
-        const clue = this.instance.clues[run.clueIndex];
-        if (clue) {
-          const target = run.dir === 'h' ? clue.right : clue.down;
-          if (target !== undefined) {
-            const sum = nonZero.reduce((s, v) => s + v, 0);
-            if (sum !== target) {
-              for (const ci of run.cells) bad.add(ci);
-            }
-          }
-        }
-      }
+      for (const ci of this.runConflicts(run)) bad.add(ci);
     }
-
     return bad;
   }
 

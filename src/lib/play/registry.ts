@@ -19,6 +19,17 @@ export interface PlayUiEntry {
   maxDigit(instanceStr: string): number;
 }
 
+/** Standard single-cell hint provider: deserialize, ask the module for a hint, return its first cell. */
+function makeHintProvider(type: PuzzleType): (instanceStr: string) => (cells: number[]) => number | null {
+  return (instanceStr) => (cells) => {
+    const mod = getModule(type);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const inst = (mod as any).deserializeInstance(instanceStr);
+    const h = mod.getHint?.(inst, { cells } as never);
+    return h && h.cells.length ? h.cells[0] : null;
+  };
+}
+
 export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
   sudoku: {
     label: 'Sudoku',
@@ -30,13 +41,7 @@ export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
       const sol = (getModule('sudoku') as any).deserializeSolution(s);
       return new SudokuGame(inst.givens, sol);
     },
-    hintProvider: (i) => (cells) => {
-      const mod = getModule('sudoku');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inst = (mod as any).deserializeInstance(i);
-      const h = mod.getHint?.(inst, { cells } as never);
-      return h && h.cells.length ? h.cells[0] : null;
-    },
+    hintProvider: makeHintProvider('sudoku'),
     maxDigit: () => 9
   },
   tectonic: {
@@ -49,13 +54,7 @@ export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
       const sol = (getModule('tectonic') as any).deserializeSolution(s);
       return new TectonicGame(inst, sol);
     },
-    hintProvider: (i) => (cells) => {
-      const mod = getModule('tectonic');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inst = (mod as any).deserializeInstance(i);
-      const h = mod.getHint?.(inst, { cells } as never);
-      return h && h.cells.length ? h.cells[0] : null;
-    },
+    hintProvider: makeHintProvider('tectonic'),
     maxDigit: (i) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const inst = (getModule('tectonic') as any).deserializeInstance(i);
@@ -73,13 +72,7 @@ export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
       const sol = (getModule('kakuro') as any).deserializeSolution(s);
       return new KakuroGame(inst, sol);
     },
-    hintProvider: (i) => (cells) => {
-      const mod = getModule('kakuro');
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const inst = (mod as any).deserializeInstance(i);
-      const h = mod.getHint?.(inst, { cells } as never);
-      return h && h.cells.length ? h.cells[0] : null;
-    },
+    hintProvider: makeHintProvider('kakuro'),
     maxDigit: () => 9
   }
 };
