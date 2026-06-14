@@ -7,6 +7,7 @@ export const CELLS = 81;
 export function gridFromString(s: string): SudokuGrid {
   const clean = s.trim();
   if (clean.length !== CELLS) throw new Error(`grid must be ${CELLS} chars, got ${clean.length}`);
+  if (!/^[0-9.]+$/.test(clean)) throw new Error('grid must contain only 0-9 or . characters');
   return [...clean].map((ch) => (ch === '.' || ch === '0' ? 0 : Number(ch)));
 }
 
