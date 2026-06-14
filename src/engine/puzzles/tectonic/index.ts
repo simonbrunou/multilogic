@@ -34,11 +34,19 @@ export const tectonic: DeductionPuzzle<TectonicInstance, TectonicState, Tectonic
     let best: GeneratedTectonic | null = null;
     for (let a = 0; a < MAX_ATTEMPTS; a++) {
       if (args.signal.aborted) throw new Error('generation aborted');
-      const g = generateForDifficulty(args.prng, args.difficulty);
+      let g: GeneratedTectonic;
+      try {
+        g = generateForDifficulty(args.prng, args.difficulty);
+      } catch {
+        continue;
+      }
       if (g.difficulty === args.difficulty) return { instance: g.instance, solution: g.solution, achievedDifficulty: g.difficulty, source: 'live' };
       best = best ? closer(args.difficulty, best, g) : g;
     }
-    return { instance: best!.instance, solution: best!.solution, achievedDifficulty: best!.difficulty, source: 'live' };
+    if (best) return { instance: best.instance, solution: best.solution, achievedDifficulty: best.difficulty, source: 'live' };
+    // Every attempt threw — let this surface as a genuine error.
+    const g = generateForDifficulty(args.prng, args.difficulty);
+    return { instance: g.instance, solution: g.solution, achievedDifficulty: g.difficulty, source: 'live' };
   },
   solveComplete(inst: TectonicInstance, limit = 2): SolveResult<TectonicSolution> { return solve(inst, limit); },
   rate(inst: TectonicInstance): Difficulty { return rateInstance(inst); },

@@ -6,7 +6,8 @@ import type { Difficulty } from '../../core/types';
 import type { TectonicInstance } from './types';
 
 const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
-const MAX_LAYOUT_ATTEMPTS = 250;
+// Measured fill feasibility ~1.3%; guard of 2000 makes P(all-fail) < 1e-7.
+const MAX_LAYOUT_ATTEMPTS = 2000;
 
 export interface GeneratedTectonic { instance: TectonicInstance; solution: number[]; difficulty: Difficulty }
 

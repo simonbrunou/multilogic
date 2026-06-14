@@ -27,11 +27,19 @@ export const kakuro: DeductionPuzzle<KakuroInstance, KakuroState, KakuroMove, Ka
     let best: GeneratedKakuro | null = null;
     for (let a = 0; a < MAX_ATTEMPTS; a++) {
       if (args.signal.aborted) throw new Error('generation aborted');
-      const g = generateForDifficulty(args.prng, args.difficulty);
+      let g: GeneratedKakuro;
+      try {
+        g = generateForDifficulty(args.prng, args.difficulty);
+      } catch {
+        continue;
+      }
       if (g.difficulty === args.difficulty) return { instance: g.instance, solution: g.solution, achievedDifficulty: g.difficulty, source: 'live' };
       best = best ? (Math.abs(RANK[g.difficulty] - RANK[args.difficulty]) < Math.abs(RANK[best.difficulty] - RANK[args.difficulty]) ? g : best) : g;
     }
-    return { instance: best!.instance, solution: best!.solution, achievedDifficulty: best!.difficulty, source: 'live' };
+    if (best) return { instance: best.instance, solution: best.solution, achievedDifficulty: best.difficulty, source: 'live' };
+    // Every attempt threw — let this surface as a genuine error.
+    const g = generateForDifficulty(args.prng, args.difficulty);
+    return { instance: g.instance, solution: g.solution, achievedDifficulty: g.difficulty, source: 'live' };
   },
   solveComplete(inst: KakuroInstance, limit = 2): SolveResult<KakuroSolution> { return solve(inst, limit); },
   rate(inst: KakuroInstance): Difficulty { return rateInstance(inst); },

@@ -39,8 +39,10 @@ function buildTopology(width: number, height: number, prng: PRNG, p: number): bo
   return black;
 }
 
+// Measured full per-attempt success (topology + fill + uniqueness) ~3.7%;
+// guard of 1000 makes P(all-fail) < 1e-7.
 export function generateForDifficulty(prng: PRNG, target: Difficulty, width = 6, height = 6): GeneratedKakuro {
-  for (let attempt = 0; attempt < 300; attempt++) {
+  for (let attempt = 0; attempt < 1000; attempt++) {
     const black = buildTopology(width, height, prng, 0.38);
     if (!black) continue;
     const base: KakuroInstance = { width, height, black, clues: black.map((b) => (b ? {} : null)) };
