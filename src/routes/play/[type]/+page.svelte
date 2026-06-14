@@ -28,7 +28,7 @@
     const svc = createPuzzleService(transport, { timeoutMs: 4000, bundle });
     const seed = `sudoku-${Date.now()}-${Math.random()}`;
     const res = await svc.request('sudoku', diff, seed);
-    store.load(res.givens, res.solution);
+    store.load(res.instance, res.solution);
     loading = false;
   }
 

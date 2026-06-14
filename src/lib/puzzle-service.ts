@@ -11,7 +11,7 @@ export interface BakedPuzzle {
   type: string;
   requested: Difficulty;
   achieved: Difficulty;
-  givens: string;
+  instance: string;
   solution: string;
 }
 export interface Bundle {
@@ -20,7 +20,7 @@ export interface Bundle {
 }
 
 export interface PuzzleResult {
-  givens: string;
+  instance: string;
   solution: string;
   achievedDifficulty: Difficulty;
   source: 'live' | 'baked';
@@ -41,7 +41,7 @@ function pickFromBundle(bundle: Bundle | null | undefined, puzzle: PuzzleType, d
   for (const p of candidates) {
     if (Math.abs(RANK[p.requested] - RANK[difficulty]) < Math.abs(RANK[best.requested] - RANK[difficulty])) best = p;
   }
-  return { givens: best.givens, solution: best.solution, achievedDifficulty: best.achieved, source: 'baked' };
+  return { instance: best.instance, solution: best.solution, achievedDifficulty: best.achieved, source: 'baked' };
 }
 
 export function createPuzzleService(transport: Transport, opts: ServiceOpts = {}) {
@@ -70,7 +70,7 @@ export function createPuzzleService(transport: Transport, opts: ServiceOpts = {}
       }, timeoutMs);
       pending.set(id, (res) => {
         if (res.kind === 'result') {
-          finish(() => resolve({ givens: res.givens, solution: res.solution, achievedDifficulty: res.achievedDifficulty, source: 'live' }));
+          finish(() => resolve({ instance: res.instance, solution: res.solution, achievedDifficulty: res.achievedDifficulty, source: 'live' }));
         } else if (res.kind === 'error') {
           finish(() => fallbackOr(() => reject(new Error(res.message))));
         }

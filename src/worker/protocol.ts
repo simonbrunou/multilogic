@@ -16,7 +16,7 @@ export type WorkerRequest = GenerateRequest | CancelRequest;
 export interface ResultResponse {
   kind: 'result';
   id: number;
-  givens: string;
+  instance: string;
   solution: string;
   achievedDifficulty: Difficulty;
 }

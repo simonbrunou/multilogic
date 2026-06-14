@@ -13,8 +13,8 @@ function fakeTransport(behaviour: (req: WorkerRequest, reply: (r: WorkerResponse
 const BUNDLE: Bundle = {
   engineVersion: 1,
   puzzles: [
-    { type: 'sudoku', requested: 'easy', achieved: 'easy', givens: 'g-easy', solution: 's-easy' },
-    { type: 'sudoku', requested: 'hard', achieved: 'medium', givens: 'g-hard', solution: 's-hard' }
+    { type: 'sudoku', requested: 'easy', achieved: 'easy', instance: 'g-easy', solution: 's-easy' },
+    { type: 'sudoku', requested: 'hard', achieved: 'medium', instance: 'g-hard', solution: 's-hard' }
   ]
 };
 
@@ -22,12 +22,12 @@ describe('puzzle service', () => {
   it('resolves with a live result when the worker replies', async () => {
     const t = fakeTransport((req, reply) => {
       const generateReq = req as Extract<WorkerRequest, { kind: 'generate' }>;
-      reply({ kind: 'result', id: generateReq.id, givens: 'G', solution: 'S', achievedDifficulty: 'easy' });
+      reply({ kind: 'result', id: generateReq.id, instance: 'G', solution: 'S', achievedDifficulty: 'easy' });
     });
     const svc = createPuzzleService(t, { timeoutMs: 1000 });
     const res = await svc.request('sudoku', 'easy', 'seed1');
     expect(res.source).toBe('live');
-    expect(res.givens).toBe('G');
+    expect(res.instance).toBe('G');
   });
 
   it('falls back to the baked bundle on timeout', async () => {
@@ -35,7 +35,7 @@ describe('puzzle service', () => {
     const svc = createPuzzleService(t, { timeoutMs: 10, bundle: BUNDLE });
     const res = await svc.request('sudoku', 'easy', 'seed1');
     expect(res.source).toBe('baked');
-    expect(res.givens).toBe('g-easy');
+    expect(res.instance).toBe('g-easy');
   });
 
   it('falls back to the closest baked difficulty when exact is missing', async () => {
@@ -43,7 +43,7 @@ describe('puzzle service', () => {
     const svc = createPuzzleService(t, { timeoutMs: 10, bundle: BUNDLE });
     const res = await svc.request('sudoku', 'expert', 'seed1');
     expect(res.source).toBe('baked');
-    expect(res.givens).toBe('g-hard');
+    expect(res.instance).toBe('g-hard');
   });
 
   it('rejects on timeout when no bundle is available', async () => {

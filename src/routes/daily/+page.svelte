@@ -23,7 +23,7 @@
     currentTransport = transport;
     const svc = createPuzzleService(transport, { timeoutMs: 6000, bundle });
     const res = await svc.request('sudoku', 'medium', dailySeed('sudoku', date));
-    store.load(res.givens, res.solution);
+    store.load(res.instance, res.solution);
     loading = false;
   });
   onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });
