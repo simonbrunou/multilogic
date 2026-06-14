@@ -1,11 +1,12 @@
 import type { PuzzleModule, PuzzleType } from '../core/types';
 import { sudoku } from './sudoku/index';
 import { tectonic } from './tectonic/index';
+import { kakuro } from './kakuro/index';
 
 export const MODULES: Record<PuzzleType, PuzzleModule | undefined> = {
   sudoku,
   tectonic,
-  kakuro: undefined,
+  kakuro,
   grecolatin: undefined
 };
 
