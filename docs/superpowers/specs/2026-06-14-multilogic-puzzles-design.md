@@ -32,7 +32,8 @@ input smoothly, validate instantly, and feel good to solve.
 - Interactive solving with a polished, responsive UI (desktop keyboard + mobile touch, equal weight).
 - Procedural generation with a **guaranteed unique solution** for deduction puzzles (Sudoku,
   Tectonic, Kakuro).
-- Per-type difficulty selection backed by real difficulty rating.
+- Per-type difficulty selection backed by real difficulty rating (Sudoku at Phase 1;
+  calibrated per type as each puzzle ships — see §10).
 - Local persistence: save/resume, per-type stats, settings.
 - A lightweight retention loop: date-seeded **daily puzzle** + **shareable result**.
 
@@ -79,7 +80,9 @@ scripts/
 **Engine purity (hard requirement).** `src/engine/**` must use **no** browser/Worker/runtime
 globals: no `self`, `postMessage`, `Math.random`, `crypto`, `performance.now`, no Svelte / `$app`
 imports. The identical module runs in the Worker (runtime), `scripts/pregen.ts` (Node/Bun build),
-and Vitest. Enforced by lint rule + a dedicated tsconfig.
+and Vitest. Enforced by a dedicated `tsconfig.engine.json` (restricted lib/paths, no DOM lib) plus
+an ESLint `no-restricted-globals` / `no-restricted-imports` rule scoped to `src/engine/`, and
+backed by the seed-determinism property test (§9).
 
 **No barrel exports** from `engine/puzzles` — explicit imports only, so `dlx.ts` tree-shakes out
 of bundles that don't use it (everything except Sudoku).
@@ -92,7 +95,19 @@ puzzles (calling them is a compile error, not a runtime stub):
 ```ts
 type Difficulty = 'easy' | 'medium' | 'hard' | 'expert';   // shared band enum
 
+// Engine-internal call args. `prng` is an already-seeded instance; `signal` is created
+// worker-side (NOT passed over postMessage — see §5). Both are engine-readable only.
 interface GenArgs { difficulty: Difficulty; prng: PRNG; signal: AbortSignal }
+
+// Drives the §4 fallback chain: callers compare requested vs achieved difficulty and know the source.
+interface GenResult<Instance> {
+  instance: Instance;
+  solution: Solution;            // omitted/`null` for construction puzzles
+  achievedDifficulty: Difficulty;
+  source: 'live' | 'baked';
+}
+// PuzzleType, MoveResult, Hint, RenderModel, SolveResult, ConstructionResult, Solution, State, Move:
+// named placeholder types, shaped per puzzle as its arm is implemented.
 
 interface PuzzleBase<Instance, State, Move> {
   type: PuzzleType;
@@ -105,7 +120,7 @@ interface PuzzleBase<Instance, State, Move> {
 interface DeductionPuzzle<I, S, M> extends PuzzleBase<I, S, M> {
   kind: 'deduction';
   solveComplete(i: I): SolveResult;   // uniqueness oracle, stop-at-2
-  rate(i: I): Difficulty;             // per-type rater, reuses solver technique-log
+  rate(i: I): Difficulty;             // per-type rater; separate technique solver (see §3.3)
 }
 
 interface ConstructionPuzzle<I, S, M> extends PuzzleBase<I, S, M> {
@@ -125,10 +140,11 @@ worker, daily puzzle, and tests share one derivation path.
 
 - **Uniqueness oracle** (`solveComplete`): a *complete* solver that stops at the 2nd solution.
   This is the only thing that guarantees uniqueness during generation.
-- **Difficulty rater** (`rate`): a *human-technique* solver per type, which logs which techniques
-  it needed. The rater consumes the same solver instrumentation rather than being a second,
-  divergent solver. Difficulty rating does **not** generalise as shared code — each module ships
-  its own technique ladder; only the band *enum* and the rating *contract* are shared.
+- **Difficulty rater** (`rate`): a **separate**, *human-technique* solver per type. It is the only
+  one that emits a technique log (which techniques, in what order, were needed); the oracle merely
+  counts solutions and produces no log. These are two distinct algorithms by construction — do not
+  try to make one serve both roles. Difficulty rating does **not** generalise as shared code: each
+  module ships its own technique ladder; only the band *enum* and the rating *contract* are shared.
 
 ## 4. Generation strategy
 
@@ -142,9 +158,10 @@ One generator, **two entry points**:
 on load and (b) a **safety net** when live generation exceeds the latency budget on weak devices.
 
 **Fallback chain** (worker): requested difficulty → closest achievable difficulty → baked-bundle
-puzzle → error. The bundle is a **required CI artifact**, regenerated each release, tied to the
-engine version. Target size **~5–7 KB gzipped (~40–50 puzzles), capped ~50 KB** — a safety net,
-not a content library.
+puzzle → error. The bundle is a **required CI artifact**: `bun run scripts/pregen.ts` produces
+`static/puzzles.bundle.json`, regenerated each release and stamped with the engine version (the
+worker rejects a bundle whose version doesn't match the running engine). Target size
+**~5–7 KB gzipped (~40–50 puzzles), capped ~50 KB** — a safety net, not a content library.
 
 ### 4.1 Deduction generation (Sudoku, Tectonic)
 
@@ -170,8 +187,10 @@ hard-excludes n = 6.
 Discriminated messages: `generate` / `progress` / `result` / `error` / `cancel`.
 
 - **Timeout** per generate request; on timeout, run the fallback chain (§4).
-- **Cancel** via `AbortSignal` — the engine checks `signal.aborted` at backtracking checkpoints
-  (same checkpoint cadence that informs the latency budget), so cancel preempts a deep search.
+- **Cancel:** the `AbortSignal` is **constructed inside the worker**, never sent over `postMessage`.
+  A `cancel` wire message aborts the worker-side controller; the engine reads `signal.aborted` at
+  backtracking checkpoints (same checkpoint cadence that informs the latency budget), so cancel
+  preempts a deep search. (`GenArgs.signal` in §3.2 is this worker-internal signal.)
 - **Progress** events for a determinate-ish spinner.
 - All payloads must be **structured-clone-serialisable** (plain objects/arrays — no class
   instances, no `Map`/`Set` on the wire; serialise those explicitly).
@@ -197,18 +216,27 @@ v1 task.
   timer; difficulty select. Construction mode (Greco-Latin) shows a **live validity meter** instead
   of error-vs-solution highlighting.
 - **Persistence (localStorage, versioned):**
-  - In-progress game (grid, notes, history, elapsed), keyed by type — auto-saved, resume on return.
+  - In-progress game — the **serialised `instance` itself** plus grid, notes, history, elapsed,
+    keyed by type. The full instance is stored (not just the seed) so resume never depends on
+    regeneration, which is non-deterministic across engine versions. Auto-saved; resume on return.
   - Per-type stats: solved count, best/avg time by difficulty.
   - Settings (theme, error-highlight, auto-notes, etc.).
-  - An **engine-version field** gates migration; a generator change invalidates stale saves and the
-    fallback bundle. Cap undo history (e.g. 50 steps) to bound storage.
+  - An **engine-version field** gates migration via a `migrate(saved, fromVersion)` step (concrete
+    shape defined in Phase 1); a generator change invalidates stale saves and the fallback bundle.
+    Cap undo history (e.g. 50 steps) to bound storage.
 
 ## 8. Retention
 
 - **Daily puzzle:** `/daily` generates from `seed = hash(type, 'daily', YYYY-MM-DD)` → identical for
-  everyone, no backend.
-- **Share card:** result encoded in a URL hash + a client-generated image
-  (e.g. "Sudoku · 2026-06-14 · 4:12 · no hints"). The link drops a friend onto the same seed.
+  everyone, no backend. `hash` is an in-engine deterministic non-crypto hash (e.g. `xmur3` seeding
+  the `sfc32` PRNG) so browser, Node build, and tests agree. **The daily path must NOT substitute a
+  different puzzle via the §4 fallback chain** (that would break "identical for everyone"): either
+  pre-bake the day's puzzle into the bundle or use an extended timeout with no puzzle-substitution.
+- **Share result (v1 = text/emoji, Wordle-style):** a short text/emoji string copied to clipboard
+  via the Clipboard API (e.g. "Multilogic Sudoku · 2026-06-14 · 4:12 · no hints"), **plus** a share
+  URL whose hash encodes `{type, date}` so the link drops a friend onto the same daily seed. No
+  canvas/image rendering in v1. A rendered image card is an explicit **fast-follow** (see §10); if
+  built, it must live in the UI layer, never in the engine's `render()`.
 - Streak: deferred (localStorage-only, fast-follow).
 
 ## 9. Testing strategy
@@ -223,12 +251,17 @@ v1 task.
 
 ## 10. Build sequencing
 
-1. **Engine seams + Sudoku end-to-end:** `core` (prng, dlx, uniqueness, types, difficulty enum),
-   Sudoku module, Worker + protocol, play UI (Stacked), persistence, daily, share card,
+1. **Engine seams + Sudoku end-to-end:** `core` (prng, dlx, uniqueness, types, difficulty enum +
+   Sudoku rater), Sudoku module **including `getHint`** (so the hint button is never a dead control),
+   Worker + protocol, play UI (Stacked), persistence, daily puzzle, **text/emoji share + share URL**,
    `scripts/pregen.ts`. Proves the full vertical slice.
+   - **Phase 1b fast-follow (not load-bearing):** rendered/canvas image share card. Deliberately
+     split out so Phase 1's shippable boundary stays crisp.
 2. **Tectonic:** the shared CSP/backtracking utilities emerge concretely here (with two real solvers
-   to factor from). Validates the framework generalises beyond exact-cover.
-3. **Kakuro:** hybrid solver, topology-mutation generation, split-clue-cell render.
+   to factor from). Validates the framework generalises beyond exact-cover. Ships its own technique
+   ladder + rater (difficulty calibrated as it ships).
+3. **Kakuro:** hybrid solver, topology-mutation generation, split-clue-cell render, own technique
+   ladder + rater.
 4. **Greco-Latin (construction mode):** dual-grid render, `validate()` scoring, n ≠ 6.
 
 ## 11. Tech stack
@@ -242,6 +275,7 @@ Pages).
 | Risk | Mitigation |
 |---|---|
 | Kakuro generation slow / combinatorial | Measure early; topology-mutation recipe; fallback bundle; WASM only if budget blown |
+| Kakuro difficulty rater complexity (technique ladder harder than Sudoku) | May ship with coarser bands initially; refine post-launch |
 | Engine accidentally uses runtime globals → build/worker divergence | Lint rule + dedicated tsconfig + determinism property test |
 | Difficulty miscalibrated across types | Per-type rater validated on benchmark sets; bands calibrated per type |
 | Premature abstraction (CSP framework, all unions up front) | Sudoku uses DLX directly; CSP core + later union arms emerge per puzzle |
