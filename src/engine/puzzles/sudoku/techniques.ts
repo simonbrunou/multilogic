@@ -44,8 +44,24 @@ function boxIndexOf(i: number): number {
   return Math.floor(r / 3) * 3 + Math.floor(c / 3);
 }
 
-/** Pointing (box→line) and claiming (line→box) eliminations. */
-export function lockedCandidates(grid: number[], cand: Candidates): Step | null {
+type Elimination = { index: number; digit: number };
+
+/** Empty cells of `unit`, excluding `source`, that still hold candidate `d`. */
+function elimsForDigit(unit: number[], source: number[], grid: number[], cand: Candidates, d: number): Elimination[] {
+  return unit
+    .filter((i) => !source.includes(i) && grid[i] === 0 && cand[i].has(d))
+    .map((i) => ({ index: i, digit: d }));
+}
+
+/** Sorted candidate signature, so two cells with the same pair compare equal. */
+function candKey(set: Set<number>): string {
+  return [...set].sort((x, y) => x - y).join();
+}
+
+const lockedStep = (eliminations: Elimination[]): Step => ({ technique: 'lockedCandidates', placements: [], eliminations });
+
+/** Pointing: a digit confined to one row/col within a box clears the rest of that line. */
+function pointing(grid: number[], cand: Candidates): Step | null {
   for (const box of BOXES) {
     for (let d = 1; d <= 9; d++) {
       if (box.some((i) => grid[i] === d)) continue;
@@ -53,38 +69,34 @@ export function lockedCandidates(grid: number[], cand: Candidates): Step | null 
       if (spots.length < 2) continue;
       const rows = new Set(spots.map((i) => Math.floor(i / 9)));
       const cols = new Set(spots.map((i) => i % 9));
-      if (rows.size === 1) {
-        const r = [...rows][0];
-        const elim = ROWS[r]
-          .filter((i) => !box.includes(i) && grid[i] === 0 && cand[i].has(d))
-          .map((i) => ({ index: i, digit: d }));
-        if (elim.length) return { technique: 'lockedCandidates', placements: [], eliminations: elim };
-      }
-      if (cols.size === 1) {
-        const c = [...cols][0];
-        const elim = COLS[c]
-          .filter((i) => !box.includes(i) && grid[i] === 0 && cand[i].has(d))
-          .map((i) => ({ index: i, digit: d }));
-        if (elim.length) return { technique: 'lockedCandidates', placements: [], eliminations: elim };
-      }
+      const line = rows.size === 1 ? ROWS[[...rows][0]] : cols.size === 1 ? COLS[[...cols][0]] : null;
+      if (!line) continue;
+      const elim = elimsForDigit(line, box, grid, cand, d);
+      if (elim.length) return lockedStep(elim);
     }
   }
+  return null;
+}
+
+/** Claiming: a digit confined to one box within a line clears the rest of that box. */
+function claiming(grid: number[], cand: Candidates): Step | null {
   for (const line of [...ROWS, ...COLS]) {
     for (let d = 1; d <= 9; d++) {
       if (line.some((i) => grid[i] === d)) continue;
       const spots = line.filter((i) => grid[i] === 0 && cand[i].has(d));
       if (spots.length < 2) continue;
       const boxes = new Set(spots.map(boxIndexOf));
-      if (boxes.size === 1) {
-        const b = [...boxes][0];
-        const elim = BOXES[b]
-          .filter((i) => !line.includes(i) && grid[i] === 0 && cand[i].has(d))
-          .map((i) => ({ index: i, digit: d }));
-        if (elim.length) return { technique: 'lockedCandidates', placements: [], eliminations: elim };
-      }
+      if (boxes.size !== 1) continue;
+      const elim = elimsForDigit(BOXES[[...boxes][0]], line, grid, cand, d);
+      if (elim.length) return lockedStep(elim);
     }
   }
   return null;
+}
+
+/** Pointing (box→line) and claiming (line→box) eliminations. */
+export function lockedCandidates(grid: number[], cand: Candidates): Step | null {
+  return pointing(grid, cand) ?? claiming(grid, cand);
 }
 
 /** Two cells in a unit sharing the same two candidates → eliminate those digits elsewhere in the unit. */
@@ -95,15 +107,13 @@ export function nakedPair(grid: number[], cand: Candidates): Step | null {
       for (let b = a + 1; b < empties.length; b++) {
         const ia = empties[a];
         const ib = empties[b];
-        const sa = [...cand[ia]].sort((x, y) => x - y).join();
-        const sb = [...cand[ib]].sort((x, y) => x - y).join();
-        if (sa !== sb) continue;
+        if (candKey(cand[ia]) !== candKey(cand[ib])) continue;
         const digits = [...cand[ia]];
-        const elim: { index: number; digit: number }[] = [];
-        for (const i of unit) {
-          if (i === ia || i === ib || grid[i] !== 0) continue;
-          for (const d of digits) if (cand[i].has(d)) elim.push({ index: i, digit: d });
-        }
+        const elim = unit.flatMap((i) =>
+          i === ia || i === ib || grid[i] !== 0
+            ? []
+            : digits.filter((d) => cand[i].has(d)).map((d) => ({ index: i, digit: d }))
+        );
         if (elim.length) return { technique: 'nakedPair', placements: [], eliminations: elim };
       }
     }

@@ -28,6 +28,28 @@ export function kingNeighbors(index: number, width: number, height: number): num
   return out;
 }
 
+/**
+ * Digits 1..regionSize that may still go in empty cell `i`: those not used by a
+ * same-region peer or a king-move neighbour. `sizes`/`byRegion` are passed in so
+ * callers compute them once per grid. This is the single source of the Tectonic
+ * placement rule, shared by the solver/rater and the hint engine.
+ */
+export function cellCandidates(
+  inst: TectonicInstance,
+  grid: number[],
+  i: number,
+  sizes: Record<number, number>,
+  byRegion: Record<number, number[]>
+): number[] {
+  const size = sizes[inst.regions[i]];
+  const banned = new Set<number>();
+  for (const p of byRegion[inst.regions[i]]) if (grid[p] !== 0) banned.add(grid[p]);
+  for (const k of kingNeighbors(i, inst.width, inst.height)) if (grid[k] !== 0) banned.add(grid[k]);
+  const out: number[] = [];
+  for (let d = 1; d <= size; d++) if (!banned.has(d)) out.push(d);
+  return out;
+}
+
 export function serializeInstance(inst: TectonicInstance): string {
   return JSON.stringify(inst);
 }

@@ -1,4 +1,4 @@
-import { regionSizes, cellsByRegion, kingNeighbors } from './rules';
+import { regionSizes, cellsByRegion, cellCandidates } from './rules';
 import type { TectonicInstance } from './types';
 import type { Difficulty } from '../../core/types';
 import { measureEffort, type EffortModel } from '../../core/effort';
@@ -7,16 +7,9 @@ import { bandFromEffort } from '../../core/difficulty';
 function candidates(inst: TectonicInstance, grid: number[]): Set<number>[] {
   const sizes = regionSizes(inst);
   const byRegion = cellsByRegion(inst.regions);
-  return grid.map((v, i) => {
-    if (v !== 0) return new Set([v]);
-    const size = sizes[inst.regions[i]];
-    const banned = new Set<number>();
-    for (const p of byRegion[inst.regions[i]]) if (grid[p] !== 0) banned.add(grid[p]);
-    for (const k of kingNeighbors(i, inst.width, inst.height)) if (grid[k] !== 0) banned.add(grid[k]);
-    const s = new Set<number>();
-    for (let d = 1; d <= size; d++) if (!banned.has(d)) s.add(d);
-    return s;
-  });
+  return grid.map((v, i) =>
+    v !== 0 ? new Set([v]) : new Set(cellCandidates(inst, grid, i, sizes, byRegion))
+  );
 }
 
 function effortModel(inst: TectonicInstance): EffortModel {
@@ -25,22 +18,15 @@ function effortModel(inst: TectonicInstance): EffortModel {
   return {
     cellCount: inst.regions.length,
     candidates(grid, i) {
-      if (grid[i] !== 0) return [];
-      const size = sizes[inst.regions[i]];
-      const banned = new Set<number>();
-      for (const p of byRegion[inst.regions[i]]) if (grid[p] !== 0) banned.add(grid[p]);
-      for (const k of kingNeighbors(i, inst.width, inst.height)) if (grid[k] !== 0) banned.add(grid[k]);
-      const out: number[] = [];
-      for (let d = 1; d <= size; d++) if (!banned.has(d)) out.push(d);
-      return out;
+      return grid[i] !== 0 ? [] : cellCandidates(inst, grid, i, sizes, byRegion);
     }
   };
 }
 
 // Thresholds calibrated via distribution of 40 expert-dug puzzles (effort range 0–44):
 // median=5, P75=10, P85=13. T1=2: effort≤2→medium; T2=10: effort≤10→hard, >10→expert.
-export const TECTONIC_T1 = 2;
-export const TECTONIC_T2 = 10;
+const TECTONIC_T1 = 2;
+const TECTONIC_T2 = 10;
 
 export interface Trace { solved: boolean; hardestRank: number }
 
