@@ -31,3 +31,9 @@ test('kakuro play page renders a grid and accepts input', async ({ page }) => {
   await page.keyboard.press('1');
   await expect(page.locator('.cell.white').filter({ hasText: /[1-9]/ }).first()).toBeVisible();
 });
+
+test('grecolatin play page renders a board', async ({ page }) => {
+  await page.goto('/play/grecolatin');
+  await expect(page.locator('.cell').first()).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('.cell')).toHaveCount(25); // default order 5 → 25 cells
+});
