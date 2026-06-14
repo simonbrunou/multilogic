@@ -38,23 +38,23 @@ export interface SolveResult<Solution> {
   solution: Solution | null;
 }
 
-export interface PuzzleBase<Instance, State, Move> {
+export interface PuzzleBase<Instance, State, Move, Solution = unknown> {
   type: PuzzleType;
-  generate(args: GenArgs): Promise<GenResult<Instance, unknown>>;
+  generate(args: GenArgs): Promise<GenResult<Instance, Solution>>;
   validateMove(instance: Instance, state: State, move: Move): MoveResult;
   getHint?(instance: Instance, state: State): Hint | null;
   render(instance: Instance, state: State): RenderModel;
 }
 
 export interface DeductionPuzzle<Instance, State, Move, Solution>
-  extends PuzzleBase<Instance, State, Move> {
+  extends PuzzleBase<Instance, State, Move, Solution> {
   kind: 'deduction';
   solveComplete(instance: Instance, limit?: number): SolveResult<Solution>;
   rate(instance: Instance): Difficulty;
 }
 
 export interface ConstructionPuzzle<Instance, State, Move>
-  extends PuzzleBase<Instance, State, Move> {
+  extends PuzzleBase<Instance, State, Move, null> {
   kind: 'construction';
   validate(instance: Instance, state: State): ConstructionResult;
 }
@@ -67,6 +67,6 @@ export type PuzzleModule =
 
 // Named placeholder types — shaped per puzzle as each arm is implemented.
 export interface MoveResult { ok: boolean; reason?: string }
-export interface Hint { cells: number[]; text: string }
+export interface Hint { /** flat 0-based cell indices */ cells: number[]; text: string }
 export interface RenderModel { kind: string; [k: string]: unknown }
-export interface ConstructionResult { complete: boolean; valid: boolean; score: number }
+export interface ConstructionResult { complete: boolean; valid: boolean; /** 0.0–1.0 completion ratio */ score: number }
