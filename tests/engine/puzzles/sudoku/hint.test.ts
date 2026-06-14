@@ -17,11 +17,19 @@ describe('getHint', () => {
     expect(typeof hint!.text).toBe('string');
   });
 
-  it('accounts for the player state (entries narrow the next hint)', () => {
+  it('accounts for the player state: applying a hint changes the next hint', () => {
     const givens = gridFromString(EASY);
-    const state = { cells: new Array(81).fill(0) };
-    const hint = getHint({ givens }, state);
-    expect(hint).not.toBeNull();
+    const first = getHint({ givens }, { cells: new Array(81).fill(0) });
+    expect(first).not.toBeNull();
+    const m = first!.text.match(/place (\d)/);
+    expect(m).not.toBeNull(); // first hint on a fresh easy puzzle is a placement
+    const firstCell = first!.cells[0];
+    const digit = Number(m![1]);
+    const cells = new Array(81).fill(0);
+    cells[firstCell] = digit; // player applies the first hint
+    const next = getHint({ givens }, { cells });
+    expect(next).not.toBeNull();
+    expect(next!.cells).not.toContain(firstCell); // the hint has moved on to a new cell
   });
 
   it('returns null on an already-solved grid', () => {
