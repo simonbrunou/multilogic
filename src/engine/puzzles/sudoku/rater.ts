@@ -2,6 +2,25 @@ import { computeCandidates, PEERS, type Candidates } from './candidates';
 import { nakedSingle, hiddenSingle, lockedCandidates, nakedPair, type Step } from './techniques';
 import type { Difficulty } from '../../core/types';
 import type { SudokuInstance } from './types';
+import { measureEffort, type EffortModel } from '../../core/effort';
+import { bandFromEffort } from '../../core/difficulty';
+
+// Sudoku candidates: digits 1-9 not used by a filled peer.
+const sudokuEffortModel: EffortModel = {
+  cellCount: 81,
+  candidates(grid, i) {
+    if (grid[i] !== 0) return [];
+    const used = new Set<number>();
+    for (const p of PEERS[i]) if (grid[p] !== 0) used.add(grid[p]);
+    const out: number[] = [];
+    for (let d = 1; d <= 9; d++) if (!used.has(d)) out.push(d);
+    return out;
+  }
+};
+
+// Thresholds calibrated in Task 5; start with placeholders.
+export const SUDOKU_T1 = 1;
+export const SUDOKU_T2 = 8;
 
 const LADDER: { fn: (g: number[], c: Candidates) => Step | null; rank: number }[] = [
   { fn: nakedSingle, rank: 1 },
@@ -45,11 +64,7 @@ export function solveWithTechniques(givens: number[]): SolveTrace {
   return { solved: grid.every((v) => v !== 0), hardestRank };
 }
 
-/** Rate a puzzle by the hardest technique its solution path requires. */
+/** Rate a puzzle by search effort (guesses needed by a forced-propagation + MRV solver). */
 export function rate(instance: SudokuInstance): Difficulty {
-  const trace = solveWithTechniques(instance.givens);
-  if (!trace.solved) return 'expert';
-  if (trace.hardestRank <= 1) return 'easy';
-  if (trace.hardestRank === 2) return 'medium';
-  return 'hard';
+  return bandFromEffort(measureEffort(instance.givens, sudokuEffortModel), SUDOKU_T1, SUDOKU_T2);
 }

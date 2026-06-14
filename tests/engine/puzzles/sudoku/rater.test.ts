@@ -22,13 +22,11 @@ describe('technique solver + rater', () => {
     expect(t.solved).toBe(true);
   });
 
-  it('rate returns a known difficulty band for the easy puzzle', () => {
-    const band = rate({ givens: gridFromString(EASY) });
-    expect(['easy', 'medium', 'hard']).toContain(band);
+  it('rate returns easy for the classic forced-single-solvable puzzle', () => {
+    expect(rate({ givens: gridFromString(EASY) })).toBe('easy');
   });
 
-  it('rate returns expert when the technique ladder cannot finish', () => {
-    const band = rate({ givens: gridFromString('1' + '0'.repeat(80)) });
-    expect(band).toBe('expert');
+  it('rate returns expert for a near-empty grid (requires heavy search)', () => {
+    expect(rate({ givens: gridFromString('1' + '0'.repeat(80)) })).toBe('expert');
   });
 });
