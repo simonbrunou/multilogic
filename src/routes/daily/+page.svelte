@@ -9,20 +9,24 @@
   import NumberPad from '$lib/components/NumberPad.svelte';
   import Toolbar from '$lib/components/Toolbar.svelte';
   import TimerView from '$lib/components/TimerView.svelte';
+  import type { Transport } from '$lib/puzzle-service';
 
   const store = new GameStore();
   let loading = $state(true);
   const date = todayISO(new Date());
+  let currentTransport: Transport | null = null;
 
   onMount(async () => {
     let bundle: Bundle | null = null;
     try { bundle = await (await fetch('/puzzles.bundle.json')).json(); } catch { bundle = null; }
-    const svc = createPuzzleService(createWorkerTransport(), { timeoutMs: 6000, bundle });
+    const transport = createWorkerTransport();
+    currentTransport = transport;
+    const svc = createPuzzleService(transport, { timeoutMs: 6000, bundle });
     const res = await svc.request('sudoku', 'medium', dailySeed('sudoku', date));
     store.load(res.givens, res.solution);
     loading = false;
   });
-  onDestroy(() => store.stopTimer());
+  onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });
 
   const conflicts = $derived(store.game && store.tick >= 0 ? store.game.conflicts() : new Set<number>());
   const solved = $derived(store.game && store.tick >= 0 ? store.game.isSolved() : false);

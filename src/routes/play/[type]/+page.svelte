@@ -9,18 +9,23 @@
   import Toolbar from '$lib/components/Toolbar.svelte';
   import TimerView from '$lib/components/TimerView.svelte';
   import type { Difficulty } from '../../../engine/core/types';
+  import type { Transport } from '$lib/puzzle-service';
 
   const store = new GameStore();
   let loading = $state(true);
   let difficulty = $state<Difficulty>('easy');
   const storage = typeof localStorage !== 'undefined' ? createStorage(localStorage) : null;
+  let currentTransport: Transport | null = null;
 
   async function newGame(diff: Difficulty) {
     loading = true;
     difficulty = diff;
+    currentTransport?.dispose?.();
     let bundle: Bundle | null = null;
     try { bundle = await (await fetch('/puzzles.bundle.json')).json(); } catch { bundle = null; }
-    const svc = createPuzzleService(createWorkerTransport(), { timeoutMs: 4000, bundle });
+    const transport = createWorkerTransport();
+    currentTransport = transport;
+    const svc = createPuzzleService(transport, { timeoutMs: 4000, bundle });
     const seed = `sudoku-${Date.now()}-${Math.random()}`;
     const res = await svc.request('sudoku', diff, seed);
     store.load(res.givens, res.solution);
@@ -28,7 +33,7 @@
   }
 
   onMount(() => { newGame('easy'); });
-  onDestroy(() => store.stopTimer());
+  onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });
 
   const conflicts = $derived(store.game && store.tick >= 0 ? store.game.conflicts() : new Set<number>());
   const solved = $derived(store.game && store.tick >= 0 ? store.game.isSolved() : false);

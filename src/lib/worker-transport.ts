@@ -10,6 +10,7 @@ export function createWorkerTransport(): Transport {
     post: (req: WorkerRequest) => worker.postMessage(req),
     onMessage: (handler: (res: WorkerResponse) => void) => {
       worker.onmessage = (e: MessageEvent<WorkerResponse>) => handler(e.data);
-    }
+    },
+    dispose: () => worker.terminate()
   };
 }

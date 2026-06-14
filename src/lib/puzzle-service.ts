@@ -4,6 +4,7 @@ import type { WorkerRequest, WorkerResponse } from '../worker/protocol';
 export interface Transport {
   post(req: WorkerRequest): void;
   onMessage(handler: (res: WorkerResponse) => void): void;
+  dispose?(): void;
 }
 
 export interface BakedPuzzle {

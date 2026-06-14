@@ -2,10 +2,12 @@
   import type { SudokuGame } from '../game-core';
   let { game, selected, tick = 0, conflicts = new Set<number>(), highlightErrors = true, onselect }:
     { game: SudokuGame; selected: number | null; tick?: number; conflicts?: Set<number>; highlightErrors?: boolean; onselect: (i: number) => void } = $props();
+
+  const cellView = $derived.by(() => { void tick; return [...game.cells]; });
 </script>
 
 <div class="grid" role="grid">
-  {#each game.cells as v, i (i)}
+  {#each cellView as v, i (i)}
     <button
       class="cell"
       class:given={game.isGiven(i)}
