@@ -53,6 +53,11 @@ describe('Dlx exact cover', () => {
     expect(() => dlx.addRow(0, [-1])).toThrow(RangeError);
   });
 
+  it('addRow rejects duplicate column indices', () => {
+    const dlx = new Dlx(5);
+    expect(() => dlx.addRow(0, [1, 1])).toThrow();
+  });
+
   it('solve is reusable: structure is clean after a solve', () => {
     const dlx = new Dlx(7);
     dlx.addRow(0, [0, 3, 6]);

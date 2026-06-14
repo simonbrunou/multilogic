@@ -56,6 +56,9 @@ export class Dlx {
         throw new RangeError(`addRow(${rowId}): column ${c} out of range [0, ${this.columns.length})`);
       }
     }
+    if (new Set(cols).size !== cols.length) {
+      throw new Error(`addRow(${rowId}): duplicate column index in ${JSON.stringify(cols)}`);
+    }
 
     let first: Node | null = null;
     for (const c of cols) {
@@ -97,7 +100,8 @@ export class Dlx {
     col.R.L = col; col.L.R = col;
   }
 
-  // NOTE: ties are broken left-to-right (first column wins). Part of the determinism contract above.
+  // NOTE: ties are broken left-to-right via strict `<` (first/lowest-index column of min size wins).
+  // This `<` is load-bearing for seed-reproducible generation — do not change to `<=`.
   private chooseColumn(): Column | null {
     let best: Column | null = null;
     let min = Infinity;

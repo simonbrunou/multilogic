@@ -56,4 +56,14 @@ describe('sudoku rules', () => {
     expect(grid.length).toBe(81);
     expect(grid.every((v) => v >= 1 && v <= 9)).toBe(true);
   });
+
+  it('buildDlx rejects a wrong-length grid', () => {
+    expect(() => buildDlx([1, 2, 3])).toThrow();
+  });
+
+  it('buildDlx rejects out-of-range cell values', () => {
+    const g = new Array(81).fill(0);
+    g[0] = 10;
+    expect(() => buildDlx(g)).toThrow();
+  });
 });

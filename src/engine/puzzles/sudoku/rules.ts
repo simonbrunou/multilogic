@@ -46,6 +46,14 @@ export function decodeRowId(rowId: number): { r: number; c: number; d: number } 
 
 /** Build a DLX for the given grid, restricting candidates to the givens where present. */
 export function buildDlx(grid: SudokuGrid): Dlx {
+  if (grid.length !== CELLS) {
+    throw new Error(`buildDlx: grid must have ${CELLS} cells, got ${grid.length}`);
+  }
+  for (const v of grid) {
+    if (!Number.isInteger(v) || v < 0 || v > 9) {
+      throw new Error(`buildDlx: cell values must be integers 0-9, got ${v}`);
+    }
+  }
   const dlx = new Dlx(324);
   for (let r = 0; r < N; r++) {
     for (let c = 0; c < N; c++) {
