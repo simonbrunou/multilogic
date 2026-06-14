@@ -4,7 +4,7 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-export const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 1;
 
 export interface SavedGame {
   type: string;

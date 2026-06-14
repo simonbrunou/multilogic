@@ -20,8 +20,8 @@ const sudokuEffortModel: EffortModel = {
 
 // Thresholds calibrated via distribution of 40 expert-dug puzzles (effort range 1–566):
 // median=17, P75=48, P85=89. T1=2: effort≤2→medium; T2=48: effort≤48→hard, >48→expert.
-export const SUDOKU_T1 = 2;
-export const SUDOKU_T2 = 48;
+const SUDOKU_T1 = 2;
+const SUDOKU_T2 = 48;
 
 const LADDER: { fn: (g: number[], c: Candidates) => Step | null; rank: number }[] = [
   { fn: nakedSingle, rank: 1 },
