@@ -10,9 +10,6 @@
     }
   },
   "deploy": {
-    "startCommand": "bun serve.js",
-    "inputs": [
-      { "step": "build", "include": ["build", "serve.js"] }
-    ]
+    "startCommand": "bun serve.js"
   }
 }
