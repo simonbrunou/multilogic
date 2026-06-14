@@ -9,11 +9,17 @@ export function isDifficulty(s: string): s is Difficulty {
 
 export type PuzzleType = 'sudoku' | 'tectonic' | 'kakuro' | 'grecolatin';
 
+/** Minimal structural subset of AbortSignal the engine relies on (keeps the engine DOM-free). */
+export interface AbortLike {
+  readonly aborted: boolean;
+  throwIfAborted?(): void;
+}
+
 /** Engine-internal generate() args. `signal` is created worker-side (never serialised). */
 export interface GenArgs {
   difficulty: Difficulty;
   prng: PRNG;
-  signal: AbortSignal;
+  signal: AbortLike;
 }
 
 /** Drives the worker fallback chain: compare requested vs achieved difficulty, know the source. */
@@ -53,9 +59,11 @@ export interface ConstructionPuzzle<Instance, State, Move>
   validate(instance: Instance, state: State): ConstructionResult;
 }
 
+/* eslint-disable @typescript-eslint/no-explicit-any -- type-erased module seam; concrete arms typed per puzzle */
 export type PuzzleModule =
   | DeductionPuzzle<any, any, any, any>
   | ConstructionPuzzle<any, any, any>;
+/* eslint-enable @typescript-eslint/no-explicit-any */
 
 // Named placeholder types — shaped per puzzle as each arm is implemented.
 export interface MoveResult { ok: boolean; reason?: string }
