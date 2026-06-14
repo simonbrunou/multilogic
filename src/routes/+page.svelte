@@ -1,2 +1,11 @@
-<h1>Welcome to SvelteKit</h1>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<main>
+  <h1>Multilogic</h1>
+  <p>Procedurally generated logic puzzles.</p>
+  <ul>
+    <li><a href="/play/sudoku">Sudoku</a></li>
+    <li><a href="/daily">Daily Sudoku</a></li>
+    <li><a href="/stats">Stats</a></li>
+    <li><a href="/settings">Settings</a></li>
+  </ul>
+</main>
+<style>main { max-width: 480px; margin: 40px auto; padding: 0 16px; font-family: system-ui, sans-serif; } a { color: #1b3a8f; }</style>
