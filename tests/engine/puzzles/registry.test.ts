@@ -12,8 +12,8 @@ describe('registry', () => {
     expect(getModule('tectonic').type).toBe('tectonic');
     expect(getModule('kakuro').type).toBe('kakuro');
   });
-  it('getModule throws for an unimplemented type', () => {
-    expect(() => getModule('grecolatin')).toThrow();
+  it('grecolatin is now a registered construction module', () => {
+    expect(getModule('grecolatin').kind).toBe('construction');
   });
   it('every defined module implements the serialization seam', () => {
     for (const m of Object.values(MODULES)) {

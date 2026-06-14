@@ -2,12 +2,13 @@ import type { PuzzleModule, PuzzleType } from '../core/types';
 import { sudoku } from './sudoku/index';
 import { tectonic } from './tectonic/index';
 import { kakuro } from './kakuro/index';
+import { grecolatin } from './grecolatin/index';
 
 export const MODULES: Record<PuzzleType, PuzzleModule | undefined> = {
   sudoku,
   tectonic,
   kakuro,
-  grecolatin: undefined
+  grecolatin,
 };
 
 export function getModule(type: PuzzleType): PuzzleModule {
