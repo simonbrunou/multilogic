@@ -89,6 +89,7 @@
   <div class="actions">
     <button class="action-btn place-btn" onclick={() => store.place()}>Place</button>
     <button class="action-btn erase-btn" onclick={() => store.clear()}>Erase</button>
+    <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 Hint</button>
   </div>
 
   <!-- Status line -->
@@ -226,6 +227,12 @@
 
   .erase-btn {
     background: #f4f5f7;
+  }
+
+  .hint-btn {
+    background: #fffbe6;
+    border-color: #e6c200;
+    color: #5a4600;
   }
 
   .status {

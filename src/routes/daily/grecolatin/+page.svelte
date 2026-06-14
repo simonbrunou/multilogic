@@ -63,7 +63,7 @@
   onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });
 
   async function share() {
-    const text = shareText({ type: 'grecolatin', date, timeMs: store.elapsedMs, hints: 0 });
+    const text = shareText({ type: 'grecolatin', date, timeMs: store.elapsedMs, hints: store.hintsUsed });
     const url = location.origin + '/daily/grecolatin' + encodeShare({ type: 'grecolatin', date });
     try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch { /* clipboard unavailable */ }
   }

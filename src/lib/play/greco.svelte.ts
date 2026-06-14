@@ -1,5 +1,6 @@
-import { encodePair, validateGrid } from '../../engine/puzzles/grecolatin/rules';
+import { encodePair, decodePair, validateGrid } from '../../engine/puzzles/grecolatin/rules';
 import type { ValidationResult } from '../../engine/puzzles/grecolatin/rules';
+import { hintCell } from '../../engine/puzzles/grecolatin/hint';
 
 export class GrecoStore {
 	n = $state(5);
@@ -9,6 +10,7 @@ export class GrecoStore {
 	symbol = $state(0);
 	colour = $state(0);
 	elapsedMs = $state(0);
+	hintsUsed = $state(0);
 
 	private timer: ReturnType<typeof setInterval> | null = null;
 	private startedAt = 0;
@@ -25,6 +27,7 @@ export class GrecoStore {
 		this.symbol = 0;
 		this.colour = 0;
 		this.elapsedMs = 0;
+		this.hintsUsed = 0;
 		this.startTimer();
 	}
 
@@ -51,6 +54,19 @@ export class GrecoStore {
 		const next = [...this.cells];
 		next[i] = 0;
 		this.cells = next;
+	}
+
+	hint(): void {
+		const inst = { n: this.n, givens: this.givens };
+		const result = hintCell(inst, this.cells);
+		if (!result) return;
+		const { index, value } = result;
+		const p = decodePair(value, this.n);
+		if (!p) return;
+		this.selected = index;
+		this.symbol = p.a;
+		this.colour = p.b;
+		this.hintsUsed += 1;
 	}
 
 	private startTimer(): void {
