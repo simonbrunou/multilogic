@@ -1,26 +1,20 @@
 <script lang="ts">
   import { todayISO } from '$lib/daily';
-  import { PLAY_UI } from '$lib/play/registry';
+  import { t, puzzleTypeLabel } from '$lib/i18n';
 
   const date = todayISO(new Date());
-
-  const DAILY_TYPES = [
-    { key: 'sudoku',     label: PLAY_UI['sudoku']?.label    ?? 'Sudoku'      },
-    { key: 'tectonic',  label: PLAY_UI['tectonic']?.label  ?? 'Tectonic'    },
-    { key: 'kakuro',    label: PLAY_UI['kakuro']?.label     ?? 'Kakuro'      },
-    { key: 'grecolatin', label: 'Gréco-latin' }
-  ];
+  const keys = ['sudoku', 'tectonic', 'kakuro', 'grecolatin'];
 </script>
 
 <main>
   <header>
-    <a href="/">← Casse-têtes</a>
-    <h1>Défis du jour</h1>
+    <a href="/">{t('nav.backPuzzles')}</a>
+    <h1>{t('daily.title')}</h1>
   </header>
   <ul>
-    {#each DAILY_TYPES as { key, label } (key)}
+    {#each keys as key (key)}
       <li>
-        <a href="/daily/{key}">{label} du jour · {date}</a>
+        <a href="/daily/{key}">{t('daily.heading', { label: puzzleTypeLabel(key), date })}</a>
       </li>
     {/each}
   </ul>

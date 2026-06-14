@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { createStorage, type Stats } from '$lib/storage';
-  import { difficultyLabel } from '$lib/i18n';
+  import { difficultyLabel, t } from '$lib/i18n';
   const diffs = ['easy', 'medium', 'hard', 'expert'];
   let rows = $state<{ d: string; s: Stats }[]>([]);
   onMount(() => {
@@ -11,9 +11,9 @@
   function fmt(ms: number | null) { return ms === null ? '—' : `${Math.floor(ms / 60000)}:${String(Math.floor(ms / 1000) % 60).padStart(2, '0')}`; }
 </script>
 <main>
-  <header><a href="/">← Casse-têtes</a><h1>Statistiques</h1></header>
+  <header><a href="/">{t('nav.backPuzzles')}</a><h1>{t('stats.title')}</h1></header>
   <table>
-    <thead><tr><th>Difficulté</th><th>Résolus</th><th>Meilleur temps</th></tr></thead>
+    <thead><tr><th>{t('stats.difficulty')}</th><th>{t('stats.solved')}</th><th>{t('stats.bestTime')}</th></tr></thead>
     <tbody>{#each rows as r (r.d)}<tr><td>{difficultyLabel(r.d)}</td><td>{r.s.solved}</td><td>{fmt(r.s.bestMs)}</td></tr>{/each}</tbody>
   </table>
 </main>

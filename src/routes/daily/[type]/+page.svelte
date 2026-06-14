@@ -13,6 +13,7 @@
   import type { PuzzleType } from '../../../engine/core/types';
   import type { Transport } from '$lib/puzzle-service';
   import { PLAY_UI } from '$lib/play/registry';
+  import { t, puzzleTypeLabel, locale } from '$lib/i18n';
   import { SvelteSet } from 'svelte/reactivity';
 
   const puzzleType = $derived(page.params.type as PuzzleType);
@@ -71,7 +72,7 @@
 
   async function share() {
     if (!entry) return;
-    const text = shareText({ type: puzzleType, date, timeMs: store.elapsedMs, hints: store.hintsUsed });
+    const text = shareText({ type: puzzleType, date, timeMs: store.elapsedMs, hints: store.hintsUsed }, locale());
     const url = location.origin + '/daily/' + puzzleType + encodeShare({ type: puzzleType, date });
     try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch { /* clipboard unavailable */ }
   }
@@ -87,21 +88,21 @@
 
 <main>
   {#if !entry}
-    <p>Ce n'est pas un défi quotidien.</p>
-    <a href="/daily">← Défis du jour</a>
+    <p>{t('daily.notADaily')}</p>
+    <a href="/daily">{t('nav.backDaily')}</a>
   {:else}
     <header>
-      <a href="/daily">← Défis du jour</a>
+      <a href="/daily">{t('nav.backDaily')}</a>
       <TimerView ms={store.elapsedMs} />
-      <span>{entry.label} du jour · {date}</span>
+      <span>{t('daily.heading', { label: puzzleTypeLabel(puzzleType), date })}</span>
     </header>
 
     {#if loading}
-      <p>Génération…</p>
+      <p>{t('play.generating')}</p>
     {:else if store.game}
       {#if solved}
-        <p class="win">Résolu !</p>
-        <button onclick={share}>Partager le résultat</button>
+        <p class="win">{t('play.solved')}</p>
+        <button onclick={share}>{t('play.share')}</button>
       {/if}
       <entry.Grid
         game={store.game}

@@ -8,5 +8,7 @@ export default defineConfig({
     reuseExistingServer: !process.env.CI,
     timeout: 120000
   },
-  use: { baseURL: 'http://localhost:4173' }
+  // Pin the browser locale so the app's auto-detection resolves to French, keeping these
+  // French-text assertions stable regardless of the host machine's locale.
+  use: { baseURL: 'http://localhost:4173', locale: 'fr-FR' }
 });
