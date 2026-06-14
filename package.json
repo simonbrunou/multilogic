@@ -13,7 +13,8 @@
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"check:engine": "tsc -p tsconfig.engine.json",
-		"lint": "eslint ."
+		"lint": "eslint .",
+		"pregen": "bun run scripts/pregen.ts"
 	},
 	"devDependencies": {
 		"@eslint/js": "^10.0.1",
