@@ -37,3 +37,21 @@ test('grecolatin play page renders a board', async ({ page }) => {
   await expect(page.locator('.cell').first()).toBeVisible({ timeout: 30000 });
   await expect(page.locator('.cell')).toHaveCount(25); // default order 5 → 25 cells
 });
+
+test('daily hub lists all four daily puzzles', async ({ page }) => {
+  await page.goto('/daily');
+  await expect(page.getByRole('link', { name: /Sudoku/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Tectonic/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Kakuro/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Greco-Latin/ })).toBeVisible();
+});
+
+test('daily tectonic renders a grid', async ({ page }) => {
+  await page.goto('/daily/tectonic');
+  await expect(page.locator('.cell')).toHaveCount(25, { timeout: 30000 });
+});
+
+test('daily grecolatin renders a board', async ({ page }) => {
+  await page.goto('/daily/grecolatin');
+  await expect(page.locator('.cell').first()).toBeVisible({ timeout: 30000 });
+});
