@@ -1,6 +1,8 @@
 import { regionSizes, cellsByRegion, kingNeighbors } from './rules';
 import type { TectonicInstance } from './types';
 import type { Difficulty } from '../../core/types';
+import { measureEffort, type EffortModel } from '../../core/effort';
+import { bandFromEffort } from '../../core/difficulty';
 
 function candidates(inst: TectonicInstance, grid: number[]): Set<number>[] {
   const sizes = regionSizes(inst);
@@ -16,6 +18,27 @@ function candidates(inst: TectonicInstance, grid: number[]): Set<number>[] {
     return s;
   });
 }
+
+function effortModel(inst: TectonicInstance): EffortModel {
+  const sizes = regionSizes(inst);
+  const byRegion = cellsByRegion(inst.regions);
+  return {
+    cellCount: inst.regions.length,
+    candidates(grid, i) {
+      if (grid[i] !== 0) return [];
+      const size = sizes[inst.regions[i]];
+      const banned = new Set<number>();
+      for (const p of byRegion[inst.regions[i]]) if (grid[p] !== 0) banned.add(grid[p]);
+      for (const k of kingNeighbors(i, inst.width, inst.height)) if (grid[k] !== 0) banned.add(grid[k]);
+      const out: number[] = [];
+      for (let d = 1; d <= size; d++) if (!banned.has(d)) out.push(d);
+      return out;
+    }
+  };
+}
+
+export const TECTONIC_T1 = 1;
+export const TECTONIC_T2 = 6;
 
 export interface Trace { solved: boolean; hardestRank: number }
 
@@ -45,9 +68,5 @@ export function solveWithTechniques(inst: TectonicInstance): Trace {
 }
 
 export function rate(inst: TectonicInstance): Difficulty {
-  const t = solveWithTechniques(inst);
-  if (!t.solved) return 'expert';
-  if (t.hardestRank <= 1) return 'easy';
-  if (t.hardestRank === 2) return 'medium';
-  return 'hard';
+  return bandFromEffort(measureEffort(inst.givens, effortModel(inst)), TECTONIC_T1, TECTONIC_T2);
 }
