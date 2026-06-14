@@ -6,22 +6,17 @@ import type { Difficulty } from '../../core/types';
 import type { TectonicInstance } from './types';
 
 const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
-const MAX_LAYOUT_ATTEMPTS = 200;
+const MAX_LAYOUT_ATTEMPTS = 250;
 
 export interface GeneratedTectonic { instance: TectonicInstance; solution: number[]; difficulty: Difficulty }
 
 export function generateForDifficulty(prng: PRNG, target: Difficulty, width = 5, height = 5): GeneratedTectonic {
   let regions = generateRegions(width, height, prng);
-  let solution: number[] | null = null;
-
-  for (let guard = 0; guard < MAX_LAYOUT_ATTEMPTS; guard++) {
-    const inst = { width, height, regions, givens: new Array(width * height).fill(0) };
-    // Quick feasibility check before committing to fill
-    if (solveComplete(inst, 1).count > 0) {
-      solution = fill(inst, prng);
-      if (solution) break;
-    }
+  let solution = fill({ width, height, regions, givens: new Array(width * height).fill(0) }, prng);
+  let guard = 0;
+  while (!solution && guard++ < MAX_LAYOUT_ATTEMPTS) {
     regions = generateRegions(width, height, prng);
+    solution = fill({ width, height, regions, givens: new Array(width * height).fill(0) }, prng);
   }
 
   if (!solution) throw new Error('tectonic: failed to fill a region layout');

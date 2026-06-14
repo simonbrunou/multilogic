@@ -62,4 +62,10 @@ describe('sudoku module', () => {
     expect(r.givens).toEqual(givens);
     expect(r.cells).toEqual(state.cells);
   });
+
+  it('serialize/deserialize round-trips instance and solution', async () => {
+    const res = await sudoku.generate({ difficulty: 'easy', prng: createPrng('seam'), signal: freshSignal() });
+    expect(sudoku.deserializeInstance(sudoku.serializeInstance(res.instance))).toEqual(res.instance);
+    expect(sudoku.deserializeSolution(sudoku.serializeSolution(res.solution!))).toEqual(res.solution);
+  });
 });

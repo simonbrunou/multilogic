@@ -3,7 +3,6 @@ import { rate, solveWithTechniques } from '../../../../src/engine/puzzles/tecton
 import { fill } from '../../../../src/engine/puzzles/tectonic/solver';
 import { generateRegions } from '../../../../src/engine/puzzles/tectonic/regions';
 import { createPrng } from '../../../../src/engine/core/prng';
-import { DIFFICULTIES } from '../../../../src/engine/core/types';
 import type { TectonicInstance } from '../../../../src/engine/puzzles/tectonic/types';
 
 /** Build a solvable, fully-given 5x5 tectonic by retrying layouts. */
@@ -22,7 +21,7 @@ describe('tectonic rater', () => {
   it('a fully-given grid solves with techniques and rates a known band', () => {
     const inst = solvableFull();
     expect(solveWithTechniques(inst).solved).toBe(true);
-    expect(DIFFICULTIES).toContain(rate(inst));
+    expect(rate(inst)).toBe('easy');
   });
 
   it('rate is deterministic', () => {
