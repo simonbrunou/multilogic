@@ -32,6 +32,14 @@ describe('sudoku solver', () => {
     expect(res.count).toBe(2); // capped at the limit
   });
 
+  it('reports zero solutions for a contradictory grid', () => {
+    // two 5s in the first row → no valid completion
+    const inst = { givens: gridFromString('55' + '0'.repeat(79)) };
+    const res = solveComplete(inst, 2);
+    expect(res.count).toBe(0);
+    expect(res.solution).toBeNull();
+  });
+
   it('property: solving the solution returns the solution unchanged', () => {
     const inst = { givens: gridFromString(SOLUTION) };
     const res = solveComplete(inst, 2);
@@ -39,11 +47,19 @@ describe('sudoku solver', () => {
     expect(gridToString(res.solution!)).toBe(SOLUTION);
   });
 
-  it('property: solver output is deterministic across runs', () => {
-    fc.assert(fc.property(fc.constant(PUZZLE), (p) => {
-      const a = solveOne({ givens: gridFromString(p) });
-      const b = solveOne({ givens: gridFromString(p) });
-      return gridToString(a!) === gridToString(b!);
-    }));
+  it('property: solver is deterministic for random sub-grids of the solution', () => {
+    const sol = gridFromString(SOLUTION);
+    fc.assert(fc.property(
+      fc.array(fc.boolean(), { minLength: 81, maxLength: 81 }),
+      (keep) => {
+        const givens = sol.map((v, i) => (keep[i] ? v : 0));
+        const a = solveOne({ givens: [...givens] });
+        const b = solveOne({ givens: [...givens] });
+        // both runs agree (either both null, or identical grids)
+        const sa = a ? gridToString(a) : null;
+        const sb = b ? gridToString(b) : null;
+        return sa === sb;
+      }
+    ));
   });
 });
