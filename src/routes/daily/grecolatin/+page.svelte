@@ -11,6 +11,7 @@
   import TimerView from '$lib/components/TimerView.svelte';
   import type { Transport } from '$lib/puzzle-service';
   import type { GrecoLatinInstance } from '../../../engine/puzzles/grecolatin/types';
+  import { t, puzzleTypeLabel, locale } from '$lib/i18n';
   import { SvelteSet } from 'svelte/reactivity';
 
   const store = new GrecoStore();
@@ -56,7 +57,7 @@
       const inst = getModule('grecolatin').deserializeInstance(res.instance) as GrecoLatinInstance;
       store.load(inst.n, inst.givens);
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Échec de la génération du casse-tête';
+      error = e instanceof Error ? e.message : t('play.genFailed');
     } finally {
       loading = false;
     }
@@ -65,7 +66,7 @@
   onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });
 
   async function share() {
-    const text = shareText({ type: 'grecolatin', date, timeMs: store.elapsedMs, hints: store.hintsUsed });
+    const text = shareText({ type: 'grecolatin', date, timeMs: store.elapsedMs, hints: store.hintsUsed }, locale());
     const url = location.origin + '/daily/grecolatin' + encodeShare({ type: 'grecolatin', date });
     try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch { /* clipboard unavailable */ }
   }
@@ -73,21 +74,21 @@
 
 <main>
   <header>
-    <a href="/daily">← Défis du jour</a>
+    <a href="/daily">{t('nav.backDaily')}</a>
     <TimerView ms={store.elapsedMs} />
-    <span>Gréco-latin du jour · {date}</span>
+    <span>{t('daily.heading', { label: puzzleTypeLabel('grecolatin'), date })}</span>
   </header>
 
   {#if loading}
-    <p>Génération…</p>
+    <p>{t('play.generating')}</p>
   {:else if error}
     <p class="error">{error}</p>
   {:else}
     <GrecoBoard {store} />
     {#if result.complete && result.valid}
       <div class="win-area">
-        <p class="win">Résolu !</p>
-        <button onclick={share}>Partager le résultat</button>
+        <p class="win">{t('play.solved')}</p>
+        <button onclick={share}>{t('play.share')}</button>
       </div>
     {/if}
   {/if}

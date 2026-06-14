@@ -11,7 +11,6 @@ import KakuroGrid from '../components/KakuroGrid.svelte';
 import { regionSizes } from '../../engine/puzzles/tectonic/rules';
 
 export interface PlayUiEntry {
-  label: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   Grid: Component<any>;
   makeGame(instanceStr: string, solutionStr: string): PlayableGame;
@@ -32,7 +31,6 @@ function makeHintProvider(type: PuzzleType): (instanceStr: string) => (cells: nu
 
 export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
   sudoku: {
-    label: 'Sudoku',
     Grid: SudokuGrid,
     makeGame: (i, s) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -45,7 +43,6 @@ export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
     maxDigit: () => 9
   },
   tectonic: {
-    label: 'Tectonic',
     Grid: TectonicGrid,
     makeGame: (i, s) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,7 +60,6 @@ export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
     }
   },
   kakuro: {
-    label: 'Kakuro',
     Grid: KakuroGrid,
     makeGame: (i, s) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

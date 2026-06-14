@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { GrecoStore } from '$lib/play/greco.svelte';
+  import { t } from '$lib/i18n';
 
   let { store }: { store: GrecoStore } = $props();
 
@@ -29,7 +30,7 @@
         class:given={isGiven}
         class:selected={isSelected}
         onclick={() => store.select(i)}
-        aria-label="case {i}"
+        aria-label={t('aria.cell', { i })}
         aria-pressed={isSelected}
       >
         {cellText(store.digits[i], store.letters[i])}
@@ -39,13 +40,13 @@
 
   <!-- Letter picker: A..n -->
   <div class="picker-row">
-    <span class="picker-label">Lettre :</span>
+    <span class="picker-label">{t('greco.letter')}</span>
     {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
       <button
         class="let-btn"
         class:active={selLetter === k}
         onclick={() => store.setLetter(k)}
-        aria-label="lettre {letterChar(k)}"
+        aria-label={t('aria.letter', { char: letterChar(k) })}
       >
         {letterChar(k)}
       </button>
@@ -54,7 +55,7 @@
 
   <!-- Digit picker: 1..n -->
   <div class="picker-row">
-    <span class="picker-label">Chiffre :</span>
+    <span class="picker-label">{t('greco.digit')}</span>
     {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
       <button
         class="sym-btn"
@@ -68,18 +69,18 @@
 
   <!-- Action buttons -->
   <div class="actions">
-    <button class="action-btn erase-btn" onclick={() => store.clear()}>Effacer</button>
-    <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 Indice</button>
+    <button class="action-btn erase-btn" onclick={() => store.clear()}>{t('greco.erase')}</button>
+    <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 {t('greco.hint')}</button>
   </div>
 
   <!-- Status line: neutral progress only, no mistake feedback -->
   <div class="status">
-    <span>{filled}/{store.n * store.n} placées</span>
+    <span>{t('greco.placed', { filled, total: store.n * store.n })}</span>
   </div>
 
   <!-- Win banner -->
   {#if result.complete && result.valid}
-    <div class="win-banner">Résolu ! Vous avez complété le carré gréco-latin !</div>
+    <div class="win-banner">{t('greco.solvedBanner')}</div>
   {/if}
 </div>
 
