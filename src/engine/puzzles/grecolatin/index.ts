@@ -1,7 +1,8 @@
-import type { ConstructionPuzzle, GenArgs, GenResult, MoveResult, RenderModel, ConstructionResult } from '../../core/types';
+import type { ConstructionPuzzle, GenArgs, GenResult, MoveResult, RenderModel, ConstructionResult, Hint } from '../../core/types';
 import type { GrecoLatinInstance, GrecoLatinState, GrecoLatinMove, GrecoLatinSolution } from './types';
 import { validateGrid, serializeInstance, deserializeInstance, serializeSolution, deserializeSolution } from './rules';
 import { generateForDifficulty } from './generator';
+import { getHint as hint } from './hint';
 
 function validate(inst: GrecoLatinInstance, state: GrecoLatinState): ConstructionResult {
   const grid = inst.givens.map((g, i) => (g !== 0 ? g : state.cells[i] || 0));
@@ -30,6 +31,7 @@ export const grecolatin: ConstructionPuzzle<GrecoLatinInstance, GrecoLatinState,
   },
   validate,
   validateMove,
+  getHint(inst: GrecoLatinInstance, state: GrecoLatinState): Hint | null { return hint(inst, state); },
   render,
   serializeInstance,
   deserializeInstance,
