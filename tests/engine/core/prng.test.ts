@@ -51,4 +51,19 @@ describe('createPrng', () => {
       return x === y;
     }));
   });
+
+  it('int(n) throws for n <= 0', () => {
+    const r = createPrng('guard');
+    expect(() => r.int(0)).toThrow(RangeError);
+    expect(() => r.int(-3)).toThrow(RangeError);
+  });
+
+  it('pick returns a member of the array, and throws on empty', () => {
+    const r = createPrng('pick');
+    const arr = ['a', 'b', 'c', 'd'];
+    for (let i = 0; i < 200; i++) {
+      expect(arr).toContain(r.pick(arr));
+    }
+    expect(() => r.pick([])).toThrow(RangeError);
+  });
 });

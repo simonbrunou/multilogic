@@ -47,6 +47,7 @@ export function createPrng(seed: string | number): PRNG {
   return {
     next,
     int(n: number) {
+      if (n <= 0) throw new RangeError(`int(n) requires n > 0, got ${n}`);
       return Math.floor(next() * n);
     },
     shuffle<T>(arr: T[]): T[] {
@@ -57,6 +58,7 @@ export function createPrng(seed: string | number): PRNG {
       return arr;
     },
     pick<T>(arr: T[]): T {
+      if (arr.length === 0) throw new RangeError('pick() requires a non-empty array');
       return arr[Math.floor(next() * arr.length)];
     }
   };
