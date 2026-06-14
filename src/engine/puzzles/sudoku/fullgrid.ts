@@ -8,6 +8,8 @@ import type { PRNG } from '../../core/prng';
  * Strategy: build the full 729-candidate DLX but add each cell's 9 candidates in a
  * PRNG-shuffled digit order. DLX picks the first viable branch, so shuffling the
  * insertion order yields a random — yet seed-reproducible — solution.
+ * Seed-reproducibility depends on the DLX determinism contract documented in core/dlx.ts
+ * (append-order insertion + col.D iteration + left-to-right tie-breaking).
  */
 export function generateFullGrid(prng: PRNG): SudokuGrid {
   const dlx = new Dlx(324);

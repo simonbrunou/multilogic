@@ -33,10 +33,10 @@ describe('generateFullGrid', () => {
     expect(gridToString(a)).toBe(gridToString(b));
   });
 
-  it('different seeds usually produce different grids', () => {
-    const a = generateFullGrid(createPrng('one'));
-    const b = generateFullGrid(createPrng('two'));
-    expect(gridToString(a)).not.toBe(gridToString(b));
+  it('different seeds produce distinct grids (across many seeds)', () => {
+    const seeds = ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7'];
+    const grids = seeds.map((s) => gridToString(generateFullGrid(createPrng(s))));
+    expect(new Set(grids).size).toBe(seeds.length); // all distinct
   });
 
   it('the generated grid is itself a uniquely-solvable complete board', () => {

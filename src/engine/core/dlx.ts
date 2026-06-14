@@ -40,6 +40,13 @@ export class Dlx {
     return col;
   }
 
+  /**
+   * DETERMINISM CONTRACT (relied on by seed-reproducible generators, e.g. sudoku/fullgrid.ts):
+   * nodes are appended to the BOTTOM of each column, and `solve` iterates `col.D`
+   * (top-to-bottom = insertion order). Together with `chooseColumn`'s left-to-right
+   * tie-breaking, this makes branch order a deterministic function of insertion order.
+   * Do NOT change append order, D-iteration, or tie-breaking without updating those generators.
+   */
   addRow(rowId: number, cols: number[]): void {
     if (cols.length === 0) {
       throw new Error(`addRow(${rowId}): empty column list`);
@@ -90,6 +97,7 @@ export class Dlx {
     col.R.L = col; col.L.R = col;
   }
 
+  // NOTE: ties are broken left-to-right (first column wins). Part of the determinism contract above.
   private chooseColumn(): Column | null {
     let best: Column | null = null;
     let min = Infinity;
