@@ -17,6 +17,7 @@ const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 
 const MAX_ATTEMPTS = 8;
 
 function validateMove(instance: SudokuInstance, _state: SudokuState, move: SudokuMove): MoveResult {
+  if (move.index < 0 || move.index > 80) return { ok: false, reason: 'index out of range' };
   if (instance.givens[move.index] !== 0) return { ok: false, reason: 'cell is a given' };
   if (move.value !== 0 && (move.value < 1 || move.value > 9)) {
     return { ok: false, reason: 'value must be 1-9' };

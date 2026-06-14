@@ -47,6 +47,13 @@ describe('sudoku module', () => {
     expect(sudoku.validateMove({ givens }, state, { index: 1, value: 0 }).ok).toBe(true);
   });
 
+  it('validateMove rejects an out-of-range cell index', () => {
+    const givens = gridFromString('5' + '0'.repeat(80));
+    const state = { cells: new Array(81).fill(0) };
+    expect(sudoku.validateMove({ givens }, state, { index: 81, value: 3 }).ok).toBe(false);
+    expect(sudoku.validateMove({ givens }, state, { index: -1, value: 3 }).ok).toBe(false);
+  });
+
   it('render exposes givens + cells for the UI', () => {
     const givens = gridFromString('5' + '0'.repeat(80));
     const state = { cells: new Array(81).fill(0) };
