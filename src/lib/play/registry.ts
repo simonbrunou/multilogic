@@ -3,9 +3,11 @@ import type { PuzzleType } from '../../engine/core/types';
 import { getModule } from '../../engine/puzzles/registry';
 import { SudokuGame } from '../game-core';
 import { TectonicGame } from './tectonic-game';
+import { KakuroGame } from './kakuro-game';
 import type { PlayableGame } from './playable';
 import SudokuGrid from '../components/SudokuGrid.svelte';
 import TectonicGrid from '../components/TectonicGrid.svelte';
+import KakuroGrid from '../components/KakuroGrid.svelte';
 import { regionSizes } from '../../engine/puzzles/tectonic/rules';
 
 export interface PlayUiEntry {
@@ -60,5 +62,24 @@ export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
       const sizes = regionSizes(inst);
       return Math.max(...Object.values(sizes));
     }
+  },
+  kakuro: {
+    label: 'Kakuro',
+    Grid: KakuroGrid,
+    makeGame: (i, s) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inst = (getModule('kakuro') as any).deserializeInstance(i);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sol = (getModule('kakuro') as any).deserializeSolution(s);
+      return new KakuroGame(inst, sol);
+    },
+    hintProvider: (i) => (cells) => {
+      const mod = getModule('kakuro');
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inst = (mod as any).deserializeInstance(i);
+      const h = mod.getHint?.(inst, { cells } as never);
+      return h && h.cells.length ? h.cells[0] : null;
+    },
+    maxDigit: () => 9
   }
 };

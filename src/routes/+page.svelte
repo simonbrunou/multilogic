@@ -4,6 +4,7 @@
   <ul>
     <li><a href="/play/sudoku">Sudoku</a></li>
     <li><a href="/play/tectonic">Tectonic</a></li>
+    <li><a href="/play/kakuro">Kakuro</a></li>
     <li><a href="/daily">Daily Sudoku</a></li>
     <li><a href="/stats">Stats</a></li>
     <li><a href="/settings">Settings</a></li>
