@@ -10,11 +10,14 @@
   import Toolbar from '$lib/components/Toolbar.svelte';
   import TimerView from '$lib/components/TimerView.svelte';
   import type { Transport } from '$lib/puzzle-service';
+  import { PLAY_UI } from '$lib/play/registry';
 
   const store = new GameStore();
   let loading = $state(true);
   const date = todayISO(new Date());
   let currentTransport: Transport | null = null;
+
+  const sudokuEntry = PLAY_UI['sudoku']!;
 
   onMount(async () => {
     let bundle: Bundle | null = null;
@@ -23,7 +26,8 @@
     currentTransport = transport;
     const svc = createPuzzleService(transport, { timeoutMs: 6000, bundle });
     const res = await svc.request('sudoku', 'medium', dailySeed('sudoku', date));
-    store.load(res.instance, res.solution);
+    const game = sudokuEntry.makeGame(res.instance, res.solution);
+    store.load(game, sudokuEntry.hintProvider(res.instance));
     loading = false;
   });
   onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });

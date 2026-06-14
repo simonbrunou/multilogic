@@ -1,8 +1,9 @@
 <script lang="ts">
-  let { onenter, noteMode = false }: { onenter: (n: number) => void; noteMode?: boolean } = $props();
+  let { onenter, noteMode = false, maxDigit = 9 }: { onenter: (n: number) => void; noteMode?: boolean; maxDigit?: number } = $props();
+  const digits = $derived(Array.from({ length: maxDigit }, (_, i) => i + 1));
 </script>
 <div class="pad" class:note={noteMode}>
-  {#each [1, 2, 3, 4, 5, 6, 7, 8, 9] as n (n)}
+  {#each digits as n (n)}
     <button class="key" onclick={() => onenter(n)}>{n}</button>
   {/each}
 </div>

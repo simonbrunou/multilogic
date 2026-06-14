@@ -1,9 +1,7 @@
-import { SudokuGame } from './game-core';
-import { gridFromString } from '../engine/puzzles/sudoku/rules';
-import { getHint } from '../engine/puzzles/sudoku/hint';
+import type { PlayableGame } from './play/playable';
 
 export class GameStore {
-  game = $state<SudokuGame | null>(null);
+  game = $state<PlayableGame | null>(null);
   selected = $state<number | null>(null);
   noteMode = $state(false);
   elapsedMs = $state(0);
@@ -12,9 +10,11 @@ export class GameStore {
   tick = $state(0);
   private timer: ReturnType<typeof setInterval> | null = null;
   private startedAt = 0;
+  private hintProvider: ((cells: number[]) => number | null) | null = null;
 
-  load(givens: string, solution: string, cells?: number[], notes?: [number, number[]][], elapsedMs = 0): void {
-    this.game = new SudokuGame(gridFromString(givens), gridFromString(solution), cells, notes);
+  load(game: PlayableGame, hintProvider: (cells: number[]) => number | null, elapsedMs = 0): void {
+    this.game = game;
+    this.hintProvider = hintProvider;
     this.elapsedMs = elapsedMs;
     this.hintsUsed = 0;
     this.tick = 0;
@@ -51,8 +51,8 @@ export class GameStore {
   redo(): void { this.game?.redo(); this.bump(); }
 
   hint(): void {
-    if (!this.game) return;
-    const h = getHint({ givens: this.game.givens }, { cells: this.game.cells });
-    if (h && h.cells.length) { this.selected = h.cells[0]; this.hintsUsed += 1; }
+    if (!this.game || !this.hintProvider) return;
+    const cellIndex = this.hintProvider(this.game.cells);
+    if (cellIndex !== null) { this.selected = cellIndex; this.hintsUsed += 1; }
   }
 }
