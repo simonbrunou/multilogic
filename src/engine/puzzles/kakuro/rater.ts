@@ -1,6 +1,11 @@
 import { horizontalRuns, verticalRuns } from './rules';
 import type { KakuroInstance } from './types';
 import type { Difficulty } from '../../core/types';
+import { measureEffort, type EffortModel } from '../../core/effort';
+import { bandFromEffort } from '../../core/difficulty';
+
+export const KAKURO_T1 = 1;
+export const KAKURO_T2 = 8;
 
 interface Constraint { cells: number[]; target: number | null }
 
@@ -33,25 +38,21 @@ function candidate(grid: number[], i: number, v: number, runs: Constraint[], cel
   return true;
 }
 
-/** Propagate forced singles; return whether fully solved by propagation alone. */
-function propagationSolves(inst: KakuroInstance): boolean {
+
+function effortModel(inst: KakuroInstance): EffortModel {
   const { runs, cellRuns } = constraints(inst);
-  const grid = inst.black.map(() => 0);
-  const whites = inst.black.map((b, i) => (b ? -1 : i)).filter((i) => i >= 0);
-  for (;;) {
-    let progressed = false;
-    for (const i of whites) {
-      if (grid[i] !== 0) continue;
-      const cands = [] as number[];
-      for (let v = 1; v <= 9; v++) if (candidate(grid, i, v, runs, cellRuns)) cands.push(v);
-      if (cands.length === 1) { grid[i] = cands[0]; progressed = true; }
-      else if (cands.length === 0) return false;
+  return {
+    cellCount: inst.black.length,
+    candidates(grid, i) {
+      if (inst.black[i] || grid[i] !== 0) return [];
+      const out: number[] = [];
+      for (let v = 1; v <= 9; v++) if (candidate(grid, i, v, runs, cellRuns)) out.push(v);
+      return out;
     }
-    if (!progressed) break;
-  }
-  return whites.every((i) => grid[i] !== 0);
+  };
 }
 
 export function rate(inst: KakuroInstance): Difficulty {
-  return propagationSolves(inst) ? 'easy' : 'medium';
+  const start = inst.black.map((b) => (b ? -1 : 0));
+  return bandFromEffort(measureEffort(start, effortModel(inst)), KAKURO_T1, KAKURO_T2);
 }

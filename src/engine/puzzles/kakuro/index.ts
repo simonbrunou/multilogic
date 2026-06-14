@@ -4,7 +4,10 @@ import { serializeInstance, deserializeInstance, serializeSolution, deserializeS
 import { solveComplete as solve } from './solver';
 import { rate as rateInstance } from './rater';
 import { getHint as hint } from './hint';
-import { generateForDifficulty } from './generator';
+import { generateForDifficulty, type GeneratedKakuro } from './generator';
+
+const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
+const MAX_ATTEMPTS = 12;
 
 function validateMove(inst: KakuroInstance, _s: KakuroState, m: KakuroMove): MoveResult {
   if (m.index < 0 || m.index >= inst.black.length) return { ok: false, reason: 'index out of range' };
@@ -21,9 +24,14 @@ export const kakuro: DeductionPuzzle<KakuroInstance, KakuroState, KakuroMove, Ka
   type: 'kakuro',
   kind: 'deduction',
   async generate(args: GenArgs): Promise<GenResult<KakuroInstance, KakuroSolution>> {
-    if (args.signal.aborted) throw new Error('generation aborted');
-    const g = generateForDifficulty(args.prng, args.difficulty);
-    return { instance: g.instance, solution: g.solution, achievedDifficulty: g.difficulty, source: 'live' };
+    let best: GeneratedKakuro | null = null;
+    for (let a = 0; a < MAX_ATTEMPTS; a++) {
+      if (args.signal.aborted) throw new Error('generation aborted');
+      const g = generateForDifficulty(args.prng, args.difficulty);
+      if (g.difficulty === args.difficulty) return { instance: g.instance, solution: g.solution, achievedDifficulty: g.difficulty, source: 'live' };
+      best = best ? (Math.abs(RANK[g.difficulty] - RANK[args.difficulty]) < Math.abs(RANK[best.difficulty] - RANK[args.difficulty]) ? g : best) : g;
+    }
+    return { instance: best!.instance, solution: best!.solution, achievedDifficulty: best!.difficulty, source: 'live' };
   },
   solveComplete(inst: KakuroInstance, limit = 2): SolveResult<KakuroSolution> { return solve(inst, limit); },
   rate(inst: KakuroInstance): Difficulty { return rateInstance(inst); },
