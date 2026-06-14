@@ -14,12 +14,12 @@ function buildUnits(): number[][] {
   return units;
 }
 
-export const UNITS: number[][] = buildUnits();
-export const ROWS: number[][] = UNITS.slice(0, 9);
-export const COLS: number[][] = UNITS.slice(9, 18);
-export const BOXES: number[][] = UNITS.slice(18, 27);
+export const UNITS: readonly number[][] = buildUnits();
+export const ROWS: readonly number[][] = UNITS.slice(0, 9);
+export const COLS: readonly number[][] = UNITS.slice(9, 18);
+export const BOXES: readonly number[][] = UNITS.slice(18, 27);
 
-export const PEERS: number[][] = [...Array(81)].map((_, i) => {
+export const PEERS: readonly number[][] = [...Array(81)].map((_, i) => {
   const set = new Set<number>();
   for (const u of UNITS) {
     if (u.includes(i)) for (const j of u) if (j !== i) set.add(j);
