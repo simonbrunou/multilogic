@@ -5,7 +5,7 @@
 // silent untranslated string. Leaves are either plain strings (with `{name}` placeholders
 // interpolated by `t`) or functions for cases that need word-order or pluralisation logic.
 
-export const en = {
+const en = {
   nav: {
     backPuzzles: '← Puzzles',
     backDaily: '← Daily challenges'
@@ -79,7 +79,7 @@ export const en = {
   }
 };
 
-export const fr: typeof en = {
+const fr: typeof en = {
   nav: {
     backPuzzles: '← Casse-têtes',
     backDaily: '← Défis du jour'
@@ -153,7 +153,7 @@ export const fr: typeof en = {
   }
 };
 
-export const catalogs = { en, fr };
+const catalogs = { en, fr };
 
 export type Locale = keyof typeof catalogs;
 
