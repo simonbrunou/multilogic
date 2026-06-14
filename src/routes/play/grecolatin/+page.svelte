@@ -11,6 +11,7 @@
   import type { Transport } from '$lib/puzzle-service';
   import { SvelteSet } from 'svelte/reactivity';
   import type { GrecoLatinInstance } from '../../../engine/puzzles/grecolatin/types';
+  import { difficultyLabel } from '$lib/i18n';
 
   const store = new GrecoStore();
   let loading = $state(true);
@@ -43,7 +44,7 @@
       const inst = getModule('grecolatin').deserializeInstance(res.instance) as GrecoLatinInstance;
       store.load(inst.n, inst.givens);
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Failed to generate puzzle';
+      error = e instanceof Error ? e.message : 'Échec de la génération du casse-tête';
     } finally {
       loading = false;
     }
@@ -67,16 +68,16 @@
 
 <main>
   <header>
-    <a href="/">← Puzzles</a>
+    <a href="/">← Casse-têtes</a>
     <TimerView ms={store.elapsedMs} />
-    <span>Greco-Latin · {difficulty}</span>
+    <span>Gréco-latin · {difficultyLabel(difficulty)}</span>
   </header>
 
   {#if loading}
-    <p>Generating…</p>
+    <p>Génération…</p>
   {:else if error}
     <p class="error">{error}</p>
-    <button onclick={() => newGame(difficulty)}>Retry</button>
+    <button onclick={() => newGame(difficulty)}>Réessayer</button>
   {:else}
     <GrecoBoard {store} />
   {/if}
@@ -87,7 +88,7 @@
         class="diff-btn"
         class:active={difficulty === d}
         onclick={() => newGame(d as Difficulty)}
-      >{d}</button>
+      >{difficultyLabel(d)}</button>
     {/each}
   </div>
 </main>

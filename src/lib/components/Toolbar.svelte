@@ -4,10 +4,10 @@
 </script>
 <div class="toolbar">
   <button class:active={noteMode} onclick={onnote}>✏️ Notes</button>
-  <button onclick={onundo}>↶ Undo</button>
-  <button onclick={onredo}>↷ Redo</button>
-  <button onclick={onerase}>⌫ Erase</button>
-  <button onclick={onhint}>💡 Hint</button>
+  <button onclick={onundo}>↶ Annuler</button>
+  <button onclick={onredo}>↷ Rétablir</button>
+  <button onclick={onerase}>⌫ Effacer</button>
+  <button onclick={onhint}>💡 Indice</button>
 </div>
 <style>
   .toolbar { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 12px; }

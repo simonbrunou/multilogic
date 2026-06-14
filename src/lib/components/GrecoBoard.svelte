@@ -49,7 +49,7 @@
         class:conflict={isConflict}
         style="background: {cellBg(v, store.n, isSelected, isConflict)}"
         onclick={() => store.select(i)}
-        aria-label="cell {i}"
+        aria-label="case {i}"
         aria-pressed={isSelected}
       >
         {cellLabel(v, store.n)}
@@ -59,7 +59,7 @@
 
   <!-- Symbol picker: 1..n -->
   <div class="picker-row">
-    <span class="picker-label">Symbol:</span>
+    <span class="picker-label">Symbole :</span>
     {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
       <button
         class="sym-btn"
@@ -73,38 +73,38 @@
 
   <!-- Colour picker: n swatches -->
   <div class="picker-row">
-    <span class="picker-label">Colour:</span>
+    <span class="picker-label">Couleur :</span>
     {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
       <button
         class="col-btn"
         class:active={store.colour === k}
         style="background: {PALETTE[k % PALETTE.length]}"
         onclick={() => { store.colour = k; }}
-        aria-label="colour {k + 1}"
+        aria-label="couleur {k + 1}"
       ></button>
     {/each}
   </div>
 
   <!-- Action buttons -->
   <div class="actions">
-    <button class="action-btn place-btn" onclick={() => store.place()}>Place</button>
-    <button class="action-btn erase-btn" onclick={() => store.clear()}>Erase</button>
-    <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 Hint</button>
+    <button class="action-btn place-btn" onclick={() => store.place()}>Placer</button>
+    <button class="action-btn erase-btn" onclick={() => store.clear()}>Effacer</button>
+    <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 Indice</button>
   </div>
 
   <!-- Status line -->
   <div class="status">
-    <span>{filled}/{store.n * store.n} placed</span>
+    <span>{filled}/{store.n * store.n} placées</span>
     {#if result.valid}
-      <span class="valid">valid ✓</span>
+      <span class="valid">valide ✓</span>
     {:else}
-      <span class="conflict-label">conflict ✗</span>
+      <span class="conflict-label">conflit ✗</span>
     {/if}
   </div>
 
   <!-- Win banner -->
   {#if result.complete && result.valid}
-    <div class="win-banner">Solved! You completed the Greco-Latin square!</div>
+    <div class="win-banner">Résolu ! Vous avez complété le carré gréco-latin !</div>
   {/if}
 </div>
 

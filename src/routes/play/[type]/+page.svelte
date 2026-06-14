@@ -11,6 +11,7 @@
   import type { Difficulty, PuzzleType } from '../../../engine/core/types';
   import type { Transport } from '$lib/puzzle-service';
   import { PLAY_UI } from '$lib/play/registry';
+  import { difficultyLabel } from '$lib/i18n';
 
   const puzzleType = $derived(page.params.type as PuzzleType);
   const entry = $derived(PLAY_UI[puzzleType]);
@@ -64,20 +65,20 @@
 
 <main>
   {#if !entry}
-    <p>Unknown puzzle type: {puzzleType}</p>
-    <a href="/">← Puzzles</a>
+    <p>Type de casse-tête inconnu : {puzzleType}</p>
+    <a href="/">← Casse-têtes</a>
   {:else}
     <header>
-      <a href="/">← Puzzles</a>
+      <a href="/">← Casse-têtes</a>
       <TimerView ms={store.elapsedMs} />
-      <span>{entry.label} · {difficulty}</span>
+      <span>{entry.label} · {difficultyLabel(difficulty)}</span>
     </header>
 
     {#if loading}
-      <p>Generating…</p>
+      <p>Génération…</p>
     {:else if store.game}
-      {#if solved}<p class="win">Solved! 🎉</p>{/if}
-      <entry.Grid game={store.game} selected={store.selected} tick={store.tick} {conflicts} onselect={(i) => (store.selected = i)} />
+      {#if solved}<p class="win">Résolu ! 🎉</p>{/if}
+      <entry.Grid game={store.game} selected={store.selected} tick={store.tick} {conflicts} onselect={(i: number) => (store.selected = i)} />
       <NumberPad onenter={(n) => store.enter(n)} noteMode={store.noteMode} {maxDigit} />
       <Toolbar
         noteMode={store.noteMode}
@@ -89,7 +90,7 @@
       />
       <div class="diffs">
         {#each ['easy', 'medium', 'hard', 'expert'] as d (d)}
-          <button onclick={() => newGame(d as Difficulty)}>{d}</button>
+          <button onclick={() => newGame(d as Difficulty)}>{difficultyLabel(d)}</button>
         {/each}
       </div>
     {/if}

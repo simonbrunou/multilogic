@@ -8,19 +8,19 @@
     { key: 'sudoku',     label: PLAY_UI['sudoku']?.label    ?? 'Sudoku'      },
     { key: 'tectonic',  label: PLAY_UI['tectonic']?.label  ?? 'Tectonic'    },
     { key: 'kakuro',    label: PLAY_UI['kakuro']?.label     ?? 'Kakuro'      },
-    { key: 'grecolatin', label: 'Greco-Latin' }
+    { key: 'grecolatin', label: 'Gréco-latin' }
   ];
 </script>
 
 <main>
   <header>
-    <a href="/">← Puzzles</a>
-    <h1>Daily Puzzles</h1>
+    <a href="/">← Casse-têtes</a>
+    <h1>Défis du jour</h1>
   </header>
   <ul>
     {#each DAILY_TYPES as { key, label } (key)}
       <li>
-        <a href="/daily/{key}">Daily {label} · {date}</a>
+        <a href="/daily/{key}">{label} du jour · {date}</a>
       </li>
     {/each}
   </ul>

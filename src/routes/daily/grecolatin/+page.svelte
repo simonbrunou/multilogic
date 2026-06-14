@@ -54,7 +54,7 @@
       const inst = getModule('grecolatin').deserializeInstance(res.instance) as GrecoLatinInstance;
       store.load(inst.n, inst.givens);
     } catch (e) {
-      error = e instanceof Error ? e.message : 'Failed to generate puzzle';
+      error = e instanceof Error ? e.message : 'Échec de la génération du casse-tête';
     } finally {
       loading = false;
     }
@@ -71,21 +71,21 @@
 
 <main>
   <header>
-    <a href="/daily">← Daily Puzzles</a>
+    <a href="/daily">← Défis du jour</a>
     <TimerView ms={store.elapsedMs} />
-    <span>Daily Greco-Latin · {date}</span>
+    <span>Gréco-latin du jour · {date}</span>
   </header>
 
   {#if loading}
-    <p>Generating…</p>
+    <p>Génération…</p>
   {:else if error}
     <p class="error">{error}</p>
   {:else}
     <GrecoBoard {store} />
     {#if result.complete && result.valid}
       <div class="win-area">
-        <p class="win">Solved!</p>
-        <button onclick={share}>Share result</button>
+        <p class="win">Résolu !</p>
+        <button onclick={share}>Partager le résultat</button>
       </div>
     {/if}
   {/if}

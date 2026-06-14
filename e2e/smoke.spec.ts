@@ -43,7 +43,7 @@ test('daily hub lists all four daily puzzles', async ({ page }) => {
   await expect(page.getByRole('link', { name: /Sudoku/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Tectonic/ })).toBeVisible();
   await expect(page.getByRole('link', { name: /Kakuro/ })).toBeVisible();
-  await expect(page.getByRole('link', { name: /Greco-Latin/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Gréco-latin/ })).toBeVisible();
 });
 
 test('daily tectonic renders a grid', async ({ page }) => {
@@ -59,6 +59,6 @@ test('daily grecolatin renders a board', async ({ page }) => {
 test('grecolatin hint selects a suggested cell', async ({ page }) => {
   await page.goto('/play/grecolatin');
   await expect(page.locator('.cell').first()).toBeVisible({ timeout: 30000 });
-  await page.getByRole('button', { name: /hint/i }).click();
+  await page.getByRole('button', { name: /indice/i }).click();
   await expect(page.locator('.cell.selected')).toHaveCount(1);
 });

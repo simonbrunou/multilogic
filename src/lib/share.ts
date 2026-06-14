@@ -9,7 +9,7 @@ const TYPE_LABELS: Record<string, string> = {
   sudoku: 'Sudoku',
   tectonic: 'Tectonic',
   kakuro: 'Kakuro',
-  grecolatin: 'Greco-Latin'
+  grecolatin: 'Gréco-latin'
 };
 
 function typeLabel(type: string): string {
@@ -24,7 +24,7 @@ export function shareText(d: ShareData): string {
   const totalSeconds = Math.floor(d.timeMs / 1000);
   const mm = Math.floor(totalSeconds / 60);
   const ss = totalSeconds % 60;
-  const hints = d.hints === 0 ? 'no hints' : `${d.hints} hint${d.hints === 1 ? '' : 's'}`;
+  const hints = d.hints === 0 ? 'aucun indice' : `${d.hints} indice${d.hints === 1 ? '' : 's'}`;
   return `Multilogic ${typeLabel(d.type)} · ${d.date} · ${mm}:${pad2(ss)} · ${hints}`;
 }
 

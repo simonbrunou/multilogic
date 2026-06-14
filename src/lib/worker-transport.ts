@@ -1,6 +1,5 @@
 import type { Transport } from './puzzle-service';
 import type { WorkerRequest, WorkerResponse } from '../worker/protocol';
-// @ts-expect-error - Vite worker import
 import GenerateWorker from '../worker/generate.worker?worker';
 
 /** Wrap a real Web Worker as a Transport. Browser-only. */

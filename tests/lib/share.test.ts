@@ -7,11 +7,11 @@ describe('share', () => {
     expect(txt).toContain('Sudoku');
     expect(txt).toContain('2026-06-14');
     expect(txt).toContain('4:12');
-    expect(txt).toContain('no hints');
+    expect(txt).toContain('aucun indice');
   });
 
   it('pluralises hints', () => {
-    expect(shareText({ type: 'sudoku', date: '2026-06-14', timeMs: 1000, hints: 3 })).toContain('3 hints');
+    expect(shareText({ type: 'sudoku', date: '2026-06-14', timeMs: 1000, hints: 3 })).toContain('3 indices');
   });
 
   it('encode/decode round-trips', () => {

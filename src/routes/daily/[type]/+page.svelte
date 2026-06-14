@@ -87,28 +87,28 @@
 
 <main>
   {#if !entry}
-    <p>Not a daily puzzle.</p>
-    <a href="/daily">← Daily Puzzles</a>
+    <p>Ce n'est pas un défi quotidien.</p>
+    <a href="/daily">← Défis du jour</a>
   {:else}
     <header>
-      <a href="/daily">← Daily Puzzles</a>
+      <a href="/daily">← Défis du jour</a>
       <TimerView ms={store.elapsedMs} />
-      <span>Daily {entry.label} · {date}</span>
+      <span>{entry.label} du jour · {date}</span>
     </header>
 
     {#if loading}
-      <p>Generating…</p>
+      <p>Génération…</p>
     {:else if store.game}
       {#if solved}
-        <p class="win">Solved!</p>
-        <button onclick={share}>Share result</button>
+        <p class="win">Résolu !</p>
+        <button onclick={share}>Partager le résultat</button>
       {/if}
       <entry.Grid
         game={store.game}
         selected={store.selected}
         tick={store.tick}
         {conflicts}
-        onselect={(i) => (store.selected = i)}
+        onselect={(i: number) => (store.selected = i)}
       />
       <NumberPad onenter={(n) => store.enter(n)} noteMode={store.noteMode} {maxDigit} />
       <Toolbar
