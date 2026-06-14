@@ -55,7 +55,9 @@
   // Record solve side-effect: only fires when complete+valid; guards against duplicate records
   // by keying on the elapsed time bucket so repeated renders don't double-record.
   $effect(() => {
-    if (!result.complete || !result.valid || !storage) return;
+    if (!result.complete || !result.valid) return;
+    store.stopTimer();
+    if (!storage) return;
     const key = `${difficulty}:${Math.floor(store.elapsedMs / 250)}`;
     if (recordedSolves.has(key)) return;
     recordedSolves.add(key);
