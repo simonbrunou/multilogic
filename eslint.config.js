@@ -7,6 +7,7 @@ export default tseslint.config(
   {
     files: ['src/engine/**/*.ts'],
     rules: {
+      '@typescript-eslint/no-explicit-any': 'warn',
       'no-restricted-globals': ['error',
         { name: 'self', message: 'engine must be runtime-agnostic' },
         { name: 'window', message: 'engine must be runtime-agnostic' },
