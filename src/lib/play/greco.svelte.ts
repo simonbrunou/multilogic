@@ -7,8 +7,8 @@ export class GrecoStore {
 	givens = $state<number[]>([]);
 	cells = $state<number[]>([]);
 	selected = $state<number | null>(null);
-	symbol = $state(0);
-	colour = $state(0);
+	symbol = $state(0); // digit dimension (1..n)
+	letter = $state(0); // letter dimension (A..)
 	elapsedMs = $state(0);
 	hintsUsed = $state(0);
 
@@ -25,7 +25,7 @@ export class GrecoStore {
 		this.cells = [...givens];
 		this.selected = null;
 		this.symbol = 0;
-		this.colour = 0;
+		this.letter = 0;
 		this.elapsedMs = 0;
 		this.hintsUsed = 0;
 		this.startTimer();
@@ -41,7 +41,7 @@ export class GrecoStore {
 		const i = this.selected;
 		if (i === null) return;
 		if (this.givens[i] !== 0) return;
-		const encoded = encodePair(this.symbol, this.colour, this.n);
+		const encoded = encodePair(this.symbol, this.letter, this.n);
 		const next = [...this.cells];
 		next[i] = encoded;
 		this.cells = next;
@@ -65,7 +65,7 @@ export class GrecoStore {
 		if (!p) return;
 		this.selected = index;
 		this.symbol = p.a;
-		this.colour = p.b;
+		this.letter = p.b;
 		this.hintsUsed += 1;
 	}
 

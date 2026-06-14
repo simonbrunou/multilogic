@@ -81,5 +81,5 @@ export function getHint(inst: GrecoLatinInstance, state: GrecoLatinState): Hint 
   const r = hintCell(inst, state.cells);
   if (!r) return null;
   const p = decodePair(r.value, inst.n)!;
-  return { cells: [r.index], text: `Place symbol ${p.a + 1}, colour ${p.b + 1}` };
+  return { cells: [r.index], text: `Placez la lettre ${String.fromCharCode(65 + p.b)}, chiffre ${p.a + 1}` };
 }

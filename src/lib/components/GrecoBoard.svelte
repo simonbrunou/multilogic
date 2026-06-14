@@ -4,23 +4,26 @@
 
   let { store }: { store: GrecoStore } = $props();
 
-  // Up to 9 distinct background colours for the colour dimension
+  // Light tint per letter — a solving aid only; the authoritative element is the letter glyph.
   const PALETTE = [
-    '#fde8a0', // 0 yellow
-    '#a8d8f0', // 1 blue
-    '#b8f0b8', // 2 green
-    '#f0b8b8', // 3 red/pink
-    '#d8b8f0', // 4 purple
-    '#f0d8b8', // 5 orange
-    '#b8f0f0', // 6 teal
-    '#f0b8e8', // 7 pink
-    '#c8e8c8', // 8 light green
+    '#fde8a0', // A yellow
+    '#a8d8f0', // B blue
+    '#b8f0b8', // C green
+    '#f0b8b8', // D red/pink
+    '#d8b8f0', // E purple
+    '#f0d8b8', // F orange
+    '#b8f0f0', // G teal
+    '#f0b8e8', // H pink
+    '#c8e8c8', // I light green
   ] as const;
+
+  const letterChar = (k: number): string => String.fromCharCode(65 + k);
 
   function cellLabel(v: number, n: number): string {
     const p = decodePair(v, n);
     if (!p) return '';
-    return String(p.a + 1);
+    // Each cell holds a letter (A..) and a digit (1..n), e.g. "A4".
+    return `${letterChar(p.b)}${p.a + 1}`;
   }
 
   function cellBg(v: number, n: number, isSelected: boolean, isConflict: boolean): string {
@@ -57,9 +60,25 @@
     {/each}
   </div>
 
-  <!-- Symbol picker: 1..n -->
+  <!-- Letter picker: A..n -->
   <div class="picker-row">
-    <span class="picker-label">Symbole :</span>
+    <span class="picker-label">Lettre :</span>
+    {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
+      <button
+        class="let-btn"
+        class:active={store.letter === k}
+        style="background: {PALETTE[k % PALETTE.length]}"
+        onclick={() => { store.letter = k; }}
+        aria-label="lettre {letterChar(k)}"
+      >
+        {letterChar(k)}
+      </button>
+    {/each}
+  </div>
+
+  <!-- Digit picker: 1..n -->
+  <div class="picker-row">
+    <span class="picker-label">Chiffre :</span>
     {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
       <button
         class="sym-btn"
@@ -68,20 +87,6 @@
       >
         {k + 1}
       </button>
-    {/each}
-  </div>
-
-  <!-- Colour picker: n swatches -->
-  <div class="picker-row">
-    <span class="picker-label">Couleur :</span>
-    {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
-      <button
-        class="col-btn"
-        class:active={store.colour === k}
-        style="background: {PALETTE[k % PALETTE.length]}"
-        onclick={() => { store.colour = k; }}
-        aria-label="couleur {k + 1}"
-      ></button>
     {/each}
   </div>
 
@@ -191,15 +196,18 @@
     background: #cfe3ff;
   }
 
-  .col-btn {
+  .let-btn {
     width: 34px;
     height: 34px;
     border: 2px solid #ccc;
     border-radius: 6px;
     cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    color: #333;
   }
 
-  .col-btn.active {
+  .let-btn.active {
     border-color: #1b3a8f;
     outline: 2px solid #1b3a8f;
     outline-offset: 1px;
