@@ -12,6 +12,7 @@ import { solveComplete as solve } from './solver';
 import { rate as rateInstance } from './rater';
 import { getHint as hint } from './hint';
 import { generateForDifficulty, type GeneratedSudoku } from './generator';
+import { gridFromString, gridToString } from './rules';
 
 const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
 const MAX_ATTEMPTS = 8;
@@ -67,5 +68,9 @@ export const sudoku: DeductionPuzzle<SudokuInstance, SudokuState, SudokuMove, Su
 
   getHint: hint,
   validateMove,
-  render
+  render,
+  serializeInstance: (i: SudokuInstance) => gridToString(i.givens),
+  deserializeInstance: (s: string): SudokuInstance => ({ givens: gridFromString(s) }),
+  serializeSolution: (sol: SudokuSolution) => gridToString(sol),
+  deserializeSolution: (s: string): SudokuSolution => gridFromString(s)
 };

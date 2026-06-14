@@ -44,6 +44,10 @@ export interface PuzzleBase<Instance, State, Move, Solution = unknown> {
   validateMove(instance: Instance, state: State, move: Move): MoveResult;
   getHint?(instance: Instance, state: State): Hint | null;
   render(instance: Instance, state: State): RenderModel;
+  serializeInstance(instance: Instance): string;
+  deserializeInstance(s: string): Instance;
+  serializeSolution(solution: Solution): string;
+  deserializeSolution(s: string): Solution;
 }
 
 export interface DeductionPuzzle<Instance, State, Move, Solution>
