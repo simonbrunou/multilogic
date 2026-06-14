@@ -2,6 +2,11 @@ import { UNITS, type Candidates } from './candidates';
 
 export type TechniqueName = 'nakedSingle' | 'hiddenSingle' | 'lockedCandidates' | 'nakedPair';
 
+/**
+ * A single deduction step. A step EITHER places digits (`placements`) OR removes
+ * candidates (`eliminations`); the unused array is empty. Consumers must not assume
+ * both are populated.
+ */
 export interface Step {
   technique: TechniqueName;
   placements: { index: number; digit: number }[];
