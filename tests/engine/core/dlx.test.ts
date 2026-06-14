@@ -41,4 +41,27 @@ describe('Dlx exact cover', () => {
     const sols = dlx.solve(5);
     expect(sols.length).toBe(2);
   });
+
+  it('addRow rejects an empty column list', () => {
+    const dlx = new Dlx(3);
+    expect(() => dlx.addRow(0, [])).toThrow();
+  });
+
+  it('addRow rejects out-of-range column indices', () => {
+    const dlx = new Dlx(3);
+    expect(() => dlx.addRow(0, [3])).toThrow(RangeError);
+    expect(() => dlx.addRow(0, [-1])).toThrow(RangeError);
+  });
+
+  it('solve is reusable: structure is clean after a solve', () => {
+    const dlx = new Dlx(7);
+    dlx.addRow(0, [0, 3, 6]);
+    dlx.addRow(1, [0, 3]);
+    dlx.addRow(2, [3, 4, 6]);
+    dlx.addRow(3, [2, 4, 5]);
+    dlx.addRow(4, [1, 2, 5, 6]);
+    dlx.addRow(5, [1, 6]);
+    expect(dlx.solve().length).toBe(1);
+    expect(dlx.solve().length).toBe(1); // second call must see uncorrupted state
+  });
 });

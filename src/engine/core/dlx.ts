@@ -41,6 +41,15 @@ export class Dlx {
   }
 
   addRow(rowId: number, cols: number[]): void {
+    if (cols.length === 0) {
+      throw new Error(`addRow(${rowId}): empty column list`);
+    }
+    for (const c of cols) {
+      if (c < 0 || c >= this.columns.length) {
+        throw new RangeError(`addRow(${rowId}): column ${c} out of range [0, ${this.columns.length})`);
+      }
+    }
+
     let first: Node | null = null;
     for (const c of cols) {
       const col = this.columns[c];
