@@ -22,3 +22,12 @@ test('tectonic play page renders a grid and accepts input', async ({ page }) => 
   await page.keyboard.press('1');
   await expect(page.locator('.cell:not(.given)').filter({ hasText: /[1-9]/ }).first()).toBeVisible();
 });
+
+test('kakuro play page renders a grid and accepts input', async ({ page }) => {
+  await page.goto('/play/kakuro');
+  await expect(page.locator('.cell.white').first()).toBeVisible({ timeout: 30000 });
+  const empty = page.locator('.cell.white').first();
+  await empty.click();
+  await page.keyboard.press('1');
+  await expect(page.locator('.cell.white').filter({ hasText: /[1-9]/ }).first()).toBeVisible();
+});
