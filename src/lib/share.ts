@@ -5,12 +5,19 @@ export interface ShareData {
   hints: number;
 }
 
-function pad2(n: number): string {
-  return n < 10 ? `0${n}` : String(n);
+const TYPE_LABELS: Record<string, string> = {
+  sudoku: 'Sudoku',
+  tectonic: 'Tectonic',
+  kakuro: 'Kakuro',
+  grecolatin: 'Greco-Latin'
+};
+
+function typeLabel(type: string): string {
+  return TYPE_LABELS[type] ?? (type.length ? type[0].toUpperCase() + type.slice(1) : type);
 }
 
-function capitalise(s: string): string {
-  return s.length ? s[0].toUpperCase() + s.slice(1) : s;
+function pad2(n: number): string {
+  return n < 10 ? `0${n}` : String(n);
 }
 
 export function shareText(d: ShareData): string {
@@ -18,7 +25,7 @@ export function shareText(d: ShareData): string {
   const mm = Math.floor(totalSeconds / 60);
   const ss = totalSeconds % 60;
   const hints = d.hints === 0 ? 'no hints' : `${d.hints} hint${d.hints === 1 ? '' : 's'}`;
-  return `Multilogic ${capitalise(d.type)} · ${d.date} · ${mm}:${pad2(ss)} · ${hints}`;
+  return `Multilogic ${typeLabel(d.type)} · ${d.date} · ${mm}:${pad2(ss)} · ${hints}`;
 }
 
 /** URL hash encoding the puzzle to land a friend on the same daily seed. */

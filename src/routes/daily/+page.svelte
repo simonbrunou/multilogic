@@ -1,54 +1,68 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
-  import { GameStore } from '$lib/game.svelte';
-  import { createPuzzleService, type Bundle } from '$lib/puzzle-service';
-  import { createWorkerTransport } from '$lib/worker-transport';
-  import { dailySeed, todayISO } from '$lib/daily';
-  import { shareText, encodeShare } from '$lib/share';
-  import SudokuGrid from '$lib/components/SudokuGrid.svelte';
-  import NumberPad from '$lib/components/NumberPad.svelte';
-  import Toolbar from '$lib/components/Toolbar.svelte';
-  import TimerView from '$lib/components/TimerView.svelte';
-  import type { Transport } from '$lib/puzzle-service';
+  import { todayISO } from '$lib/daily';
   import { PLAY_UI } from '$lib/play/registry';
 
-  const store = new GameStore();
-  let loading = $state(true);
   const date = todayISO(new Date());
-  let currentTransport: Transport | null = null;
 
-  const sudokuEntry = PLAY_UI['sudoku']!;
-
-  onMount(async () => {
-    let bundle: Bundle | null = null;
-    try { bundle = await (await fetch('/puzzles.bundle.json')).json(); } catch { bundle = null; }
-    const transport = createWorkerTransport();
-    currentTransport = transport;
-    const svc = createPuzzleService(transport, { timeoutMs: 6000, bundle });
-    const res = await svc.request('sudoku', 'medium', dailySeed('sudoku', date));
-    const game = sudokuEntry.makeGame(res.instance, res.solution);
-    store.load(game, sudokuEntry.hintProvider(res.instance));
-    loading = false;
-  });
-  onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });
-
-  const conflicts = $derived(store.game && store.tick >= 0 ? store.game.conflicts() : new Set<number>());
-  const solved = $derived(store.game && store.tick >= 0 ? store.game.isSolved() : false);
-
-  async function share() {
-    const text = shareText({ type: 'sudoku', date, timeMs: store.elapsedMs, hints: store.hintsUsed });
-    const url = location.origin + '/daily' + encodeShare({ type: 'sudoku', date });
-    try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch { /* clipboard unavailable */ }
-  }
+  const DAILY_TYPES = [
+    { key: 'sudoku',     label: PLAY_UI['sudoku']?.label    ?? 'Sudoku'      },
+    { key: 'tectonic',  label: PLAY_UI['tectonic']?.label  ?? 'Tectonic'    },
+    { key: 'kakuro',    label: PLAY_UI['kakuro']?.label     ?? 'Kakuro'      },
+    { key: 'grecolatin', label: 'Greco-Latin' }
+  ];
 </script>
 
 <main>
-  <header><a href="/">← Puzzles</a><TimerView ms={store.elapsedMs} /><span>Daily · {date}</span></header>
-  {#if loading}<p>Generating…</p>{:else if store.game}
-    {#if solved}<p class="win">Solved! 🎉</p><button onclick={share}>Share result</button>{/if}
-    <SudokuGrid game={store.game} selected={store.selected} tick={store.tick} {conflicts} onselect={(i) => (store.selected = i)} />
-    <NumberPad onenter={(n) => store.enter(n)} noteMode={store.noteMode} />
-    <Toolbar noteMode={store.noteMode} onnote={() => (store.noteMode = !store.noteMode)} onundo={() => store.undo()} onredo={() => store.redo()} onerase={() => store.erase()} onhint={() => store.hint()} />
-  {/if}
+  <header>
+    <a href="/">← Puzzles</a>
+    <h1>Daily Puzzles</h1>
+  </header>
+  <ul>
+    {#each DAILY_TYPES as { key, label } (key)}
+      <li>
+        <a href="/daily/{key}">Daily {label} · {date}</a>
+      </li>
+    {/each}
+  </ul>
 </main>
-<style>main { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; } header { display: flex; gap: 16px; width: min(92vw, 480px); justify-content: space-between; } .win { color: #1b8f3a; font-weight: 700; }</style>
+
+<style>
+  main {
+    max-width: 480px;
+    margin: 40px auto;
+    padding: 0 16px;
+    font-family: system-ui, sans-serif;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 1.4rem;
+  }
+  a {
+    color: #1b3a8f;
+  }
+  ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  li a {
+    display: block;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    background: #f4f5f7;
+  }
+  li a:hover {
+    background: #e8eaf0;
+  }
+</style>
