@@ -19,7 +19,7 @@ export interface Bundle {
   puzzles: BakedPuzzle[];
 }
 
-export interface PuzzleResult {
+interface PuzzleResult {
   instance: string;
   solution: string;
   achievedDifficulty: Difficulty;

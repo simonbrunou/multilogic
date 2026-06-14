@@ -1,4 +1,4 @@
-import { horizontalRuns, verticalRuns } from './rules';
+import { horizontalRuns, verticalRuns, runPermits, type RunConstraint } from './rules';
 import type { KakuroInstance } from './types';
 import type { Difficulty } from '../../core/types';
 import { measureEffort, type EffortModel } from '../../core/effort';
@@ -6,13 +6,11 @@ import { bandFromEffort } from '../../core/difficulty';
 
 // Thresholds calibrated via distribution of 40 expert-dug puzzles (effort range 0–4):
 // median=1, P75=2, P85=3. T1=1: effort≤1→medium; T2=3: effort≤3→hard, >3→expert.
-export const KAKURO_T1 = 1;
-export const KAKURO_T2 = 3;
+const KAKURO_T1 = 1;
+const KAKURO_T2 = 3;
 
-interface Constraint { cells: number[]; target: number | null }
-
-function constraints(inst: KakuroInstance): { runs: Constraint[]; cellRuns: number[][] } {
-  const runs: Constraint[] = [];
+function constraints(inst: KakuroInstance): { runs: RunConstraint[]; cellRuns: number[][] } {
+  const runs: RunConstraint[] = [];
   const cellRuns: number[][] = inst.black.map(() => []);
   const add = (cells: number[], sum: number | undefined) => {
     if (!cells.length) return;
@@ -25,18 +23,8 @@ function constraints(inst: KakuroInstance): { runs: Constraint[]; cellRuns: numb
   return { runs, cellRuns };
 }
 
-function candidate(grid: number[], i: number, v: number, runs: Constraint[], cellRuns: number[][]): boolean {
-  for (const ri of cellRuns[i]) {
-    const run = runs[ri];
-    let filled = 0, remaining = 0;
-    for (const c of run.cells) { const val = c === i ? v : grid[c]; if (val === v && c !== i) return false; if (val !== 0) filled += val; else remaining++; }
-    if (run.target !== null) {
-      if (filled > run.target) return false;
-      if (remaining === 0 && filled !== run.target) return false;
-      const need = run.target - filled;
-      if (need < remaining || need > remaining * 9) return false;
-    }
-  }
+function candidate(grid: number[], i: number, v: number, runs: RunConstraint[], cellRuns: number[][]): boolean {
+  for (const ri of cellRuns[i]) if (!runPermits(runs[ri], grid, i, v)) return false;
   return true;
 }
 

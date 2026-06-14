@@ -1,12 +1,10 @@
-import { horizontalRuns, verticalRuns } from './rules';
+import { horizontalRuns, verticalRuns, runPermits, type RunConstraint } from './rules';
 import type { KakuroInstance } from './types';
 import type { SolveResult } from '../../core/types';
 import type { PRNG } from '../../core/prng';
 
-interface Constraint { cells: number[]; target: number | null }
-
-function constraints(inst: KakuroInstance, useClues: boolean): { runs: Constraint[]; cellRuns: number[][] } {
-  const runs: Constraint[] = [];
+function constraints(inst: KakuroInstance, useClues: boolean): { runs: RunConstraint[]; cellRuns: number[][] } {
+  const runs: RunConstraint[] = [];
   const cellRuns: number[][] = inst.black.map(() => []);
   const add = (cells: number[], clueIndex: number, sum: number | undefined) => {
     if (cells.length === 0) return;
@@ -23,25 +21,8 @@ function constraints(inst: KakuroInstance, useClues: boolean): { runs: Constrain
   return { runs, cellRuns };
 }
 
-function ok(grid: number[], i: number, v: number, runs: Constraint[], cellRuns: number[][]): boolean {
-  for (const ri of cellRuns[i]) {
-    const run = runs[ri];
-    let filled = 0;
-    let remaining = 0;
-    for (const c of run.cells) {
-      const val = c === i ? v : grid[c];
-      if (val === v && c !== i) return false; // distinctness
-      if (val !== 0) filled += val; else remaining++;
-    }
-    if (run.target !== null) {
-      if (filled > run.target) return false;
-      if (remaining === 0 && filled !== run.target) return false;
-      // remaining distinct unused digits: cheap bound 1*remaining..9*remaining
-      const need = run.target - filled;
-      if (need < remaining) return false;            // can't sum to ≥ remaining*1
-      if (need > remaining * 9) return false;
-    }
-  }
+function ok(grid: number[], i: number, v: number, runs: RunConstraint[], cellRuns: number[][]): boolean {
+  for (const ri of cellRuns[i]) if (!runPermits(runs[ri], grid, i, v)) return false;
   return true;
 }
 

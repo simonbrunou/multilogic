@@ -1,0 +1,42 @@
+name: fallow
+
+# PR quality gate: runs `fallow audit` (dead code + complexity + duplication)
+# scoped to the files changed by the pull request. With gate "new-only"
+# (set in .fallowrc.json), only findings the PR *introduces* fail the build;
+# pre-existing findings in touched files are reported but don't block.
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: fallow-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  audit:
+    name: Audit changed files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # full history so audit can diff against the PR base
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Sync SvelteKit types
+        # Generates .svelte-kit (tsconfig + $lib path aliases) so fallow resolves
+        # imports accurately and avoids the "broken tsconfig chain" fallback.
+        run: bun run prepare
+
+      - name: Fallow audit
+        # bunx resolves the version-matched binary from bun.lock (the same
+        # fallow the repo is configured against). --fail-on-issues exits 1
+        # when the PR introduces dead code, over-threshold complexity, or new
+        # duplication.
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: bunx fallow audit --changed-since "origin/${BASE_REF}" --fail-on-issues --quiet

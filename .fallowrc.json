@@ -1,0 +1,67 @@
+{
+  "$schema": "https://raw.githubusercontent.com/fallow-rs/fallow/main/schema.json",
+
+  "entry": [
+    "serve.js"
+  ],
+
+  "usedClassMembers": [
+    {
+      "implements": "PlayableGame",
+      "members": ["conflicts"]
+    },
+    {
+      "extends": "UndoableGame",
+      "members": ["conflicts"]
+    }
+  ],
+
+  "duplicates": {
+    "minOccurrences": 3
+  },
+
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 20,
+    "maxCrap": 200,
+    "ignore": ["scripts/**"],
+    "thresholdOverrides": [
+      {
+        "files": ["src/engine/core/effort.ts"],
+        "functions": ["solve"],
+        "maxCognitive": 23,
+        "reason": "Recursive backtracking solver: constraint propagation of forced singles, MRV cell selection, and depth-first guessing share one mutable grid. Splitting fragments that shared state without aiding readability."
+      },
+      {
+        "files": ["src/engine/puzzles/tectonic/rater.ts"],
+        "functions": ["solveWithTechniques"],
+        "maxCognitive": 25,
+        "reason": "Fixpoint technique loop (naked singles, then per-region hidden singles) with early-exit flags driving re-iteration. The interleaved progressed/break control flow is intrinsic to the solve-until-stuck rating loop."
+      },
+      {
+        "files": ["src/engine/puzzles/tectonic/regions.ts"],
+        "functions": ["generateRegions"],
+        "maxCognitive": 23,
+        "reason": "Randomized flood-fill region growth: frontier expansion under a random size target with backtrack-free fill. The nested frontier/while loop mutates one region array and reads cleanest as a single pass."
+      },
+      {
+        "files": ["src/engine/puzzles/sudoku/techniques.ts"],
+        "functions": ["pointing"],
+        "maxCognitive": 22,
+        "reason": "Sudoku pointing scan: per box, per digit, confined-to-line detection over row/col sets. Already split from claiming(); further extraction would only relocate the unavoidable box×digit nesting."
+      }
+    ]
+  },
+
+  "rules": {
+    "unused-files": "error",
+    "unused-exports": "error",
+    "unused-types": "error",
+    "unused-class-members": "error",
+    "unused-dependencies": "error"
+  },
+
+  "audit": {
+    "gate": "new-only"
+  }
+}

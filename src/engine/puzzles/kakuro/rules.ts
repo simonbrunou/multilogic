@@ -2,6 +2,29 @@ import type { KakuroInstance, KakuroClue } from './types';
 
 export interface Run { cells: number[]; clueIndex: number; dir: 'h' | 'v' }
 
+/** A run reduced to the data needed for constraint checks: its cells and target sum (null = no clue). */
+export interface RunConstraint { cells: number[]; target: number | null }
+
+/**
+ * Whether placing `v` at cell `i` keeps `run` valid: no digit repeats within the
+ * run, and — for a clued run — the partial sum stays within reach of the target
+ * (`remaining` empty cells must each take 1..9). Shared by the solver, rater, and
+ * hint engine so the Kakuro placement rule lives in exactly one place.
+ */
+export function runPermits(run: RunConstraint, grid: number[], i: number, v: number): boolean {
+  let filled = 0;
+  let remaining = 0;
+  for (const c of run.cells) {
+    const val = c === i ? v : grid[c];
+    if (val === v && c !== i) return false; // distinctness
+    if (val !== 0) filled += val;
+    else remaining++;
+  }
+  if (run.target === null) return true;
+  const need = run.target - filled;
+  return !(filled > run.target || (remaining === 0 && filled !== run.target) || need < remaining || need > remaining * 9);
+}
+
 export function horizontalRuns(width: number, height: number, black: boolean[]): Run[] {
   const runs: Run[] = [];
   for (let r = 0; r < height; r++) {

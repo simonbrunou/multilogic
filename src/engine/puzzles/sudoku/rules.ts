@@ -1,8 +1,8 @@
 import { Dlx } from '../../core/dlx';
 import type { SudokuGrid } from './types';
 
-export const N = 9;
-export const CELLS = 81;
+const N = 9;
+const CELLS = 81;
 
 export function gridFromString(s: string): SudokuGrid {
   const clean = s.trim();
