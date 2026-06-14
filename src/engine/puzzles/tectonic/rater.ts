@@ -37,8 +37,10 @@ function effortModel(inst: TectonicInstance): EffortModel {
   };
 }
 
-export const TECTONIC_T1 = 1;
-export const TECTONIC_T2 = 6;
+// Thresholds calibrated via distribution of 40 expert-dug puzzles (effort range 0–44):
+// median=5, P75=10, P85=13. T1=2: effort≤2→medium; T2=10: effort≤10→hard, >10→expert.
+export const TECTONIC_T1 = 2;
+export const TECTONIC_T2 = 10;
 
 export interface Trace { solved: boolean; hardestRank: number }
 

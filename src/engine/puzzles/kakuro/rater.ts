@@ -4,8 +4,10 @@ import type { Difficulty } from '../../core/types';
 import { measureEffort, type EffortModel } from '../../core/effort';
 import { bandFromEffort } from '../../core/difficulty';
 
+// Thresholds calibrated via distribution of 40 expert-dug puzzles (effort range 0–4):
+// median=1, P75=2, P85=3. T1=1: effort≤1→medium; T2=3: effort≤3→hard, >3→expert.
 export const KAKURO_T1 = 1;
-export const KAKURO_T2 = 8;
+export const KAKURO_T2 = 3;
 
 interface Constraint { cells: number[]; target: number | null }
 
