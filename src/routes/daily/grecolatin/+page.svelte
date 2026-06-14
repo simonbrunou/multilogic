@@ -33,7 +33,9 @@
   const result = $derived(store.result);
 
   $effect(() => {
-    if (!result.complete || !result.valid || !storage) return;
+    if (!result.complete || !result.valid) return;
+    store.stopTimer();
+    if (!storage) return;
     const key = `grecolatin:daily:${Math.floor(store.elapsedMs / 250)}`;
     if (recordedSolves.has(key)) return;
     recordedSolves.add(key);

@@ -5,6 +5,12 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    rules: {
+      // Allow intentionally-unused args/vars prefixed with `_` (e.g. overridable base-class hooks).
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }]
+    }
+  },
+  {
     files: ['src/engine/**/*.ts'],
     rules: {
       '@typescript-eslint/no-explicit-any': 'error',

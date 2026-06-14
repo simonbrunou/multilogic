@@ -1,61 +1,38 @@
 <script lang="ts">
-  import { decodePair } from '../../engine/puzzles/grecolatin/rules';
   import type { GrecoStore } from '$lib/play/greco.svelte';
 
   let { store }: { store: GrecoStore } = $props();
 
-  // Light tint per letter — a solving aid only; the authoritative element is the letter glyph.
-  const PALETTE = [
-    '#fde8a0', // A yellow
-    '#a8d8f0', // B blue
-    '#b8f0b8', // C green
-    '#f0b8b8', // D red/pink
-    '#d8b8f0', // E purple
-    '#f0d8b8', // F orange
-    '#b8f0f0', // G teal
-    '#f0b8e8', // H pink
-    '#c8e8c8', // I light green
-  ] as const;
-
   const letterChar = (k: number): string => String.fromCharCode(65 + k);
 
-  function cellLabel(v: number, n: number): string {
-    const p = decodePair(v, n);
-    if (!p) return '';
-    // Each cell holds a letter (A..) and a digit (1..n), e.g. "A4".
-    return `${letterChar(p.b)}${p.a + 1}`;
-  }
-
-  function cellBg(v: number, n: number, isSelected: boolean, isConflict: boolean): string {
-    if (isConflict) return '#ffd5d5';
-    if (isSelected) return '#cfe3ff';
-    const p = decodePair(v, n);
-    if (!p) return '#fff';
-    return PALETTE[p.b % PALETTE.length];
+  // A cell shows its letter then its digit, e.g. "A4"; either part may be absent while solving.
+  function cellText(digit: number, letter: number): string {
+    const l = letter >= 0 ? letterChar(letter) : '';
+    const d = digit >= 0 ? String(digit + 1) : '';
+    return `${l}${d}`;
   }
 
   const result = $derived(store.result);
-  const conflicts = $derived(result.conflicts);
   const filled = $derived(store.cells.filter((v) => v !== 0).length);
+  const sel = $derived(store.selected);
+  const selDigit = $derived(sel !== null ? store.digits[sel] : -1);
+  const selLetter = $derived(sel !== null ? store.letters[sel] : -1);
 </script>
 
 <div class="board">
   <div class="grid" role="grid" style="--n: {store.n}">
-    {#each store.cells as v, i (i)}
+    {#each store.cells as _v, i (i)}
       {@const isGiven = store.givens[i] !== 0}
       {@const isSelected = store.selected === i}
-      {@const isConflict = conflicts.has(i)}
       <button
         class="cell"
         class:given={isGiven}
         class:selected={isSelected}
-        class:conflict={isConflict}
-        style="background: {cellBg(v, store.n, isSelected, isConflict)}"
         onclick={() => store.select(i)}
         aria-label="case {i}"
         aria-pressed={isSelected}
       >
-        {cellLabel(v, store.n)}
+        {cellText(store.digits[i], store.letters[i])}
       </button>
     {/each}
   </div>
@@ -66,9 +43,8 @@
     {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
       <button
         class="let-btn"
-        class:active={store.letter === k}
-        style="background: {PALETTE[k % PALETTE.length]}"
-        onclick={() => { store.letter = k; }}
+        class:active={selLetter === k}
+        onclick={() => store.setLetter(k)}
         aria-label="lettre {letterChar(k)}"
       >
         {letterChar(k)}
@@ -82,8 +58,8 @@
     {#each Array.from({ length: store.n }, (_, k) => k) as k (k)}
       <button
         class="sym-btn"
-        class:active={store.symbol === k}
-        onclick={() => { store.symbol = k; }}
+        class:active={selDigit === k}
+        onclick={() => store.setDigit(k)}
       >
         {k + 1}
       </button>
@@ -92,19 +68,13 @@
 
   <!-- Action buttons -->
   <div class="actions">
-    <button class="action-btn place-btn" onclick={() => store.place()}>Placer</button>
     <button class="action-btn erase-btn" onclick={() => store.clear()}>Effacer</button>
     <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 Indice</button>
   </div>
 
-  <!-- Status line -->
+  <!-- Status line: neutral progress only, no mistake feedback -->
   <div class="status">
     <span>{filled}/{store.n * store.n} placées</span>
-    {#if result.valid}
-      <span class="valid">valide ✓</span>
-    {:else}
-      <span class="conflict-label">conflit ✗</span>
-    {/if}
   </div>
 
   <!-- Win banner -->
@@ -134,6 +104,7 @@
 
   .cell {
     border: none;
+    background: #fff;
     font-size: clamp(14px, 4vw, 24px);
     font-weight: 600;
     display: flex;
@@ -150,6 +121,7 @@
 
   .cell.given {
     font-weight: 800;
+    background: #ececec;
     border: 2px solid #555;
     box-sizing: border-box;
     cursor: default;
@@ -157,12 +129,6 @@
 
   .cell.selected {
     outline: 3px solid #1b3a8f;
-    outline-offset: -2px;
-    z-index: 1;
-  }
-
-  .cell.conflict {
-    outline: 3px solid #cc0000;
     outline-offset: -2px;
     z-index: 1;
   }
@@ -180,7 +146,8 @@
     min-width: 56px;
   }
 
-  .sym-btn {
+  .sym-btn,
+  .let-btn {
     width: 34px;
     height: 34px;
     border: 2px solid #ccc;
@@ -189,28 +156,17 @@
     font-weight: 600;
     cursor: pointer;
     font-size: 14px;
-  }
-
-  .sym-btn.active {
-    border-color: #1b3a8f;
-    background: #cfe3ff;
-  }
-
-  .let-btn {
-    width: 34px;
-    height: 34px;
-    border: 2px solid #ccc;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 14px;
     color: #333;
   }
 
+  .let-btn {
+    font-weight: 700;
+  }
+
+  .sym-btn.active,
   .let-btn.active {
     border-color: #1b3a8f;
-    outline: 2px solid #1b3a8f;
-    outline-offset: 1px;
+    background: #cfe3ff;
   }
 
   .actions {
@@ -225,12 +181,6 @@
     cursor: pointer;
     font-size: 14px;
     font-weight: 600;
-  }
-
-  .place-btn {
-    background: #1b3a8f;
-    color: #fff;
-    border-color: #1b3a8f;
   }
 
   .erase-btn {
@@ -248,16 +198,6 @@
     gap: 12px;
     font-size: 14px;
     color: #444;
-  }
-
-  .valid {
-    color: #1b8f3a;
-    font-weight: 600;
-  }
-
-  .conflict-label {
-    color: #cc0000;
-    font-weight: 600;
   }
 
   .win-banner {
