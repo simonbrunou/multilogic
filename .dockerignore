@@ -1,0 +1,11 @@
+.git
+node_modules
+build
+.svelte-kit
+test-results
+playwright-report
+e2e/.cache
+.superpowers
+static/puzzles.bundle.json
+*.log
+.DS_Store

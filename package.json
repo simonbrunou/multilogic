@@ -15,6 +15,7 @@
 		"check:engine": "tsc -p tsconfig.engine.json",
 		"lint": "eslint .",
 		"pregen": "bun run scripts/pregen.ts",
+		"serve": "bun serve.js",
 		"test:e2e": "playwright test"
 	},
 	"devDependencies": {

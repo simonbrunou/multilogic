@@ -20,5 +20,9 @@ export default tseslint.config(
       ]
     }
   },
+  {
+    files: ['serve.js'],
+    languageOptions: { globals: { process: 'readonly', console: 'readonly' } }
+  },
   { ignores: ['.svelte-kit/', 'build/', 'node_modules/'] }
 );
