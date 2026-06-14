@@ -55,3 +55,10 @@ test('daily grecolatin renders a board', async ({ page }) => {
   await page.goto('/daily/grecolatin');
   await expect(page.locator('.cell').first()).toBeVisible({ timeout: 30000 });
 });
+
+test('grecolatin hint selects a suggested cell', async ({ page }) => {
+  await page.goto('/play/grecolatin');
+  await expect(page.locator('.cell').first()).toBeVisible({ timeout: 30000 });
+  await page.getByRole('button', { name: /hint/i }).click();
+  await expect(page.locator('.cell.selected')).toHaveCount(1);
+});
