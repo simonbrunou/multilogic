@@ -55,6 +55,25 @@ export function verticalRuns(width: number, height: number, black: boolean[]): R
   return runs;
 }
 
+/** Build constraint runs and per-cell run index lists from a KakuroInstance. */
+export function buildRunConstraints(inst: KakuroInstance): { runs: RunConstraint[]; cellRuns: number[][] } {
+  const runs: RunConstraint[] = [];
+  const cellRuns: number[][] = inst.black.map(() => []);
+  const add = (cells: number[], sum: number | undefined) => {
+    if (!cells.length) return;
+    const idx = runs.length;
+    runs.push({ cells, target: sum ?? null });
+    for (const c of cells) cellRuns[c].push(idx);
+  };
+  for (const r of horizontalRuns(inst.width, inst.height, inst.black)) {
+    add(r.cells, r.clueIndex >= 0 ? inst.clues[r.clueIndex]?.right : undefined);
+  }
+  for (const r of verticalRuns(inst.width, inst.height, inst.black)) {
+    add(r.cells, r.clueIndex >= 0 ? inst.clues[r.clueIndex]?.down : undefined);
+  }
+  return { runs, cellRuns };
+}
+
 export function allRuns(inst: KakuroInstance): Run[] {
   return [...horizontalRuns(inst.width, inst.height, inst.black), ...verticalRuns(inst.width, inst.height, inst.black)];
 }
