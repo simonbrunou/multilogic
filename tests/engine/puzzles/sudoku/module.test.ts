@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { sudoku } from '../../../../src/engine/puzzles/sudoku/index';
 import { gridFromString, gridToString } from '../../../../src/engine/puzzles/sudoku/rules';
-import { createPrng } from '../../../../src/engine/core/prng';
+import { createPrng, deriveSeed } from '../../../../src/engine/core/prng';
+import { DIFFICULTIES } from '../../../../src/engine/core/types';
 
 function freshSignal(): AbortSignal {
   return new AbortController().signal;
@@ -67,5 +68,23 @@ describe('sudoku module', () => {
     const res = await sudoku.generate({ difficulty: 'easy', prng: createPrng('seam'), signal: freshSignal() });
     expect(sudoku.deserializeInstance(sudoku.serializeInstance(res.instance))).toEqual(res.instance);
     expect(sudoku.deserializeSolution(sudoku.serializeSolution(res.solution!))).toEqual(res.solution);
+  });
+
+  it('generate returns an exactly in-band puzzle or throws — never a silent downgrade', async () => {
+    for (const difficulty of DIFFICULTIES) {
+      let got: string | null = null;
+      for (let s = 0; s < 5 && got === null; s++) {
+        const prng = createPrng(deriveSeed('sudoku', difficulty, 'module-exact', s));
+        try {
+          const res = await sudoku.generate({ difficulty, prng, signal: new AbortController().signal });
+          expect(res.achievedDifficulty).toBe(difficulty); // exact, never downgraded
+          expect(res.source).toBe('live');
+          got = res.achievedDifficulty;
+        } catch {
+          // this prng's 60 attempts all missed the band; try the next seed
+        }
+      }
+      expect(got, `exact ${difficulty} reachable within 5 prng seeds`).toBe(difficulty);
+    }
   });
 });

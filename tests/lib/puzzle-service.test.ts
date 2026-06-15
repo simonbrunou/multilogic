@@ -1,6 +1,43 @@
 import { describe, it, expect } from 'vitest';
-import { createPuzzleService, type Transport, type Bundle } from '../../src/lib/puzzle-service';
+import { createPuzzleService, pickFromBundle, type Transport, type Bundle } from '../../src/lib/puzzle-service';
 import type { WorkerRequest, WorkerResponse } from '../../src/worker/protocol';
+
+function entry(achieved: string, requested: string, tag: string) {
+  return { type: 'sudoku', requested, achieved, instance: tag, solution: tag } as Bundle['puzzles'][number];
+}
+
+const bundle: Bundle = {
+  engineVersion: 1,
+  puzzles: [
+    entry('easy', 'easy', 'E'),
+    entry('medium', 'medium', 'M'),
+    entry('hard', 'hard', 'H1'),
+    entry('hard', 'hard', 'H2'),
+    entry('hard', 'hard', 'H3')
+  ]
+};
+
+describe('pickFromBundle', () => {
+  it('selects by ACHIEVED difficulty', () => {
+    expect(pickFromBundle(bundle, 'sudoku', 'medium', 'seed-a')?.achievedDifficulty).toBe('medium');
+  });
+
+  it('falls back to the closest ACHIEVED band when the exact one is absent', () => {
+    expect(pickFromBundle(bundle, 'sudoku', 'expert', 'seed-a')?.achievedDifficulty).toBe('hard');
+  });
+
+  it('varies among equally-close matches by seed', () => {
+    const tags = new Set<string>();
+    for (const seed of ['s0', 's1', 's2', 's3', 's4', 's5', 's6', 's7']) {
+      tags.add(pickFromBundle(bundle, 'sudoku', 'hard', seed)!.instance);
+    }
+    expect(tags.size).toBeGreaterThan(1);
+  });
+
+  it('returns null when no puzzle of the type exists', () => {
+    expect(pickFromBundle(bundle, 'kakuro', 'easy', 'seed-a')).toBeNull();
+  });
+});
 
 function fakeTransport(behaviour: (req: WorkerRequest, reply: (r: WorkerResponse) => void) => void): Transport {
   let handler: (r: WorkerResponse) => void = () => {};

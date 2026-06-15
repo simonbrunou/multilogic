@@ -6,6 +6,7 @@
 // how often a target band is actually reached (the seed-level floor is a P4 deliverable).
 // Run: `bun run scripts/bench-difficulty.ts`.
 import { generateForDifficulty } from '../src/engine/puzzles/sudoku/generator';
+import { sudoku } from '../src/engine/puzzles/sudoku';
 import { createPrng, deriveSeed } from '../src/engine/core/prng';
 import { DIFFICULTIES, type Difficulty } from '../src/engine/core/types';
 
@@ -39,3 +40,23 @@ for (const target of DIFFICULTIES) {
 
 const verdict = worst <= BUDGET_MS ? 'PASS — keep full ladder in dig loop' : 'FAIL — adopt effort-proxy split in P4';
 console.log(`\nGATE: worst mean ${worst.toFixed(1)}ms vs budget ${BUDGET_MS}ms -> ${verdict}`);
+
+console.log('\nModule generate() end-to-end (60-attempt loop, exact-or-throw):');
+await (async () => {
+  for (const target of DIFFICULTIES) {
+    let ok = 0;
+    let threw = 0;
+    const t0 = performance.now();
+    for (let i = 0; i < RUNS; i++) {
+      const prng = createPrng(deriveSeed('sudoku', target, 'bench-module', i));
+      try {
+        const res = await sudoku.generate({ difficulty: target, prng, signal: new AbortController().signal });
+        if (res.achievedDifficulty === target) ok++;
+      } catch {
+        threw++;
+      }
+    }
+    const ms = ((performance.now() - t0) / RUNS).toFixed(0);
+    console.log(`${target.padEnd(7)} exact=${((ok / RUNS) * 100).toFixed(0)}% threw=${((threw / RUNS) * 100).toFixed(0)}%  ${ms}ms/req`);
+  }
+})();
