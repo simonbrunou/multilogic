@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { YakusoGame } from '../play/yakuso-game';
+  import { MARKED_ZERO, type YakusoGame } from '../play/yakuso-game';
 
   let {
     game,
@@ -22,10 +22,10 @@
   const rows = $derived(game.instance.rows);
 </script>
 
-<div class="grid" role="grid" style="grid-template-columns: repeat({cols}, 1fr);">
+<div class="grid" role="grid" style="grid-template-columns: repeat({cols}, 1fr); width: min(92vw, {cols * 56}px);">
   {#each cellView as v, i (i)}
     {#if game.isGiven(i)}
-      <div class="cell given" role="gridcell">{v !== 0 ? v : ''}</div>
+      <div class="cell given" role="gridcell">{v}</div>
     {:else}
       <button
         class="cell input"
@@ -33,7 +33,7 @@
         class:conflict={highlightErrors && conflicts.has(i)}
         onclick={() => onselect(i)}
       >
-        {#if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}
+        {#if v === MARKED_ZERO}<span class="zero">0</span>{:else if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}
       </button>
     {/if}
   {/each}
@@ -47,7 +47,6 @@
 <style>
   .grid {
     display: grid;
-    width: min(92vw, 480px);
     gap: 2px;
     background: #d8dbe2;
     padding: 2px;
@@ -67,6 +66,7 @@
   .cell.input { background: #fff; color: #1b3a8f; cursor: pointer; }
   .cell.input.selected { background: #cfe3ff; }
   .cell.input.conflict { background: #ffd5d5; }
+  .cell.input .zero { color: #aab; font-weight: 700; }
   .cell.total {
     background: #2a2a2a;
     color: #fff;

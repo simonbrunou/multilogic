@@ -74,9 +74,12 @@
     try { await navigator.clipboard.writeText(`${text}\n${url}`); } catch { /* clipboard unavailable */ }
   }
 
+  const allowZero = $derived(puzzleType === 'yakuso');
+
   function onkey(e: KeyboardEvent) {
     const d = Number(e.key);
     if (d >= 1 && d <= maxDigit) store.enter(d);
+    else if (e.key === '0' && allowZero) store.enter(0);
     else if (e.key === 'Backspace' || e.key === 'Delete') store.erase();
   }
 </script>
@@ -108,7 +111,7 @@
         {conflicts}
         onselect={(i: number) => (store.selected = i)}
       />
-      <NumberPad onenter={(n) => store.enter(n)} noteMode={store.noteMode} {maxDigit} />
+      <NumberPad onenter={(n) => store.enter(n)} noteMode={store.noteMode} {maxDigit} {allowZero} />
       <Toolbar
         noteMode={store.noteMode}
         onnote={() => (store.noteMode = !store.noteMode)}
