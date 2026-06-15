@@ -195,3 +195,28 @@ export function nakedTriple(grid: number[], cand: Candidates): Step | null {
   }
   return null;
 }
+
+/** If three digits' homes union to exactly three cells, the resulting hidden-triple step (else null). */
+function hiddenTripleStep(homes: Map<number, number[]>, trio: number[], cand: Candidates): Step | null {
+  const cells = new Set<number>([...homes.get(trio[0])!, ...homes.get(trio[1])!, ...homes.get(trio[2])!]);
+  if (cells.size !== 3) return null;
+  const elim = keepOnly([...cells], cand, trio);
+  return elim.length ? { technique: 'hiddenTriple', placements: [], eliminations: elim } : null;
+}
+
+/** Three digits whose only homes in a unit are the same three cells → clear other candidates from those cells. */
+export function hiddenTriple(grid: number[], cand: Candidates): Step | null {
+  for (const unit of UNITS) {
+    const homes = digitHomes(unit, grid, cand, 3);
+    const digits = [...homes.keys()];
+    for (let a = 0; a < digits.length; a++) {
+      for (let b = a + 1; b < digits.length; b++) {
+        for (let c = b + 1; c < digits.length; c++) {
+          const step = hiddenTripleStep(homes, [digits[a], digits[b], digits[c]], cand);
+          if (step) return step;
+        }
+      }
+    }
+  }
+  return null;
+}

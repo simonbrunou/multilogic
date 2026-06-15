@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lockedCandidates, nakedPair, hiddenPair, nakedTriple } from '../../../../src/engine/puzzles/sudoku/techniques';
+import { lockedCandidates, nakedPair, hiddenPair, nakedTriple, hiddenTriple } from '../../../../src/engine/puzzles/sudoku/techniques';
 import { computeCandidates } from '../../../../src/engine/puzzles/sudoku/candidates';
 
 describe('advanced techniques', () => {
@@ -58,5 +58,19 @@ describe('advanced techniques', () => {
     const step = nakedTriple(g2, c2);
     expect(step).not.toBeNull();
     expect(step!.eliminations.every((e) => [1, 2, 3].includes(e.digit))).toBe(true);
+  });
+
+  it('hiddenTriple strips extra candidates from the three cells that alone hold a digit trio', () => {
+    const grid = new Array(81).fill(0);
+    // Column 0: confine digits 1,2,3 to rows 0,1,2 by filling rows 3..8 of col 0 with 4..9.
+    const fills = [4, 5, 6, 7, 8, 9];
+    for (let k = 0; k < fills.length; k++) grid[(3 + k) * 9] = fills[k];
+    const cand = computeCandidates(grid);
+    // rows 0,1,2 of col 0 each allow {1,2,3}; inject a spurious extra to see it removed.
+    cand[0].add(8);
+    const step = hiddenTriple(grid, cand);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations).toContainEqual({ index: 0, digit: 8 });
+    expect(step!.eliminations.every((e) => ![1, 2, 3].includes(e.digit))).toBe(true);
   });
 });
