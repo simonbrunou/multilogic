@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lockedCandidates, nakedPair } from '../../../../src/engine/puzzles/sudoku/techniques';
+import { lockedCandidates, nakedPair, hiddenPair, nakedTriple, hiddenTriple, xWing } from '../../../../src/engine/puzzles/sudoku/techniques';
 import { computeCandidates } from '../../../../src/engine/puzzles/sudoku/candidates';
 
 describe('advanced techniques', () => {
@@ -25,5 +25,85 @@ describe('advanced techniques', () => {
     expect(step).not.toBeNull();
     expect(step!.eliminations.every((e) => e.digit === 1 || e.digit === 2)).toBe(true);
     expect(step!.eliminations.some((e) => e.index >= 2 && e.index <= 8)).toBe(true);
+  });
+
+  it('hiddenPair strips extra candidates from the two cells that alone hold a digit pair', () => {
+    const grid = new Array(81).fill(0);
+    // In row 0, force digits 3..9 to live outside cols 0 and 1 by placing them in
+    // the peers of every other row-0 cell except cols 0,1... simplest: fill cols 2..8
+    // of row 0 with 3,4,5,6,7,8,9 so only 1,2 remain available in row 0, and they can
+    // only go in cols 0 and 1.
+    const fills = [3, 4, 5, 6, 7, 8, 9];
+    for (let k = 0; k < fills.length; k++) grid[2 + k] = fills[k]; // row 0, cols 2..8
+    const cand = computeCandidates(grid);
+    // cols 0 and 1 of row 0 currently both have {1,2}; inject a spurious extra candidate
+    // to prove hiddenPair removes it: pretend col 0 also allows 5 (it cannot in a real
+    // grid, but candidates are the test surface here).
+    cand[0].add(5);
+    const step = hiddenPair(grid, cand);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations).toContainEqual({ index: 0, digit: 5 });
+    expect(step!.eliminations.every((e) => e.digit !== 1 && e.digit !== 2)).toBe(true);
+  });
+
+  it('nakedTriple eliminates the trio digits from the rest of the unit', () => {
+    const fills = [4, 5, 6, 7, 8, 9];
+    // trio in column 0, rows 0,1,2 = {1,2}/{2,3}/{1,3}; fill rows 3..8 col 0 with 4..9.
+    const g2 = new Array(81).fill(0);
+    for (let k = 0; k < fills.length; k++) g2[(3 + k) * 9] = fills[k]; // col 0, rows 3..8
+    const c2 = computeCandidates(g2);
+    c2[0] = new Set([1, 2]);
+    c2[9] = new Set([2, 3]);
+    c2[18] = new Set([1, 3]);
+    const step = nakedTriple(g2, c2);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations.every((e) => [1, 2, 3].includes(e.digit))).toBe(true);
+  });
+
+  it('hiddenTriple strips extra candidates from the three cells that alone hold a digit trio', () => {
+    const grid = new Array(81).fill(0);
+    // Column 0: confine digits 1,2,3 to rows 0,1,2 by filling rows 3..8 of col 0 with 4..9.
+    const fills = [4, 5, 6, 7, 8, 9];
+    for (let k = 0; k < fills.length; k++) grid[(3 + k) * 9] = fills[k];
+    const cand = computeCandidates(grid);
+    // rows 0,1,2 of col 0 each allow {1,2,3}; inject a spurious extra to see it removed.
+    cand[0].add(8);
+    const step = hiddenTriple(grid, cand);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations).toContainEqual({ index: 0, digit: 8 });
+    expect(step!.eliminations.every((e) => ![1, 2, 3].includes(e.digit))).toBe(true);
+  });
+
+  it('xWing (row-based) eliminates the digit from the two columns in other rows', () => {
+    const grid = new Array(81).fill(0);
+    const cand = computeCandidates(grid);
+    // Controlled candidate world: only digit 7 matters. Rows 0 and 4 have 7 only in
+    // columns 1 and 5; row 2 has a stray 7 in column 1 that the x-wing must eliminate.
+    for (let i = 0; i < 81; i++) cand[i] = new Set<number>();
+    cand[0 * 9 + 1].add(7);
+    cand[0 * 9 + 5].add(7);
+    cand[4 * 9 + 1].add(7);
+    cand[4 * 9 + 5].add(7);
+    cand[2 * 9 + 1].add(7); // victim: row 2, col 1
+    const step = xWing(grid, cand);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations).toContainEqual({ index: 2 * 9 + 1, digit: 7 });
+  });
+
+  it('xWing (column-based) eliminates the digit from the two rows in other columns', () => {
+    const grid = new Array(81).fill(0);
+    const cand = computeCandidates(grid);
+    for (let i = 0; i < 81; i++) cand[i] = new Set<number>();
+    // Columns 1 and 5 have 7 only in rows 0 and 4; a stray 7 sits at row 0, col 2.
+    // (Row 0 thus has three 7-candidate columns, so the row orientation cannot fire —
+    // this isolates the column-orientation path.)
+    cand[0 * 9 + 1].add(7);
+    cand[4 * 9 + 1].add(7);
+    cand[0 * 9 + 5].add(7);
+    cand[4 * 9 + 5].add(7);
+    cand[0 * 9 + 2].add(7); // victim: row 0, col 2
+    const step = xWing(grid, cand);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations).toContainEqual({ index: 0 * 9 + 2, digit: 7 });
   });
 });

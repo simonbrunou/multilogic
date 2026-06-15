@@ -1,6 +1,14 @@
 import { UNITS, ROWS, COLS, BOXES, type Candidates } from './candidates';
 
-export type TechniqueName = 'nakedSingle' | 'hiddenSingle' | 'lockedCandidates' | 'nakedPair';
+export type TechniqueName =
+  | 'nakedSingle'
+  | 'hiddenSingle'
+  | 'lockedCandidates'
+  | 'nakedPair'
+  | 'hiddenPair'
+  | 'nakedTriple'
+  | 'hiddenTriple'
+  | 'xWing';
 
 /**
  * A single deduction step. A step EITHER places digits (`placements`) OR removes
@@ -117,6 +125,167 @@ export function nakedPair(grid: number[], cand: Candidates): Step | null {
         if (elim.length) return { technique: 'nakedPair', placements: [], eliminations: elim };
       }
     }
+  }
+  return null;
+}
+
+/** Map each still-unplaced digit of `unit` to the empty cells that can hold it, when that count is in [2, maxCells]. */
+function digitHomes(unit: number[], grid: number[], cand: Candidates, maxCells: number): Map<number, number[]> {
+  const homes = new Map<number, number[]>();
+  for (let d = 1; d <= 9; d++) {
+    if (unit.some((i) => grid[i] === d)) continue;
+    const cells = unit.filter((i) => grid[i] === 0 && cand[i].has(d));
+    if (cells.length >= 2 && cells.length <= maxCells) homes.set(d, cells);
+  }
+  return homes;
+}
+
+/** Eliminations that strip every candidate except those in `keep` from each of `cells`. */
+function keepOnly(cells: number[], cand: Candidates, keep: number[]): Elimination[] {
+  const elim: Elimination[] = [];
+  for (const i of cells) for (const d of cand[i]) if (!keep.includes(d)) elim.push({ index: i, digit: d });
+  return elim;
+}
+
+/** Two digits whose only homes in a unit are the same two cells → clear other candidates from those cells. */
+export function hiddenPair(grid: number[], cand: Candidates): Step | null {
+  for (const unit of UNITS) {
+    const homes = digitHomes(unit, grid, cand, 2);
+    const digits = [...homes.keys()];
+    for (let a = 0; a < digits.length; a++) {
+      for (let b = a + 1; b < digits.length; b++) {
+        const c1 = homes.get(digits[a])!;
+        const c2 = homes.get(digits[b])!;
+        if (c1[0] !== c2[0] || c1[1] !== c2[1]) continue;
+        const elim = keepOnly(c1, cand, [digits[a], digits[b]]);
+        if (elim.length) return { technique: 'hiddenPair', placements: [], eliminations: elim };
+      }
+    }
+  }
+  return null;
+}
+
+/** Eliminations removing any of `digits` from empty cells of `unit` that are not in `keep`. */
+function clearDigitsFrom(unit: number[], keep: number[], grid: number[], cand: Candidates, digits: number[]): Elimination[] {
+  return unit.flatMap((i) =>
+    keep.includes(i) || grid[i] !== 0 ? [] : digits.filter((d) => cand[i].has(d)).map((d) => ({ index: i, digit: d }))
+  );
+}
+
+/** If three cells' candidates union to exactly three digits, the resulting naked-triple step (else null). */
+function nakedTripleStep(unit: number[], trio: number[], grid: number[], cand: Candidates): Step | null {
+  const union = new Set<number>([...cand[trio[0]], ...cand[trio[1]], ...cand[trio[2]]]);
+  if (union.size !== 3) return null;
+  const elim = clearDigitsFrom(unit, trio, grid, cand, [...union]);
+  return elim.length ? { technique: 'nakedTriple', placements: [], eliminations: elim } : null;
+}
+
+/** Three cells in a unit whose candidates union to exactly three digits → clear those digits elsewhere in the unit. */
+export function nakedTriple(grid: number[], cand: Candidates): Step | null {
+  for (const unit of UNITS) {
+    const empties = unit.filter((i) => grid[i] === 0 && cand[i].size >= 2 && cand[i].size <= 3);
+    for (let a = 0; a < empties.length; a++) {
+      for (let b = a + 1; b < empties.length; b++) {
+        for (let c = b + 1; c < empties.length; c++) {
+          const step = nakedTripleStep(unit, [empties[a], empties[b], empties[c]], grid, cand);
+          if (step) return step;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** If three digits' homes union to exactly three cells, the resulting hidden-triple step (else null). */
+function hiddenTripleStep(homes: Map<number, number[]>, trio: number[], cand: Candidates): Step | null {
+  const cells = new Set<number>([...homes.get(trio[0])!, ...homes.get(trio[1])!, ...homes.get(trio[2])!]);
+  if (cells.size !== 3) return null;
+  const elim = keepOnly([...cells], cand, trio);
+  return elim.length ? { technique: 'hiddenTriple', placements: [], eliminations: elim } : null;
+}
+
+/** Three digits whose only homes in a unit are the same three cells → clear other candidates from those cells. */
+export function hiddenTriple(grid: number[], cand: Candidates): Step | null {
+  for (const unit of UNITS) {
+    const homes = digitHomes(unit, grid, cand, 3);
+    const digits = [...homes.keys()];
+    for (let a = 0; a < digits.length; a++) {
+      for (let b = a + 1; b < digits.length; b++) {
+        for (let c = b + 1; c < digits.length; c++) {
+          const step = hiddenTripleStep(homes, [digits[a], digits[b], digits[c]], cand);
+          if (step) return step;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** d-eliminations in column `col` across every row except `exceptRows`. */
+function colElimsExceptRows(grid: number[], cand: Candidates, d: number, col: number, exceptRows: number[]): Elimination[] {
+  const elim: Elimination[] = [];
+  for (let r = 0; r < 9; r++) {
+    if (exceptRows.includes(r)) continue;
+    const i = r * 9 + col;
+    if (grid[i] === 0 && cand[i].has(d)) elim.push({ index: i, digit: d });
+  }
+  return elim;
+}
+
+/** d-eliminations in row `row` across every column except `exceptCols`. */
+function rowElimsExceptCols(grid: number[], cand: Candidates, d: number, row: number, exceptCols: number[]): Elimination[] {
+  const elim: Elimination[] = [];
+  for (let c = 0; c < 9; c++) {
+    if (exceptCols.includes(c)) continue;
+    const i = row * 9 + c;
+    if (grid[i] === 0 && cand[i].has(d)) elim.push({ index: i, digit: d });
+  }
+  return elim;
+}
+
+/** Row-orientation X-wing for digit d: two rows whose only d-candidates share the same two columns. */
+function rowXWing(grid: number[], cand: Candidates, d: number): Step | null {
+  const pairs: { r: number; cols: [number, number] }[] = [];
+  for (let r = 0; r < 9; r++) {
+    if (ROWS[r].some((i) => grid[i] === d)) continue;
+    const cols = ROWS[r].filter((i) => grid[i] === 0 && cand[i].has(d)).map((i) => i % 9);
+    if (cols.length === 2) pairs.push({ r, cols: [cols[0], cols[1]] });
+  }
+  for (let a = 0; a < pairs.length; a++) {
+    for (let b = a + 1; b < pairs.length; b++) {
+      if (pairs[a].cols[0] !== pairs[b].cols[0] || pairs[a].cols[1] !== pairs[b].cols[1]) continue;
+      const rows = [pairs[a].r, pairs[b].r];
+      const elim = pairs[a].cols.flatMap((c) => colElimsExceptRows(grid, cand, d, c, rows));
+      if (elim.length) return { technique: 'xWing', placements: [], eliminations: elim };
+    }
+  }
+  return null;
+}
+
+/** Column-orientation X-wing for digit d: two columns whose only d-candidates share the same two rows. */
+function colXWing(grid: number[], cand: Candidates, d: number): Step | null {
+  const pairs: { c: number; rows: [number, number] }[] = [];
+  for (let c = 0; c < 9; c++) {
+    if (COLS[c].some((i) => grid[i] === d)) continue;
+    const rows = COLS[c].filter((i) => grid[i] === 0 && cand[i].has(d)).map((i) => Math.floor(i / 9));
+    if (rows.length === 2) pairs.push({ c, rows: [rows[0], rows[1]] });
+  }
+  for (let a = 0; a < pairs.length; a++) {
+    for (let b = a + 1; b < pairs.length; b++) {
+      if (pairs[a].rows[0] !== pairs[b].rows[0] || pairs[a].rows[1] !== pairs[b].rows[1]) continue;
+      const cols = [pairs[a].c, pairs[b].c];
+      const elim = pairs[a].rows.flatMap((r) => rowElimsExceptCols(grid, cand, d, r, cols));
+      if (elim.length) return { technique: 'xWing', placements: [], eliminations: elim };
+    }
+  }
+  return null;
+}
+
+/** X-wing in either orientation, scanning digits 1..9. */
+export function xWing(grid: number[], cand: Candidates): Step | null {
+  for (let d = 1; d <= 9; d++) {
+    const step = rowXWing(grid, cand, d) ?? colXWing(grid, cand, d);
+    if (step) return step;
   }
   return null;
 }

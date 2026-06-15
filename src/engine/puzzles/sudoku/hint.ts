@@ -3,12 +3,17 @@ import { nakedSingle, hiddenSingle, lockedCandidates, nakedPair, type TechniqueN
 import type { SudokuInstance, SudokuState } from './types';
 import type { Hint } from '../../core/types';
 
+// ORDER is limited to rank 1–2 techniques (P0 scope); hiddenPair/nakedTriple/hiddenTriple/xWing hints are P4.
 const ORDER = [nakedSingle, hiddenSingle, lockedCandidates, nakedPair];
 const LABEL: Record<TechniqueName, string> = {
   nakedSingle: 'Naked single',
   hiddenSingle: 'Hidden single',
   lockedCandidates: 'Locked candidates',
-  nakedPair: 'Naked pair'
+  nakedPair: 'Naked pair',
+  hiddenPair: 'Hidden pair',
+  nakedTriple: 'Naked triple',
+  hiddenTriple: 'Hidden triple',
+  xWing: 'X-wing'
 };
 
 /**
