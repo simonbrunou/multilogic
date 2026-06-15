@@ -151,6 +151,14 @@ expert    20%          100% / 0%             66
 
 Bundle: all 12 Tectonic entries in-band (3 per band). **Conclusion:** Tectonic delivers in-band puzzles reliably (100 % module exact, all bands). Its single-call distribution is more even than Sudoku's (king-pointing at rank 4 gives a meatier `hard` band, 67 %), so calibration is less pressing here. The technique soundness (no false eliminations, incl. king-pointing) was independently verified.
 
+### P3 result — Kakuro (pragmatic 2-band, 2026-06-15)
+
+**Investigation finding:** Kakuro difficulty is **bimodal** — an empirical sweep of generated 6×6 puzzles found ~70 % forced-cell-only (easy), ~1 % forced-digit (medium), ~30 % combo-elimination (expert), with the middle bands essentially empty. Larger grids shift toward expert but generate poorly and make combo-elimination expensive. **User-approved decision: ship pragmatic ~2-band Kakuro** rather than fabricate four tiers.
+
+**Shipped:** a sound 3-rank **combination-aware** ladder — **1 forced cell · 2 forced digit (digit in every run-combo with one home) · 3 combo-elimination (no consistent run completion)**. Kakuro has **no givens**, so the dig-to-minimal/relax floor does not apply; difficulty is topology-driven. Crucially, Kakuro **keeps closest-fallback (NOT throw-on-miss)** — its bands aren't all reachable, so an in-band-or-bust contract would fail the build; unreachable requests degrade to the nearest reachable band (and the achieved-difficulty bundle from P4 serves likewise). `bandForRank` is honest (easy≤1/medium≤2/expert) and the step-count bump is disabled. The combination engine's soundness (no false eliminations/placements) was independently verified via the invariant that candidate sets always remain supersets of the unique solution.
+
+**Measured:** raw `rate()` over 120 random topologies = {easy 87, medium 0, hard 0, expert 33}. Module achieved-band per request (10 runs): `easy→easy` (1ms), `medium→` mostly easy +rare medium (184ms), `hard→expert` (194ms), `expert→expert` (5ms). **Conclusion:** "too easy" is solved for Kakuro — a `hard` or `expert` request reliably yields a genuinely-hard combo-elimination puzzle; `medium` honestly serves the (near-absent) middle as the closest reachable band. The medium/hard latency (~190ms) reflects exhausting 60 attempts for a rare band before returning closest — well within budget.
+
 ## 7. Yakuso ladder specification (pre-coding step)
 
 Yakuso currently rates by `effortToSolve` (guess-branch count), not techniques. Before implementing its ladder:
