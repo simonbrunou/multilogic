@@ -59,8 +59,7 @@
       class:thick-bottom={hasThickBottom(i)}
       class:thick-left={hasThickLeft(i)}
       class:thick-right={hasThickRight(i)}
-      role="gridcell"
-      aria-selected={selected === i}
+      aria-pressed={selected === i}
       aria-label={label(i, v)}
       onclick={() => onselect(i)}
     >

@@ -18,8 +18,7 @@
       class:conflict={highlightErrors && conflicts.has(i)}
       class:boxedge-r={i % 3 === 2}
       class:boxedge-b={Math.floor(i / 9) % 3 === 2}
-      role="gridcell"
-      aria-selected={selected === i}
+      aria-pressed={selected === i}
       aria-label={label(i, v)}
       onclick={() => onselect(i)}
     >

@@ -35,8 +35,7 @@
         class="cell input"
         class:selected={selected === i}
         class:conflict={highlightErrors && conflicts.has(i)}
-        role="gridcell"
-        aria-selected={selected === i}
+        aria-pressed={selected === i}
         aria-label={label(i, v)}
         onclick={() => onselect(i)}
       >

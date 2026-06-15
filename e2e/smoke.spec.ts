@@ -2,8 +2,9 @@ import { test, expect } from '@playwright/test';
 
 test('home lists Sudoku and play page renders a grid', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('link', { name: 'Sudoku', exact: true })).toBeVisible();
-  await expect(page.getByRole('link', { name: 'Tectonic', exact: true })).toBeVisible();
+  // Home puzzle links now carry a one-line rule description, so match by substring.
+  await expect(page.getByRole('link', { name: /Sudoku/ })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Tectonic/ })).toBeVisible();
 
   await page.goto('/play/sudoku');
   await expect(page.locator('.cell')).toHaveCount(81, { timeout: 30000 });
