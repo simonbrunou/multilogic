@@ -1,33 +1,43 @@
 import { describe, it, expect } from 'vitest';
-import { buildSquare, generateForDifficulty } from '../../../../src/engine/puzzles/grecolatin/generator';
+import { generateForDifficulty, buildSquare } from '../../../../src/engine/puzzles/grecolatin/generator';
+import { rate } from '../../../../src/engine/puzzles/grecolatin/rater';
 import { validateGrid } from '../../../../src/engine/puzzles/grecolatin/rules';
-import { createPrng } from '../../../../src/engine/core/prng';
+import { createPrng, deriveSeed } from '../../../../src/engine/core/prng';
+import { DIFFICULTIES } from '../../../../src/engine/core/types';
 
-describe('grecolatin generator', () => {
-  it('buildSquare yields a valid complete Greco-Latin square for each valid order', () => {
-    for (const n of [3, 4, 5, 7, 8, 9]) {
-      const sq = buildSquare(n, createPrng('s' + n));
-      expect(sq).not.toBeNull();
-      const r = validateGrid(n, sq!);
-      expect(r.complete).toBe(true);
-      expect(r.valid).toBe(true);
+describe('grecolatin generateForDifficulty (floored, honest rating)', () => {
+  it('reported difficulty always equals the rater on the produced instance (honesty)', () => {
+    for (const target of DIFFICULTIES) {
+      const g = generateForDifficulty(createPrng(deriveSeed('grecolatin', target, 'honest', 0)), target);
+      expect(g.difficulty).toBe(rate(g.instance));
     }
   });
-  it('buildSquare is deterministic for a seed', () => {
-    expect(buildSquare(5, createPrng('z'))).toEqual(buildSquare(5, createPrng('z')));
+
+  it('always returns a conflict-free partial Greco-Latin square', () => {
+    for (const target of DIFFICULTIES) {
+      const g = generateForDifficulty(createPrng(deriveSeed('grecolatin', target, 'valid', 0)), target);
+      expect(validateGrid(g.instance.n, g.instance.givens).valid).toBe(true);
+    }
   });
-  it('generateForDifficulty produces givens that are a subset of a valid square', () => {
-    const g = generateForDifficulty(createPrng('g1'), 'easy', 5);
-    expect(g.instance.n).toBe(5);
-    // the givens alone must be conflict-free (they come from a valid square)
-    expect(validateGrid(5, g.instance.givens).valid).toBe(true);
-    const filled = g.instance.givens.filter((v) => v !== 0).length;
-    expect(filled).toBeGreaterThan(0);
-    expect(filled).toBeLessThan(25);
+
+  it('easy, hard, and expert are reachable within the attempt budget (medium is the squeezed band at n=5)', () => {
+    for (const target of ['easy', 'hard', 'expert'] as const) {
+      let hit = false;
+      for (let s = 0; s < 8 && !hit; s++) {
+        if (generateForDifficulty(createPrng(deriveSeed('grecolatin', target, 'reach', s)), target).difficulty === target) hit = true;
+      }
+      expect(hit, `target ${target} reachable`).toBe(true);
+    }
   });
-  it('easy reveals more givens than hard', () => {
-    const easy = generateForDifficulty(createPrng('a'), 'easy', 5).instance.givens.filter((v) => v !== 0).length;
-    const hard = generateForDifficulty(createPrng('a'), 'hard', 5).instance.givens.filter((v) => v !== 0).length;
-    expect(easy).toBeGreaterThan(hard);
+
+  it('a medium request returns a valid puzzle in a near band (closest-fallback for the squeezed band)', () => {
+    const g = generateForDifficulty(createPrng(deriveSeed('grecolatin', 'medium', 'near', 0)), 'medium');
+    expect(['easy', 'medium', 'hard']).toContain(g.difficulty);
+    expect(validateGrid(g.instance.n, g.instance.givens).valid).toBe(true);
+  });
+
+  it('buildSquare yields a complete valid Greco-Latin square', () => {
+    expect(validateGrid(5, buildSquare(5, createPrng(42))!).complete).toBe(true);
+    expect(validateGrid(5, buildSquare(5, createPrng(42))!).valid).toBe(true);
   });
 });

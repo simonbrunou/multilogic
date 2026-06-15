@@ -1,4 +1,5 @@
 import { encodePair, decodePair } from './rules';
+import { rate } from './rater';
 import type { PRNG } from '../../core/prng';
 import type { Difficulty } from '../../core/types';
 import type { GrecoLatinInstance } from './types';
@@ -98,18 +99,34 @@ export function buildSquare(n: number, prng: PRNG): number[] | null {
 }
 
 const REVEAL: Record<Difficulty, number> = { easy: 0.6, medium: 0.45, hard: 0.3, expert: 0.2 };
+const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
+const GEN_ATTEMPTS = 60;
 
 export interface GeneratedGreco {
   instance: GrecoLatinInstance;
   difficulty: Difficulty;
 }
 
-export function generateForDifficulty(prng: PRNG, target: Difficulty, n = 5): GeneratedGreco {
-  const sol = buildSquare(n, prng);
-  if (!sol) throw new Error(`grecolatin: failed to build a square of order ${n}`);
+/** Reveal round(n*n*reveal) random cells of a solved square (at least 1). */
+function revealGivens(sol: number[], n: number, reveal: number, prng: PRNG): number[] {
   const givens = new Array<number>(n * n).fill(0);
   const order = prng.shuffle(sol.map((_, i) => i));
-  const count = Math.max(1, Math.round(n * n * REVEAL[target]));
+  const count = Math.max(1, Math.round(n * n * reveal));
   for (let k = 0; k < count; k++) givens[order[k]] = sol[order[k]];
-  return { instance: { n, givens }, difficulty: target };
+  return givens;
+}
+
+export function generateForDifficulty(prng: PRNG, target: Difficulty, n = 5): GeneratedGreco {
+  let best: GeneratedGreco | null = null;
+  for (let attempt = 0; attempt < GEN_ATTEMPTS; attempt++) {
+    const sol = buildSquare(n, prng);
+    if (!sol) throw new Error(`grecolatin: failed to build a square of order ${n}`);
+    const instance: GrecoLatinInstance = { n, givens: revealGivens(sol, n, REVEAL[target], prng) };
+    const difficulty = rate(instance);
+    if (difficulty === target) return { instance, difficulty };
+    if (best === null || Math.abs(RANK[difficulty] - RANK[target]) < Math.abs(RANK[best.difficulty] - RANK[target])) {
+      best = { instance, difficulty };
+    }
+  }
+  return best!;
 }
