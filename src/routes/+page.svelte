@@ -11,6 +11,7 @@
     <li><a href="/play/tectonic">{puzzleTypeLabel('tectonic')}</a></li>
     <li><a href="/play/kakuro">{puzzleTypeLabel('kakuro')}</a></li>
     <li><a href="/play/grecolatin">{puzzleTypeLabel('grecolatin')}</a></li>
+    <li><a href="/play/yakuso">{puzzleTypeLabel('yakuso')}</a></li>
     <li><a href="/daily">{t('home.daily')}</a></li>
     <li><a href="/stats">{t('home.stats')}</a></li>
     <li><a href="/settings">{t('home.settings')}</a></li>

@@ -1,0 +1,42 @@
+import { describe, it, expect } from 'vitest';
+import { generateForDifficulty } from '../../../../src/engine/puzzles/yakuso/generator';
+import { solveComplete } from '../../../../src/engine/puzzles/yakuso/solver';
+import { isCompleteSolution, columnSums } from '../../../../src/engine/puzzles/yakuso/rules';
+import { createPrng } from '../../../../src/engine/core/prng';
+import { DIFFICULTIES } from '../../../../src/engine/core/types';
+
+describe('yakuso generator', () => {
+  for (const d of DIFFICULTIES) {
+    it(`${d}: produces a unique instance whose stored solution is valid and reproduces totals`, () => {
+      const g = generateForDifficulty(createPrng(`yakuso-${d}-gen`), d);
+      // solution is a valid complete YAKUSO grid
+      expect(isCompleteSolution(g.instance, g.solution)).toBe(true);
+      // totals come from the solution
+      expect(columnSums(g.solution, g.instance.rows, g.instance.cols)).toEqual(g.instance.totals);
+      // uniquely solvable
+      const r = solveComplete(g.instance, 2);
+      expect(r.count).toBe(1);
+      expect(r.solution).toEqual(g.solution);
+      // every clue is consistent with the solution
+      g.instance.clues.forEach((c, i) => { if (c !== null) expect(c).toBe(g.solution[i]); });
+      // sizing: cols = rows + 1
+      expect(g.instance.cols).toBe(g.instance.rows + 1);
+    });
+  }
+
+  it('is deterministic per seed', () => {
+    const a = generateForDifficulty(createPrng('yakuso-det'), 'medium');
+    const b = generateForDifficulty(createPrng('yakuso-det'), 'medium');
+    expect(a.instance).toEqual(b.instance);
+    expect(a.solution).toEqual(b.solution);
+  });
+
+  it('grid size grows with difficulty', () => {
+    const rowsOf = (d: Parameters<typeof generateForDifficulty>[1]) =>
+      generateForDifficulty(createPrng(`yakuso-size-${d}`), d).instance.rows;
+    expect(rowsOf('easy')).toBe(3);
+    expect(rowsOf('medium')).toBe(4);
+    expect(rowsOf('hard')).toBe(5);
+    expect(rowsOf('expert')).toBe(6);
+  });
+});

@@ -32,6 +32,16 @@ test('kakuro play page renders a grid and accepts input', async ({ page }) => {
   await expect(page.locator('.cell.white').filter({ hasText: /[1-9]/ }).first()).toBeVisible();
 });
 
+test('yakuso play page renders a grid and accepts input', async ({ page }) => {
+  await page.goto('/play/yakuso');
+  await expect(page.locator('.cell.input').first()).toBeVisible({ timeout: 30000 });
+  await expect(page.locator('.cell.total').first()).toBeVisible(); // totals row shown
+  const empty = page.locator('.cell.input').first();
+  await empty.click();
+  await page.keyboard.press('1');
+  await expect(page.locator('.cell.input').filter({ hasText: /[1-9]/ }).first()).toBeVisible();
+});
+
 test('grecolatin play page renders a board', async ({ page }) => {
   await page.goto('/play/grecolatin');
   await expect(page.locator('.cell').first()).toBeVisible({ timeout: 30000 });

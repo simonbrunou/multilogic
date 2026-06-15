@@ -7,7 +7,7 @@ export function isDifficulty(s: string): s is Difficulty {
   return (DIFFICULTIES as readonly string[]).includes(s);
 }
 
-export type PuzzleType = 'sudoku' | 'tectonic' | 'kakuro' | 'grecolatin';
+export type PuzzleType = 'sudoku' | 'tectonic' | 'kakuro' | 'grecolatin' | 'yakuso';
 
 /** Minimal structural subset of AbortSignal the engine relies on (keeps the engine DOM-free). */
 export interface AbortLike {

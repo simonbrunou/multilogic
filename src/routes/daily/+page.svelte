@@ -3,7 +3,7 @@
   import { t, puzzleTypeLabel } from '$lib/i18n';
 
   const date = todayISO(new Date());
-  const keys = ['sudoku', 'tectonic', 'kakuro', 'grecolatin'];
+  const keys = ['sudoku', 'tectonic', 'kakuro', 'grecolatin', 'yakuso'];
 </script>
 
 <main>

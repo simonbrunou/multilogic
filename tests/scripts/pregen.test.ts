@@ -14,6 +14,7 @@ describe('pregen buildBundle', () => {
     expect(types.has('sudoku')).toBe(true);
     expect(types.has('tectonic')).toBe(true);
     expect(types.has('grecolatin')).toBe(true);
+    expect(types.has('yakuso')).toBe(true);
   }, 60000);
 
   it('every bundled puzzle is uniquely solvable to its stored solution', async () => {

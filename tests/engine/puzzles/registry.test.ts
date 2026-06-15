@@ -2,15 +2,17 @@ import { describe, it, expect } from 'vitest';
 import { MODULES, getModule } from '../../../src/engine/puzzles/registry';
 
 describe('registry', () => {
-  it('exposes sudoku, tectonic, and kakuro modules keyed by type', () => {
+  it('exposes sudoku, tectonic, kakuro, and yakuso modules keyed by type', () => {
     expect(MODULES.sudoku?.type).toBe('sudoku');
     expect(MODULES.tectonic?.type).toBe('tectonic');
     expect(MODULES.kakuro?.type).toBe('kakuro');
+    expect(MODULES.yakuso?.type).toBe('yakuso');
   });
   it('getModule returns a defined module', () => {
     expect(getModule('sudoku').type).toBe('sudoku');
     expect(getModule('tectonic').type).toBe('tectonic');
     expect(getModule('kakuro').type).toBe('kakuro');
+    expect(getModule('yakuso').kind).toBe('deduction');
   });
   it('grecolatin is now a registered construction module', () => {
     expect(getModule('grecolatin').kind).toBe('construction');
