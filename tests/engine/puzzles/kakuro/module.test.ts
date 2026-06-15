@@ -33,7 +33,8 @@ describe('kakuro module', () => {
       const res = await kakuro.generate({ difficulty, prng, signal: new AbortController().signal });
       expect(['easy', 'medium', 'hard', 'expert']).toContain(res.achievedDifficulty);
       expect(res.source).toBe('live');
-      expect(res.instance.black.length).toBe(res.solution.length);
+      expect(res.solution).not.toBeNull();
+      expect(res.instance.black.length).toBe(res.solution!.length);
     }
   });
 
