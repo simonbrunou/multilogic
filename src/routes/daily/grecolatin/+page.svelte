@@ -8,6 +8,7 @@
   import { shareText, encodeShare, decodeShare } from '$lib/share';
   import GrecoBoard from '$lib/components/GrecoBoard.svelte';
   import TimerView from '$lib/components/TimerView.svelte';
+  import SolvedBanner from '$lib/components/SolvedBanner.svelte';
   import type { Transport } from '$lib/puzzle-service';
   import type { GrecoLatinInstance } from '../../../engine/puzzles/grecolatin/types';
   import { t, puzzleTypeLabel, locale } from '$lib/i18n';
@@ -81,13 +82,10 @@
   {:else if error}
     <p class="error">{error}</p>
   {:else}
-    <GrecoBoard {store} />
     {#if result.complete && result.valid}
-      <div class="win-area">
-        <p class="win">{t('play.solved')}</p>
-        <button onclick={share}>{t('play.share')}</button>
-      </div>
+      <SolvedBanner timeMs={store.elapsedMs} hints={store.hintsUsed} onshare={share} />
     {/if}
+    <GrecoBoard {store} />
   {/if}
 </main>
 
@@ -98,7 +96,6 @@
     align-items: center;
     gap: 10px;
     padding: 12px;
-    font-family: system-ui, sans-serif;
   }
   header {
     display: flex;
@@ -108,21 +105,10 @@
     justify-content: space-between;
   }
   header a {
-    color: #1b3a8f;
+    color: var(--accent);
     text-decoration: none;
   }
-  .win-area {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-  .win {
-    color: #1b8f3a;
-    font-weight: 700;
-    margin: 0;
-  }
   .error {
-    color: #cc0000;
+    color: var(--danger);
   }
 </style>

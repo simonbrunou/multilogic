@@ -6,6 +6,7 @@
   import { getModule } from '../../../engine/puzzles/registry';
   import GrecoBoard from '$lib/components/GrecoBoard.svelte';
   import TimerView from '$lib/components/TimerView.svelte';
+  import SolvedBanner from '$lib/components/SolvedBanner.svelte';
   import type { Difficulty } from '../../../engine/core/types';
   import type { Transport } from '$lib/puzzle-service';
   import { SvelteSet } from 'svelte/reactivity';
@@ -71,16 +72,23 @@
     <p>{t('play.generating')}</p>
   {:else if error}
     <p class="error">{error}</p>
-    <button onclick={() => newGame(difficulty)}>{t('play.retry')}</button>
+    <button class="btn" onclick={() => newGame(difficulty)}>{t('play.retry')}</button>
   {:else}
+    {#if result.complete && result.valid}
+      <SolvedBanner
+        timeMs={store.elapsedMs}
+        hints={store.hintsUsed}
+        onnewgame={() => newGame(difficulty)}
+      />
+    {/if}
     <GrecoBoard {store} />
   {/if}
 
   <div class="diffs">
     {#each ['easy', 'medium', 'hard', 'expert'] as d (d)}
       <button
-        class="diff-btn"
-        class:active={difficulty === d}
+        class="btn"
+        class:is-active={difficulty === d}
         onclick={() => newGame(d as Difficulty)}
       >{difficultyLabel(d)}</button>
     {/each}
@@ -94,7 +102,6 @@
     align-items: center;
     gap: 10px;
     padding: 12px;
-    font-family: system-ui, sans-serif;
   }
 
   header {
@@ -106,7 +113,7 @@
   }
 
   header a {
-    color: #1b3a8f;
+    color: var(--accent);
     text-decoration: none;
   }
 
@@ -114,24 +121,11 @@
     display: flex;
     gap: 6px;
     margin-top: 10px;
-  }
-
-  .diff-btn {
-    padding: 6px 10px;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    background: #f4f5f7;
-    cursor: pointer;
-    font-size: 13px;
-  }
-
-  .diff-btn.active {
-    background: #1b3a8f;
-    color: #fff;
-    border-color: #1b3a8f;
+    flex-wrap: wrap;
+    justify-content: center;
   }
 
   .error {
-    color: #cc0000;
+    color: var(--danger);
   }
 </style>

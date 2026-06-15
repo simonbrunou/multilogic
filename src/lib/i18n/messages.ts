@@ -69,14 +69,19 @@ const en = {
     digit: 'Digit:',
     erase: 'Erase',
     hint: 'Hint',
-    placed: (p: { filled: number; total: number }) => `${p.filled}/${p.total} placed`,
-    solvedBanner: 'Solved! You completed the Greco-Latin square!'
+    placed: (p: { filled: number; total: number }) => `${p.filled}/${p.total} placed`
   },
   aria: {
     cell: (p: { i: number }) => `cell ${p.i}`,
     cellAt: (p: { row: number; col: number; value: string }) =>
       `row ${p.row}, column ${p.col}, ${p.value}`,
     empty: 'empty',
+    clue: (p: { right: string; down: string }) => {
+      const parts: string[] = [];
+      if (p.right) parts.push(`across ${p.right}`);
+      if (p.down) parts.push(`down ${p.down}`);
+      return parts.length ? `clue: ${parts.join(', ')}` : 'block';
+    },
     letter: (p: { char: string }) => `letter ${p.char}`
   },
   rules: {
@@ -169,13 +174,18 @@ const fr: typeof en = {
     digit: 'Chiffre :',
     erase: 'Effacer',
     hint: 'Indice',
-    placed: (p) => `${p.filled}/${p.total} placées`,
-    solvedBanner: 'Résolu ! Vous avez complété le carré gréco-latin !'
+    placed: (p) => `${p.filled}/${p.total} placées`
   },
   aria: {
     cell: (p) => `case ${p.i}`,
     cellAt: (p) => `ligne ${p.row}, colonne ${p.col}, ${p.value}`,
     empty: 'vide',
+    clue: (p) => {
+      const parts: string[] = [];
+      if (p.right) parts.push(`horizontal ${p.right}`);
+      if (p.down) parts.push(`vertical ${p.down}`);
+      return parts.length ? `indice : ${parts.join(', ')}` : 'case noire';
+    },
     letter: (p) => `lettre ${p.char}`
   },
   rules: {

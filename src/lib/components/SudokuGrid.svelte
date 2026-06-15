@@ -1,15 +1,21 @@
 <script lang="ts">
   import type { PlayableGame } from '../play/playable';
   import { t } from '$lib/i18n';
+  import { gridKeyboard } from '../play/grid-nav';
   let { game, selected, tick = 0, conflicts = new Set<number>(), highlightErrors = true, onselect }:
     { game: PlayableGame; selected: number | null; tick?: number; conflicts?: Set<number>; highlightErrors?: boolean; onselect: (i: number) => void } = $props();
 
   const cellView = $derived.by(() => { void tick; return [...game.cells]; });
   const label = (i: number, v: number) =>
     t('aria.cellAt', { row: Math.floor(i / 9) + 1, col: (i % 9) + 1, value: v !== 0 ? String(v) : t('aria.empty') });
+  const tabStop = $derived(selected ?? 0);
 </script>
 
-<div class="grid" role="grid">
+<div
+  class="grid"
+  role="grid"
+  use:gridKeyboard={{ cols: 9, total: 81, focusable: () => true, selected, onselect }}
+>
   {#each cellView as v, i (i)}
     <button
       class="cell"
@@ -20,6 +26,8 @@
       class:boxedge-b={Math.floor(i / 9) % 3 === 2}
       aria-pressed={selected === i}
       aria-label={label(i, v)}
+      data-cell={i}
+      tabindex={i === tabStop ? 0 : -1}
       onclick={() => onselect(i)}
     >
       {#if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}
