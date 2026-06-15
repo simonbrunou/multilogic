@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lockedCandidates, nakedPair, hiddenPair, nakedTriple, hiddenTriple } from '../../../../src/engine/puzzles/sudoku/techniques';
+import { lockedCandidates, nakedPair, hiddenPair, nakedTriple, hiddenTriple, xWing } from '../../../../src/engine/puzzles/sudoku/techniques';
 import { computeCandidates } from '../../../../src/engine/puzzles/sudoku/candidates';
 
 describe('advanced techniques', () => {
@@ -72,5 +72,21 @@ describe('advanced techniques', () => {
     expect(step).not.toBeNull();
     expect(step!.eliminations).toContainEqual({ index: 0, digit: 8 });
     expect(step!.eliminations.every((e) => ![1, 2, 3].includes(e.digit))).toBe(true);
+  });
+
+  it('xWing (row-based) eliminates the digit from the two columns in other rows', () => {
+    const grid = new Array(81).fill(0);
+    const cand = computeCandidates(grid);
+    // Controlled candidate world: only digit 7 matters. Rows 0 and 4 have 7 only in
+    // columns 1 and 5; row 2 has a stray 7 in column 1 that the x-wing must eliminate.
+    for (let i = 0; i < 81; i++) cand[i] = new Set<number>();
+    cand[0 * 9 + 1].add(7);
+    cand[0 * 9 + 5].add(7);
+    cand[4 * 9 + 1].add(7);
+    cand[4 * 9 + 5].add(7);
+    cand[2 * 9 + 1].add(7); // victim: row 2, col 1
+    const step = xWing(grid, cand);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations).toContainEqual({ index: 2 * 9 + 1, digit: 7 });
   });
 });

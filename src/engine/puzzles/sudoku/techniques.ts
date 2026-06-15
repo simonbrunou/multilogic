@@ -220,3 +220,72 @@ export function hiddenTriple(grid: number[], cand: Candidates): Step | null {
   }
   return null;
 }
+
+/** d-eliminations in column `col` across every row except `exceptRows`. */
+function colElimsExceptRows(grid: number[], cand: Candidates, d: number, col: number, exceptRows: number[]): Elimination[] {
+  const elim: Elimination[] = [];
+  for (let r = 0; r < 9; r++) {
+    if (exceptRows.includes(r)) continue;
+    const i = r * 9 + col;
+    if (grid[i] === 0 && cand[i].has(d)) elim.push({ index: i, digit: d });
+  }
+  return elim;
+}
+
+/** d-eliminations in row `row` across every column except `exceptCols`. */
+function rowElimsExceptCols(grid: number[], cand: Candidates, d: number, row: number, exceptCols: number[]): Elimination[] {
+  const elim: Elimination[] = [];
+  for (let c = 0; c < 9; c++) {
+    if (exceptCols.includes(c)) continue;
+    const i = row * 9 + c;
+    if (grid[i] === 0 && cand[i].has(d)) elim.push({ index: i, digit: d });
+  }
+  return elim;
+}
+
+/** Row-orientation X-wing for digit d: two rows whose only d-candidates share the same two columns. */
+function rowXWing(grid: number[], cand: Candidates, d: number): Step | null {
+  const pairs: { r: number; cols: [number, number] }[] = [];
+  for (let r = 0; r < 9; r++) {
+    if (ROWS[r].some((i) => grid[i] === d)) continue;
+    const cols = ROWS[r].filter((i) => grid[i] === 0 && cand[i].has(d)).map((i) => i % 9);
+    if (cols.length === 2) pairs.push({ r, cols: [cols[0], cols[1]] });
+  }
+  for (let a = 0; a < pairs.length; a++) {
+    for (let b = a + 1; b < pairs.length; b++) {
+      if (pairs[a].cols[0] !== pairs[b].cols[0] || pairs[a].cols[1] !== pairs[b].cols[1]) continue;
+      const rows = [pairs[a].r, pairs[b].r];
+      const elim = pairs[a].cols.flatMap((c) => colElimsExceptRows(grid, cand, d, c, rows));
+      if (elim.length) return { technique: 'xWing', placements: [], eliminations: elim };
+    }
+  }
+  return null;
+}
+
+/** Column-orientation X-wing for digit d: two columns whose only d-candidates share the same two rows. */
+function colXWing(grid: number[], cand: Candidates, d: number): Step | null {
+  const pairs: { c: number; rows: [number, number] }[] = [];
+  for (let c = 0; c < 9; c++) {
+    if (COLS[c].some((i) => grid[i] === d)) continue;
+    const rows = COLS[c].filter((i) => grid[i] === 0 && cand[i].has(d)).map((i) => Math.floor(i / 9));
+    if (rows.length === 2) pairs.push({ c, rows: [rows[0], rows[1]] });
+  }
+  for (let a = 0; a < pairs.length; a++) {
+    for (let b = a + 1; b < pairs.length; b++) {
+      if (pairs[a].rows[0] !== pairs[b].rows[0] || pairs[a].rows[1] !== pairs[b].rows[1]) continue;
+      const cols = [pairs[a].c, pairs[b].c];
+      const elim = pairs[a].rows.flatMap((r) => rowElimsExceptCols(grid, cand, d, r, cols));
+      if (elim.length) return { technique: 'xWing', placements: [], eliminations: elim };
+    }
+  }
+  return null;
+}
+
+/** X-wing in either orientation, scanning digits 1..9. */
+export function xWing(grid: number[], cand: Candidates): Step | null {
+  for (let d = 1; d <= 9; d++) {
+    const step = rowXWing(grid, cand, d) ?? colXWing(grid, cand, d);
+    if (step) return step;
+  }
+  return null;
+}
