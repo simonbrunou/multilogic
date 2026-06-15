@@ -18,6 +18,8 @@ export function residualFreeRatio(inst: GrecoLatinInstance): number {
   while (changed) {
     changed = false;
     const an = analyze(n, grid);
+    // The per-pass `an` snapshot is safe to place multiple forced singles against: two
+    // empty cells in a valid partial GL square cannot share the same unique forced pair.
     for (let i = 0; i < n * n; i++) {
       if (grid[i] !== 0) continue;
       const cands = candidatesAt(n, an, i);

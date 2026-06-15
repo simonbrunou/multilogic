@@ -128,5 +128,7 @@ export function generateForDifficulty(prng: PRNG, target: Difficulty, n = 5): Ge
       best = { instance, difficulty };
     }
   }
+  // non-null: GEN_ATTEMPTS >= 1 and every attempt either returns or assigns `best`
+  // (the throw above only fires if buildSquare fails, which exits the function).
   return best!;
 }
