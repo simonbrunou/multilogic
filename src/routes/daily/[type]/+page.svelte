@@ -2,8 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/state';
   import { GameStore } from '$lib/game.svelte';
-  import { createPuzzleService, type Bundle } from '$lib/puzzle-service';
-  import { createWorkerTransport } from '$lib/worker-transport';
+  import { generateInstance } from '$lib/load-instance';
   import { createStorage } from '$lib/storage';
   import { dailySeed, todayISO } from '$lib/daily';
   import { shareText, encodeShare, decodeShare } from '$lib/share';
@@ -55,12 +54,10 @@
     loading = true;
     currentTransport?.dispose?.();
     date = resolveDate(type);
-    let bundle: Bundle | null = null;
-    try { bundle = await (await fetch('/puzzles.bundle.json')).json(); } catch { bundle = null; }
-    const transport = createWorkerTransport();
-    currentTransport = transport;
-    const svc = createPuzzleService(transport, { timeoutMs: 6000, bundle });
-    const res = await svc.request(type as PuzzleType, 'medium', dailySeed(type, date));
+    const res = await generateInstance(type as PuzzleType, 'medium', dailySeed(type, date), {
+      timeoutMs: 6000,
+      onTransport: (t) => { currentTransport = t; }
+    });
     currentInstanceStr = res.instance;
     const game = entryNow.makeGame(res.instance, res.solution);
     store.load(game, entryNow.hintProvider(res.instance));

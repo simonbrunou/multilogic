@@ -2,8 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/state';
   import { GameStore } from '$lib/game.svelte';
-  import { createPuzzleService, type Bundle } from '$lib/puzzle-service';
-  import { createWorkerTransport } from '$lib/worker-transport';
+  import { generateInstance } from '$lib/load-instance';
   import { createStorage } from '$lib/storage';
   import NumberPad from '$lib/components/NumberPad.svelte';
   import Toolbar from '$lib/components/Toolbar.svelte';
@@ -28,13 +27,11 @@
     loading = true;
     difficulty = diff;
     currentTransport?.dispose?.();
-    let bundle: Bundle | null = null;
-    try { bundle = await (await fetch('/puzzles.bundle.json')).json(); } catch { bundle = null; }
-    const transport = createWorkerTransport();
-    currentTransport = transport;
-    const svc = createPuzzleService(transport, { timeoutMs: 4000, bundle });
     const seed = `${puzzleType}-${Date.now()}-${Math.random()}`;
-    const res = await svc.request(puzzleType, diff, seed);
+    const res = await generateInstance(puzzleType, diff, seed, {
+      timeoutMs: 4000,
+      onTransport: (t) => { currentTransport = t; }
+    });
     currentInstanceStr = res.instance;
     const game = entry.makeGame(res.instance, res.solution);
     store.load(game, entry.hintProvider(res.instance));

@@ -11,5 +11,6 @@ static/puzzles.bundle.json
 /test-results/
 /playwright-report/
 /e2e/.cache/
+/coverage/
 .fallow/
 .claude/worktrees/

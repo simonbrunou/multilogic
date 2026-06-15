@@ -42,6 +42,10 @@ const en = {
     genFailed: 'Failed to generate puzzle',
     unknownType: (p: { type: string }) => `Unknown puzzle type: ${p.type}`
   },
+  error: {
+    title: 'Something went wrong.',
+    reload: 'Reload'
+  },
   toolbar: {
     notes: 'Notes',
     undo: 'Undo',
@@ -115,6 +119,10 @@ const fr: typeof en = {
     retry: 'Réessayer',
     genFailed: 'Échec de la génération du casse-tête',
     unknownType: (p) => `Type de casse-tête inconnu : ${p.type}`
+  },
+  error: {
+    title: 'Une erreur est survenue.',
+    reload: 'Recharger'
   },
   toolbar: {
     notes: 'Notes',
