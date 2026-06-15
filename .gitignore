@@ -14,3 +14,6 @@ static/puzzles.bundle.json
 /coverage/
 .fallow/
 .claude/worktrees/
+
+# Vitest browser failure-debug screenshots
+tests/components/__screenshots__/
