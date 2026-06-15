@@ -1,5 +1,6 @@
 <script lang="ts">
   import { MARKED_ZERO, type YakusoGame } from '../play/yakuso-game';
+  import { t } from '$lib/i18n';
 
   let {
     game,
@@ -20,6 +21,9 @@
   const cellView = $derived.by(() => { void tick; return [...game.cells]; });
   const cols = $derived(game.instance.cols);
   const rows = $derived(game.instance.rows);
+  const valueOf = (v: number) => (v === MARKED_ZERO ? '0' : v !== 0 ? String(v) : t('aria.empty'));
+  const label = (i: number, v: number) =>
+    t('aria.cellAt', { row: Math.floor(i / cols) + 1, col: (i % cols) + 1, value: valueOf(v) });
 </script>
 
 <div class="grid" role="grid" style="grid-template-columns: repeat({cols}, minmax(0, 1fr)); width: min(92vw, {cols * 56}px);">
@@ -31,6 +35,9 @@
         class="cell input"
         class:selected={selected === i}
         class:conflict={highlightErrors && conflicts.has(i)}
+        role="gridcell"
+        aria-selected={selected === i}
+        aria-label={label(i, v)}
         onclick={() => onselect(i)}
       >
         {#if v === MARKED_ZERO}<span class="zero">0</span>{:else if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}
@@ -48,7 +55,7 @@
   .grid {
     display: grid;
     gap: 2px;
-    background: #d8dbe2;
+    background: var(--surface-3);
     padding: 2px;
     border-radius: 6px;
   }
@@ -64,17 +71,17 @@
     border: none;
     border-radius: 3px;
   }
-  .cell.given { background: #e7eaf1; color: #2a2a2a; font-weight: 700; }
-  .cell.input { background: #fff; color: #1b3a8f; cursor: pointer; }
-  .cell.input.selected { background: #cfe3ff; }
-  .cell.input.conflict { background: #ffd5d5; }
-  .cell.input .zero { color: #aab; font-weight: 700; }
+  .cell.given { background: var(--given-bg); color: var(--text); font-weight: 700; }
+  .cell.input { background: var(--surface); color: var(--accent); cursor: pointer; }
+  .cell.input.selected { background: var(--selected-bg); }
+  .cell.input.conflict { background: var(--danger-bg); color: var(--danger); box-shadow: inset 0 0 0 2px var(--danger); }
+  .cell.input .zero { color: var(--text-muted); font-weight: 700; }
   .cell.total {
-    background: #2a2a2a;
-    color: #fff;
+    background: var(--cell-block);
+    color: var(--cell-block-text);
     font-weight: 700;
     margin-top: 4px;
   }
-  .notes { font-size: 10px; color: #888; letter-spacing: 1px; }
-  .legend { font-size: 12px; color: #666; margin: 4px 0 0; }
+  .notes { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
+  .legend { font-size: 12px; color: var(--text-muted); margin: 4px 0 0; }
 </style>

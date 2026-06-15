@@ -25,7 +25,6 @@
     max-width: 480px;
     margin: 40px auto;
     padding: 0 16px;
-    font-family: system-ui, sans-serif;
   }
   header {
     display: flex;
@@ -38,7 +37,7 @@
     font-size: 1.4rem;
   }
   a {
-    color: #1b3a8f;
+    color: var(--accent);
   }
   ul {
     list-style: none;
@@ -49,14 +48,15 @@
   }
   li a {
     display: block;
-    padding: 10px 14px;
-    border: 1px solid #ddd;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
     border-radius: 8px;
     text-decoration: none;
     font-weight: 600;
-    background: #f4f5f7;
+    background: var(--surface-2);
+    color: var(--text);
   }
   li a:hover {
-    background: #e8eaf0;
+    background: var(--surface-3);
   }
 </style>

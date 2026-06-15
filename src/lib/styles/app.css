@@ -1,0 +1,155 @@
+/*
+ * Design tokens — the single source of truth for color across the app.
+ *
+ * Strategy: Restrained (product register). Neutrals are tinted toward the brand hue
+ * rather than pure gray, one blue accent carries primary actions / links / givens,
+ * and semantic colors (danger, success, warning) mean the same thing on every screen.
+ * Colors are OKLCH so light/dark steps stay perceptually even. No #fff / #000 anywhere.
+ *
+ * Dark mode flips the same token names under [data-theme="dark"], so components never
+ * branch on theme — they only ever read the tokens.
+ */
+
+:root {
+  --hue: 264;
+  color-scheme: light;
+
+  /* Surfaces, lightest to most recessed */
+  --bg: oklch(98.5% 0.004 var(--hue)); /* page */
+  --surface: oklch(99.5% 0.002 var(--hue)); /* cells, cards */
+  --surface-2: oklch(97% 0.005 var(--hue)); /* buttons, panels */
+  --surface-3: oklch(94% 0.007 var(--hue)); /* hover */
+
+  /* Lines */
+  --border: oklch(87% 0.008 var(--hue)); /* hairlines */
+  --grid-line: oklch(30% 0.012 var(--hue)); /* heavy grid rules */
+
+  /* Text */
+  --text: oklch(26% 0.012 var(--hue)); /* body */
+  --text-muted: oklch(47% 0.012 var(--hue)); /* notes, captions — meets AA on surfaces */
+
+  /* Accent — primary action, links, given digits, current selection */
+  --accent: oklch(45% 0.13 var(--hue));
+  --accent-strong: oklch(38% 0.14 var(--hue));
+  --accent-contrast: oklch(99% 0.005 var(--hue)); /* text on a filled accent */
+  --selected-bg: oklch(90% 0.06 255);
+  --ring: oklch(55% 0.15 var(--hue)); /* focus + selection outline */
+
+  /* Semantic */
+  --danger: oklch(52% 0.2 25);
+  --danger-bg: oklch(91% 0.05 25);
+  --success: oklch(52% 0.16 150);
+  --success-bg: oklch(53% 0.15 150);
+  --success-contrast: oklch(99% 0.01 150);
+  --warning-bg: oklch(96% 0.05 95);
+  --warning-border: oklch(80% 0.13 95);
+  --warning-text: oklch(45% 0.1 80);
+
+  /* Structural "blocked" cells: Kakuro black squares, Yakuso total bars. Dark in both themes. */
+  --cell-block: oklch(32% 0.012 var(--hue));
+  --cell-block-text: oklch(94% 0.006 var(--hue));
+  --given-bg: oklch(94% 0.006 var(--hue)); /* Yakuso given tiles */
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --bg: oklch(20% 0.01 var(--hue));
+  --surface: oklch(24% 0.012 var(--hue));
+  --surface-2: oklch(28% 0.014 var(--hue));
+  --surface-3: oklch(33% 0.016 var(--hue));
+
+  --border: oklch(42% 0.014 var(--hue));
+  --grid-line: oklch(52% 0.012 var(--hue));
+
+  --text: oklch(93% 0.006 var(--hue));
+  --text-muted: oklch(72% 0.012 var(--hue));
+
+  --accent: oklch(80% 0.12 var(--hue));
+  --accent-strong: oklch(86% 0.12 var(--hue));
+  --accent-contrast: oklch(20% 0.02 var(--hue));
+  --selected-bg: oklch(42% 0.1 255);
+  --ring: oklch(78% 0.13 var(--hue));
+
+  --danger: oklch(74% 0.16 25);
+  --danger-bg: oklch(40% 0.11 25);
+  --success: oklch(72% 0.15 150);
+  --success-bg: oklch(52% 0.14 150);
+  --success-contrast: oklch(98% 0.02 150);
+  --warning-bg: oklch(34% 0.06 95);
+  --warning-border: oklch(55% 0.1 95);
+  --warning-text: oklch(88% 0.08 95);
+
+  --cell-block: oklch(38% 0.014 var(--hue));
+  --cell-block-text: oklch(94% 0.006 var(--hue));
+  --given-bg: oklch(30% 0.014 var(--hue));
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: system-ui, sans-serif;
+}
+
+/* One consistent keyboard-focus indicator for every interactive element. */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+/*
+ * Shared control vocabulary. One button shape across every screen so "the same action
+ * never looks different in two places". Variants layer on top of .btn.
+ * 44px min height is the touch-target floor (WCAG 2.5.5).
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.875rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+.btn:hover {
+  background: var(--surface-3);
+}
+.btn[aria-pressed='true'],
+.btn.is-active {
+  background: var(--selected-bg);
+  border-color: var(--accent);
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-contrast);
+}
+.btn-primary:hover {
+  background: var(--accent-strong);
+  border-color: var(--accent-strong);
+}
+
+/* Respect users who ask for less motion. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

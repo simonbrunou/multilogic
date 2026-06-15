@@ -30,7 +30,11 @@
         class:given={isGiven}
         class:selected={isSelected}
         onclick={() => store.select(i)}
-        aria-label={t('aria.cell', { i })}
+        aria-label={t('aria.cellAt', {
+          row: Math.floor(i / store.n) + 1,
+          col: (i % store.n) + 1,
+          value: cellText(store.digits[i], store.letters[i]) || t('aria.empty')
+        })}
         aria-pressed={isSelected}
       >
         {cellText(store.digits[i], store.letters[i])}
@@ -98,14 +102,15 @@
     grid-template-columns: repeat(var(--n), 1fr);
     aspect-ratio: 1;
     width: 100%;
-    border: 2px solid #222;
+    border: 2px solid var(--grid-line);
     gap: 1px;
-    background: #222;
+    background: var(--grid-line);
   }
 
   .cell {
     border: none;
-    background: #fff;
+    background: var(--surface);
+    color: var(--text);
     font-size: clamp(14px, 4vw, 24px);
     font-weight: 600;
     display: flex;
@@ -122,14 +127,14 @@
 
   .cell.given {
     font-weight: 800;
-    background: #ececec;
-    border: 2px solid #555;
+    background: var(--surface-3);
+    border: 2px solid var(--border);
     box-sizing: border-box;
     cursor: default;
   }
 
   .cell.selected {
-    outline: 3px solid #1b3a8f;
+    outline: 3px solid var(--ring);
     outline-offset: -2px;
     z-index: 1;
   }
@@ -143,21 +148,21 @@
 
   .picker-label {
     font-size: 13px;
-    color: #555;
+    color: var(--text-muted);
     min-width: 56px;
   }
 
   .sym-btn,
   .let-btn {
-    width: 34px;
-    height: 34px;
-    border: 2px solid #ccc;
+    width: 44px;
+    height: 44px;
+    border: 2px solid var(--border);
     border-radius: 6px;
-    background: #f4f5f7;
+    background: var(--surface-2);
     font-weight: 600;
     cursor: pointer;
-    font-size: 14px;
-    color: #333;
+    font-size: 15px;
+    color: var(--text);
   }
 
   .let-btn {
@@ -166,8 +171,9 @@
 
   .sym-btn.active,
   .let-btn.active {
-    border-color: #1b3a8f;
-    background: #cfe3ff;
+    border-color: var(--accent);
+    background: var(--selected-bg);
+    color: var(--text);
   }
 
   .actions {
@@ -176,8 +182,9 @@
   }
 
   .action-btn {
+    min-height: 44px;
     padding: 7px 18px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
     border-radius: 8px;
     cursor: pointer;
     font-size: 14px;
@@ -185,25 +192,26 @@
   }
 
   .erase-btn {
-    background: #f4f5f7;
+    background: var(--surface-2);
+    color: var(--text);
   }
 
   .hint-btn {
-    background: #fffbe6;
-    border-color: #e6c200;
-    color: #5a4600;
+    background: var(--warning-bg);
+    border-color: var(--warning-border);
+    color: var(--warning-text);
   }
 
   .status {
     display: flex;
     gap: 12px;
     font-size: 14px;
-    color: #444;
+    color: var(--text-muted);
   }
 
   .win-banner {
-    background: #1b8f3a;
-    color: #fff;
+    background: var(--success-bg);
+    color: var(--success-contrast);
     padding: 10px 22px;
     border-radius: 10px;
     font-size: 16px;

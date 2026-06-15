@@ -2,12 +2,18 @@
 	import { browser } from '$app/environment';
 	import favicon from '$lib/assets/favicon.svg';
 	import { initLocale, t } from '$lib/i18n';
+	import { initTheme } from '$lib/theme.svelte';
+	import '$lib/styles/app.css';
 
 	let { children } = $props();
 
-	// Resolve locale during init (before first paint) rather than in onMount, so English
-	// visitors don't see a flash of the French default. ssr=false, so this is client-only.
-	if (browser) initLocale();
+	// Resolve locale and theme during init (before first paint) rather than in onMount, so
+	// visitors don't see a flash of the wrong language/palette. ssr=false, so this is
+	// client-only. (The inline script in app.html also pre-applies the theme for safety.)
+	if (browser) {
+		initLocale();
+		initTheme();
+	}
 </script>
 
 <svelte:head>
@@ -32,13 +38,14 @@
 		align-items: center;
 		gap: 12px;
 		padding: 32px 12px;
-		font-family: system-ui, sans-serif;
 	}
 	.app-error button {
+		min-height: 44px;
 		padding: 6px 14px;
-		border: 1px solid #ccc;
+		border: 1px solid var(--border);
 		border-radius: 8px;
-		background: #f4f5f7;
+		background: var(--surface-2);
+		color: var(--text);
 		cursor: pointer;
 	}
 </style>
