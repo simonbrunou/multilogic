@@ -129,26 +129,35 @@ export function nakedPair(grid: number[], cand: Candidates): Step | null {
   return null;
 }
 
+/** Map each still-unplaced digit of `unit` to the empty cells that can hold it, when that count is in [2, maxCells]. */
+function digitHomes(unit: number[], grid: number[], cand: Candidates, maxCells: number): Map<number, number[]> {
+  const homes = new Map<number, number[]>();
+  for (let d = 1; d <= 9; d++) {
+    if (unit.some((i) => grid[i] === d)) continue;
+    const cells = unit.filter((i) => grid[i] === 0 && cand[i].has(d));
+    if (cells.length >= 2 && cells.length <= maxCells) homes.set(d, cells);
+  }
+  return homes;
+}
+
+/** Eliminations that strip every candidate except those in `keep` from each of `cells`. */
+function keepOnly(cells: number[], cand: Candidates, keep: number[]): Elimination[] {
+  const elim: Elimination[] = [];
+  for (const i of cells) for (const d of cand[i]) if (!keep.includes(d)) elim.push({ index: i, digit: d });
+  return elim;
+}
+
 /** Two digits whose only homes in a unit are the same two cells → clear other candidates from those cells. */
-// fallow-ignore-next-line complexity
 export function hiddenPair(grid: number[], cand: Candidates): Step | null {
   for (const unit of UNITS) {
-    const spots = new Map<number, number[]>();
-    for (let d = 1; d <= 9; d++) {
-      if (unit.some((i) => grid[i] === d)) continue;
-      const cells = unit.filter((i) => grid[i] === 0 && cand[i].has(d));
-      if (cells.length === 2) spots.set(d, cells);
-    }
-    const digits = [...spots.keys()];
+    const homes = digitHomes(unit, grid, cand, 2);
+    const digits = [...homes.keys()];
     for (let a = 0; a < digits.length; a++) {
       for (let b = a + 1; b < digits.length; b++) {
-        const d1 = digits[a];
-        const d2 = digits[b];
-        const c1 = spots.get(d1)!;
-        const c2 = spots.get(d2)!;
+        const c1 = homes.get(digits[a])!;
+        const c2 = homes.get(digits[b])!;
         if (c1[0] !== c2[0] || c1[1] !== c2[1]) continue;
-        const elim: Elimination[] = [];
-        for (const i of c1) for (const d of cand[i]) if (d !== d1 && d !== d2) elim.push({ index: i, digit: d });
+        const elim = keepOnly(c1, cand, [digits[a], digits[b]]);
         if (elim.length) return { technique: 'hiddenPair', placements: [], eliminations: elim };
       }
     }
