@@ -1,35 +1,43 @@
-import { buildRunConstraints, runPermits, type RunConstraint } from './rules';
+import { makeCtx, isSolved, forcedCell, forcedDigit, comboElimination, type KakuroCtx } from './techniques';
 import type { KakuroInstance } from './types';
 import type { Difficulty } from '../../core/types';
-import { measureEffort, type EffortModel } from '../../core/effort';
-import { bandFromEffort } from '../../core/difficulty';
+import {
+  rateByTechniques,
+  solveByTechniques,
+  type Technique,
+  type TechniqueRater,
+  type TechniqueTrace
+} from '../../core/technique-rating';
 
-// Thresholds calibrated via distribution of 40 expert-dug puzzles (effort range 0–4):
-// median=1, P75=2, P85=3. T1=1: effort≤1→medium; T2=3: effort≤3→hard, >3→expert.
-const KAKURO_T1 = 1;
-const KAKURO_T2 = 3;
+// Kakuro deduction is sum-combination reasoning. Ranks: forced cell 1, forced digit 2,
+// combo-elimination 3. The difficulty distribution is bimodal (mostly easy or expert),
+// so `medium` is rare and `hard` is served by the module's closest-fallback (see index.ts).
+const LADDER: Technique<KakuroCtx>[] = [
+  { name: 'forcedCell', rank: 1, apply: forcedCell },
+  { name: 'forcedDigit', rank: 2, apply: forcedDigit },
+  { name: 'comboElimination', rank: 3, apply: comboElimination }
+];
 
-
-function candidate(grid: number[], i: number, v: number, runs: RunConstraint[], cellRuns: number[][]): boolean {
-  for (const ri of cellRuns[i]) if (!runPermits(runs[ri], grid, i, v)) return false;
-  return true;
+function bandForRank(rank: number): Difficulty {
+  if (rank <= 1) return 'easy';
+  if (rank <= 2) return 'medium';
+  return 'expert';
 }
 
+const kakuroRater: TechniqueRater<KakuroCtx> = {
+  ladder: LADDER,
+  isSolved,
+  bandForRank,
+  // Disable the step-count bump: Kakuro is honestly ~2-band; don't fabricate tiers from step counts.
+  topRankStepThreshold: Number.MAX_SAFE_INTEGER
+};
 
-function effortModel(inst: KakuroInstance): EffortModel {
-  const { runs, cellRuns } = buildRunConstraints(inst);
-  return {
-    cellCount: inst.black.length,
-    candidates(grid, i) {
-      if (inst.black[i] || grid[i] !== 0) return [];
-      const out: number[] = [];
-      for (let v = 1; v <= 9; v++) if (candidate(grid, i, v, runs, cellRuns)) out.push(v);
-      return out;
-    }
-  };
+/** Solve as far as the technique ladder allows; report solved + hardest rank + steps at that rank. */
+export function solveWithTechniques(inst: KakuroInstance): TechniqueTrace {
+  return solveByTechniques(makeCtx(inst), LADDER, isSolved);
 }
 
+/** Rate a Kakuro by the hardest sum-combination technique it requires (unsolved by ladder ⇒ expert). */
 export function rate(inst: KakuroInstance): Difficulty {
-  const start = inst.black.map((b) => (b ? -1 : 0));
-  return bandFromEffort(measureEffort(start, effortModel(inst)), KAKURO_T1, KAKURO_T2);
+  return rateByTechniques(kakuroRater, () => makeCtx(inst));
 }
