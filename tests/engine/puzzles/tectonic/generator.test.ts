@@ -1,0 +1,33 @@
+import { describe, it, expect } from 'vitest';
+import { generateForDifficulty } from '../../../../src/engine/puzzles/tectonic/generator';
+import { rate } from '../../../../src/engine/puzzles/tectonic/rater';
+import { solveComplete } from '../../../../src/engine/puzzles/tectonic/solver';
+import { createPrng, deriveSeed } from '../../../../src/engine/core/prng';
+import { DIFFICULTIES, type Difficulty } from '../../../../src/engine/core/types';
+
+const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
+
+describe('tectonic generateForDifficulty (dig-to-minimal + relax)', () => {
+  it('never overshoots the target band and stays uniquely solvable', () => {
+    for (const target of DIFFICULTIES) {
+      for (let s = 0; s < 4; s++) {
+        const g = generateForDifficulty(createPrng(deriveSeed('tectonic', target, 'overshoot', s)), target);
+        expect(RANK[g.difficulty]).toBeLessThanOrEqual(RANK[target]);
+        expect(g.difficulty).toBe(rate(g.instance));
+        expect(solveComplete(g.instance, 2).count).toBe(1);
+      }
+    }
+  });
+
+  it('reaches each target band within a seed batch', () => {
+    for (const target of DIFFICULTIES) {
+      let hit = false;
+      for (let s = 0; s < 30 && !hit; s++) {
+        if (generateForDifficulty(createPrng(deriveSeed('tectonic', target, 'reach', s)), target).difficulty === target) {
+          hit = true;
+        }
+      }
+      expect(hit, `target ${target} should be reachable`).toBe(true);
+    }
+  });
+});
