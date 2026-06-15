@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { solveWithTechniques, rate } from '../../../../src/engine/puzzles/sudoku/rater';
 import { gridFromString } from '../../../../src/engine/puzzles/sudoku/rules';
+import { solveComplete } from '../../../../src/engine/puzzles/sudoku/solver';
 
 const SOLUTION =
   '534678912' + '672195348' + '198342567' +
@@ -13,21 +14,21 @@ const EASY =
 
 describe('technique solver + rater', () => {
   it('solveWithTechniques solves an already-complete grid', () => {
-    const t = solveWithTechniques(gridFromString(SOLUTION));
-    expect(t.solved).toBe(true);
+    expect(solveWithTechniques(gridFromString(SOLUTION)).solved).toBe(true);
   });
 
-  it('solveWithTechniques solves the classic easy puzzle', () => {
-    const t = solveWithTechniques(gridFromString(EASY));
-    expect(t.solved).toBe(true);
+  it('solveWithTechniques solves the classic easy puzzle and never contradicts the unique solution', () => {
+    const trace = solveWithTechniques(gridFromString(EASY));
+    expect(trace.solved).toBe(true);
+    const unique = solveComplete({ givens: gridFromString(EASY) }, 2);
+    expect(unique.count).toBe(1);
   });
 
-  it('rate returns easy for the classic forced-single-solvable puzzle', () => {
+  it('rate returns easy for a singles-only puzzle', () => {
     expect(rate({ givens: gridFromString(EASY) })).toBe('easy');
   });
 
-  it('rate returns hard or expert for a near-empty grid (requires heavy search)', () => {
-    const band = rate({ givens: gridFromString('1' + '0'.repeat(80)) });
-    expect(['hard', 'expert']).toContain(band);
+  it('rate returns expert for a grid the ladder cannot crack', () => {
+    expect(rate({ givens: gridFromString('1' + '0'.repeat(80)) })).toBe('expert');
   });
 });

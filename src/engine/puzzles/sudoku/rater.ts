@@ -1,71 +1,94 @@
 import { computeCandidates, PEERS, type Candidates } from './candidates';
-import { nakedSingle, hiddenSingle, lockedCandidates, nakedPair, type Step } from './techniques';
+import {
+  nakedSingle,
+  hiddenSingle,
+  lockedCandidates,
+  nakedPair,
+  hiddenPair,
+  nakedTriple,
+  hiddenTriple,
+  xWing,
+  type Step
+} from './techniques';
 import type { Difficulty } from '../../core/types';
 import type { SudokuInstance } from './types';
-import { measureEffort, type EffortModel } from '../../core/effort';
-import { bandFromEffort } from '../../core/difficulty';
+import {
+  rateByTechniques,
+  solveByTechniques,
+  type Technique,
+  type TechniqueRater,
+  type TechniqueTrace
+} from '../../core/technique-rating';
 
-// Sudoku candidates: digits 1-9 not used by a filled peer.
-const sudokuEffortModel: EffortModel = {
-  cellCount: 81,
-  candidates(grid, i) {
-    if (grid[i] !== 0) return [];
-    const used = new Set<number>();
-    for (const p of PEERS[i]) if (grid[p] !== 0) used.add(grid[p]);
-    const out: number[] = [];
-    for (let d = 1; d <= 9; d++) if (!used.has(d)) out.push(d);
-    return out;
+interface SudokuCtx {
+  grid: number[];
+  cand: Candidates;
+}
+
+/** Apply a technique step to the context: place digits (and prune peers) or remove candidates. */
+function applyStep(step: Step, ctx: SudokuCtx): void {
+  for (const { index, digit } of step.placements) {
+    ctx.grid[index] = digit;
+    ctx.cand[index] = new Set<number>([digit]);
+    for (const p of PEERS[index]) ctx.cand[p].delete(digit);
   }
-};
+  for (const { index, digit } of step.eliminations) ctx.cand[index].delete(digit);
+}
 
-// Thresholds calibrated via distribution of 40 expert-dug puzzles (effort range 1–566):
-// median=17, P75=48, P85=89. T1=2: effort≤2→medium; T2=48: effort≤48→hard, >48→expert.
-const SUDOKU_T1 = 2;
-const SUDOKU_T2 = 48;
+/** Wrap a pure (grid, cand) -> Step|null technique as a framework Technique. */
+function wrap(name: string, rank: number, fn: (g: number[], c: Candidates) => Step | null): Technique<SudokuCtx> {
+  return {
+    name,
+    rank,
+    apply(ctx) {
+      const step = fn(ctx.grid, ctx.cand);
+      if (!step) return false;
+      applyStep(step, ctx);
+      return true;
+    }
+  };
+}
 
-const LADDER: { fn: (g: number[], c: Candidates) => Step | null; rank: number }[] = [
-  { fn: nakedSingle, rank: 1 },
-  { fn: hiddenSingle, rank: 1 },
-  { fn: lockedCandidates, rank: 2 },
-  { fn: nakedPair, rank: 3 }
+// Ranks: singles 1, locked candidates 2, naked/hidden pair 3, naked/hidden triple 4, X-wing 5.
+// Anything the ladder cannot solve is `expert` (needs a technique harder than X-wing, or a guess).
+const LADDER: Technique<SudokuCtx>[] = [
+  wrap('nakedSingle', 1, nakedSingle),
+  wrap('hiddenSingle', 1, hiddenSingle),
+  wrap('lockedCandidates', 2, lockedCandidates),
+  wrap('nakedPair', 3, nakedPair),
+  wrap('hiddenPair', 3, hiddenPair),
+  wrap('nakedTriple', 4, nakedTriple),
+  wrap('hiddenTriple', 4, hiddenTriple),
+  wrap('xWing', 5, xWing)
 ];
 
-function apply(step: Step, grid: number[], cand: Candidates): void {
-  for (const { index, digit } of step.placements) {
-    grid[index] = digit;
-    cand[index] = new Set<number>([digit]);
-    for (const p of PEERS[index]) cand[p].delete(digit);
-  }
-  for (const { index, digit } of step.eliminations) cand[index].delete(digit);
+function bandForRank(rank: number): Difficulty {
+  if (rank <= 1) return 'easy';
+  if (rank <= 2) return 'medium';
+  if (rank <= 4) return 'hard';
+  return 'expert';
 }
 
-export interface SolveTrace {
-  solved: boolean;
-  hardestRank: number;
-}
-
-/** Solve as far as the technique ladder allows; report whether solved + the hardest rank used. */
-export function solveWithTechniques(givens: number[]): SolveTrace {
+const isSolved = (ctx: SudokuCtx) => ctx.grid.every((v) => v !== 0);
+const makeCtx = (givens: number[]): SudokuCtx => {
   const grid = [...givens];
-  const cand = computeCandidates(grid);
-  let hardestRank = 0;
-  for (;;) {
-    let progressed = false;
-    for (const t of LADDER) {
-      const step = t.fn(grid, cand);
-      if (step) {
-        apply(step, grid, cand);
-        hardestRank = Math.max(hardestRank, t.rank);
-        progressed = true;
-        break;
-      }
-    }
-    if (!progressed) break;
-  }
-  return { solved: grid.every((v) => v !== 0), hardestRank };
+  return { grid, cand: computeCandidates(grid) };
+};
+
+const sudokuRater: TechniqueRater<SudokuCtx> = {
+  ladder: LADDER,
+  isSolved,
+  bandForRank,
+  // Bump one band when the hardest rank (>= 2) had to be used more than this many times.
+  topRankStepThreshold: 4
+};
+
+/** Solve as far as the technique ladder allows; report solved + hardest rank + steps at that rank. */
+export function solveWithTechniques(givens: number[]): TechniqueTrace {
+  return solveByTechniques(makeCtx(givens), LADDER, isSolved);
 }
 
-/** Rate a puzzle by search effort (guesses needed by a forced-propagation + MRV solver). */
+/** Rate a Sudoku by the hardest human technique it requires (unsolved by ladder ⇒ expert). */
 export function rate(instance: SudokuInstance): Difficulty {
-  return bandFromEffort(measureEffort(instance.givens, sudokuEffortModel), SUDOKU_T1, SUDOKU_T2);
+  return rateByTechniques(sudokuRater, () => makeCtx(instance.givens));
 }
