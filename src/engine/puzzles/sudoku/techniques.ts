@@ -164,3 +164,34 @@ export function hiddenPair(grid: number[], cand: Candidates): Step | null {
   }
   return null;
 }
+
+/** Eliminations removing any of `digits` from empty cells of `unit` that are not in `keep`. */
+function clearDigitsFrom(unit: number[], keep: number[], grid: number[], cand: Candidates, digits: number[]): Elimination[] {
+  return unit.flatMap((i) =>
+    keep.includes(i) || grid[i] !== 0 ? [] : digits.filter((d) => cand[i].has(d)).map((d) => ({ index: i, digit: d }))
+  );
+}
+
+/** If three cells' candidates union to exactly three digits, the resulting naked-triple step (else null). */
+function nakedTripleStep(unit: number[], trio: number[], grid: number[], cand: Candidates): Step | null {
+  const union = new Set<number>([...cand[trio[0]], ...cand[trio[1]], ...cand[trio[2]]]);
+  if (union.size !== 3) return null;
+  const elim = clearDigitsFrom(unit, trio, grid, cand, [...union]);
+  return elim.length ? { technique: 'nakedTriple', placements: [], eliminations: elim } : null;
+}
+
+/** Three cells in a unit whose candidates union to exactly three digits → clear those digits elsewhere in the unit. */
+export function nakedTriple(grid: number[], cand: Candidates): Step | null {
+  for (const unit of UNITS) {
+    const empties = unit.filter((i) => grid[i] === 0 && cand[i].size >= 2 && cand[i].size <= 3);
+    for (let a = 0; a < empties.length; a++) {
+      for (let b = a + 1; b < empties.length; b++) {
+        for (let c = b + 1; c < empties.length; c++) {
+          const step = nakedTripleStep(unit, [empties[a], empties[b], empties[c]], grid, cand);
+          if (step) return step;
+        }
+      }
+    }
+  }
+  return null;
+}

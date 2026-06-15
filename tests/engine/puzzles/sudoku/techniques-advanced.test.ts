@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { lockedCandidates, nakedPair, hiddenPair } from '../../../../src/engine/puzzles/sudoku/techniques';
+import { lockedCandidates, nakedPair, hiddenPair, nakedTriple } from '../../../../src/engine/puzzles/sudoku/techniques';
 import { computeCandidates } from '../../../../src/engine/puzzles/sudoku/candidates';
 
 describe('advanced techniques', () => {
@@ -44,5 +44,19 @@ describe('advanced techniques', () => {
     expect(step).not.toBeNull();
     expect(step!.eliminations).toContainEqual({ index: 0, digit: 5 });
     expect(step!.eliminations.every((e) => e.digit !== 1 && e.digit !== 2)).toBe(true);
+  });
+
+  it('nakedTriple eliminates the trio digits from the rest of the unit', () => {
+    const fills = [4, 5, 6, 7, 8, 9];
+    // trio in column 0, rows 0,1,2 = {1,2}/{2,3}/{1,3}; fill rows 3..8 col 0 with 4..9.
+    const g2 = new Array(81).fill(0);
+    for (let k = 0; k < fills.length; k++) g2[(3 + k) * 9] = fills[k]; // col 0, rows 3..8
+    const c2 = computeCandidates(g2);
+    c2[0] = new Set([1, 2]);
+    c2[9] = new Set([2, 3]);
+    c2[18] = new Set([1, 3]);
+    const step = nakedTriple(g2, c2);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations.every((e) => [1, 2, 3].includes(e.digit))).toBe(true);
   });
 });
