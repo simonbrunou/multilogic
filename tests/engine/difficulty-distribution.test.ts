@@ -6,7 +6,7 @@ import { DIFFICULTIES } from '../../src/engine/core/types';
 function sig() { return new AbortController().signal; }
 
 describe('difficulty targeting', () => {
-  for (const type of ['sudoku', 'tectonic', 'kakuro'] as const) {
+  for (const type of ['sudoku', 'tectonic', 'kakuro', 'yakuso'] as const) {
     it(`${type}: easy is easier than expert (achieved effort spread)`, async () => {
       const mod = MODULES[type]!;
       const easy = await mod.generate({ difficulty: 'easy', prng: createPrng(`${type}-easy`), signal: sig() });

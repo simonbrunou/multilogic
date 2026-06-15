@@ -69,7 +69,8 @@ const en = {
     sudoku: 'Sudoku',
     tectonic: 'Tectonic',
     kakuro: 'Kakuro',
-    grecolatin: 'Greco-Latin'
+    grecolatin: 'Greco-Latin',
+    yakuso: 'Yakuso'
   },
   difficulty: {
     easy: 'Easy',
@@ -147,7 +148,8 @@ const fr: typeof en = {
     sudoku: 'Sudoku',
     tectonic: 'Tectonic',
     kakuro: 'Kakuro',
-    grecolatin: 'Gréco-latin'
+    grecolatin: 'Gréco-latin',
+    yakuso: 'Yakuso'
   },
   difficulty: {
     easy: 'Facile',

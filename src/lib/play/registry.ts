@@ -4,10 +4,12 @@ import { getModule } from '../../engine/puzzles/registry';
 import { SudokuGame } from '../game-core';
 import { TectonicGame } from './tectonic-game';
 import { KakuroGame } from './kakuro-game';
+import { YakusoGame } from './yakuso-game';
 import type { PlayableGame } from './playable';
 import SudokuGrid from '../components/SudokuGrid.svelte';
 import TectonicGrid from '../components/TectonicGrid.svelte';
 import KakuroGrid from '../components/KakuroGrid.svelte';
+import YakusoGrid from '../components/YakusoGrid.svelte';
 import { regionSizes } from '../../engine/puzzles/tectonic/rules';
 
 export interface PlayUiEntry {
@@ -70,5 +72,21 @@ export const PLAY_UI: Partial<Record<PuzzleType, PlayUiEntry>> = {
     },
     hintProvider: makeHintProvider('kakuro'),
     maxDigit: () => 9
+  },
+  yakuso: {
+    Grid: YakusoGrid,
+    makeGame: (i, s) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inst = (getModule('yakuso') as any).deserializeInstance(i);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const sol = (getModule('yakuso') as any).deserializeSolution(s);
+      return new YakusoGame(inst, sol);
+    },
+    hintProvider: makeHintProvider('yakuso'),
+    maxDigit: (i) => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const inst = (getModule('yakuso') as any).deserializeInstance(i);
+      return inst.rows;
+    }
   }
 };
