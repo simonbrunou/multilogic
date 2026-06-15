@@ -22,7 +22,7 @@
   const rows = $derived(game.instance.rows);
 </script>
 
-<div class="grid" role="grid" style="grid-template-columns: repeat({cols}, 1fr); width: min(92vw, {cols * 56}px);">
+<div class="grid" role="grid" style="grid-template-columns: repeat({cols}, minmax(0, 1fr)); width: min(92vw, {cols * 56}px);">
   {#each cellView as v, i (i)}
     {#if game.isGiven(i)}
       <div class="cell given" role="gridcell">{v}</div>
@@ -58,6 +58,8 @@
     align-items: center;
     justify-content: center;
     aspect-ratio: 1;
+    min-width: 0;
+    padding: 0;
     box-sizing: border-box;
     border: none;
     border-radius: 3px;
