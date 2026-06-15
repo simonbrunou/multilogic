@@ -89,4 +89,21 @@ describe('advanced techniques', () => {
     expect(step).not.toBeNull();
     expect(step!.eliminations).toContainEqual({ index: 2 * 9 + 1, digit: 7 });
   });
+
+  it('xWing (column-based) eliminates the digit from the two rows in other columns', () => {
+    const grid = new Array(81).fill(0);
+    const cand = computeCandidates(grid);
+    for (let i = 0; i < 81; i++) cand[i] = new Set<number>();
+    // Columns 1 and 5 have 7 only in rows 0 and 4; a stray 7 sits at row 0, col 2.
+    // (Row 0 thus has three 7-candidate columns, so the row orientation cannot fire —
+    // this isolates the column-orientation path.)
+    cand[0 * 9 + 1].add(7);
+    cand[4 * 9 + 1].add(7);
+    cand[0 * 9 + 5].add(7);
+    cand[4 * 9 + 5].add(7);
+    cand[0 * 9 + 2].add(7); // victim: row 0, col 2
+    const step = xWing(grid, cand);
+    expect(step).not.toBeNull();
+    expect(step!.eliminations).toContainEqual({ index: 0 * 9 + 2, digit: 7 });
+  });
 });
