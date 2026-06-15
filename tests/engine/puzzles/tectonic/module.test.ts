@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { tectonic } from '../../../../src/engine/puzzles/tectonic/index';
-import { createPrng } from '../../../../src/engine/core/prng';
+import { createPrng, deriveSeed } from '../../../../src/engine/core/prng';
+import { DIFFICULTIES } from '../../../../src/engine/core/types';
 
 function sig(): AbortSignal { return new AbortController().signal; }
 
@@ -33,5 +34,24 @@ describe('tectonic module', () => {
     expect(tectonic.validateMove(inst, state, { index: 0, value: 2 }).ok).toBe(false);
     expect(tectonic.validateMove(inst, state, { index: 1, value: 5 }).ok).toBe(false);
     expect(tectonic.validateMove(inst, state, { index: 1, value: 2 }).ok).toBe(true);
+  });
+});
+
+describe('tectonic module generate', () => {
+  it('returns an exactly in-band puzzle or throws — never a silent downgrade', async () => {
+    for (const difficulty of DIFFICULTIES) {
+      let got: string | null = null;
+      for (let s = 0; s < 6 && got === null; s++) {
+        const prng = createPrng(deriveSeed('tectonic', difficulty, 'module', s));
+        try {
+          const res = await tectonic.generate({ difficulty, prng, signal: new AbortController().signal });
+          expect(res.achievedDifficulty).toBe(difficulty);
+          got = res.achievedDifficulty;
+        } catch {
+          /* missed; try next seed */
+        }
+      }
+      expect(got, `exact ${difficulty} within 6 seeds`).toBe(difficulty);
+    }
   });
 });

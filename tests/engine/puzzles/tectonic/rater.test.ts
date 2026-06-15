@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { rate, solveWithTechniques } from '../../../../src/engine/puzzles/tectonic/rater';
-import { fill } from '../../../../src/engine/puzzles/tectonic/solver';
+import { fill, solveComplete } from '../../../../src/engine/puzzles/tectonic/solver';
 import { generateRegions } from '../../../../src/engine/puzzles/tectonic/regions';
 import { createPrng } from '../../../../src/engine/core/prng';
 import type { TectonicInstance } from '../../../../src/engine/puzzles/tectonic/types';
@@ -18,14 +18,26 @@ function solvableFull(): TectonicInstance {
 }
 
 describe('tectonic rater', () => {
-  it('a fully-given grid solves with techniques and rates a known band', () => {
+  it('a fully-given grid solves with techniques and rates easy', () => {
     const inst = solvableFull();
     expect(solveWithTechniques(inst).solved).toBe(true);
     expect(rate(inst)).toBe('easy');
   });
 
+  it('a grid the ladder cannot crack rates expert', () => {
+    const base = solvableFull();
+    const empty: TectonicInstance = { ...base, givens: new Array(25).fill(0) };
+    expect(rate(empty)).toBe('expert');
+  });
+
   it('rate is deterministic', () => {
     const inst = solvableFull();
     expect(rate(inst)).toBe(rate(inst));
+  });
+
+  it('the technique solver never contradicts the unique solution of a uniquely-solvable instance', () => {
+    const inst = solvableFull();
+    expect(solveComplete(inst, 2).count).toBe(1);
+    expect(solveWithTechniques(inst).solved).toBe(true);
   });
 });

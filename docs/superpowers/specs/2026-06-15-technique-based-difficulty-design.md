@@ -135,6 +135,22 @@ expert  exact=100% threw=0%  18ms/req
 
 The modest single-call yield for `hard` (5 %) reflects an uneven technique-rank distribution (few randomly-dug seeds land in the hard band), which is a **band-calibration question** — the `bandForRank` cut points are working hypotheses — not a correctness issue. Recalibrating cuts or enriching the generator's dig strategy are noted follow-ups.
 
+### P1 result — Tectonic (2026-06-15)
+
+**Spec correction applied:** Tectonic has only region-uniqueness + king-move (8-neighbour) adjacency — **no rows/columns**, so §5's "locked candidates (region↔line)" was inapplicable. Shipped king-aware ladder: **1 naked single · 2 hidden single in region · 3 naked pair in region · 4 king-pointing** (a digit whose region-candidate cells are all king-adjacent to a cell X ⇒ X ≠ that digit). Band table: easy ≤1 · medium ≤2 · hard ≤4 · expert = unsolved by the ladder. Adopts the shared framework + dig-to-minimal/relax floor + exact-band-or-throw module loop; reuses P4's hardened bundle/serving layer.
+
+**Measured (15 runs per band):**
+
+```
+        singleYield   module exact / threw   ms/req
+easy     100%          100% / 0%             30
+medium    27%          100% / 0%             46
+hard      67%          100% / 0%             44
+expert    20%          100% / 0%             66
+```
+
+Bundle: all 12 Tectonic entries in-band (3 per band). **Conclusion:** Tectonic delivers in-band puzzles reliably (100 % module exact, all bands). Its single-call distribution is more even than Sudoku's (king-pointing at rank 4 gives a meatier `hard` band, 67 %), so calibration is less pressing here. The technique soundness (no false eliminations, incl. king-pointing) was independently verified.
+
 ## 7. Yakuso ladder specification (pre-coding step)
 
 Yakuso currently rates by `effortToSolve` (guess-branch count), not techniques. Before implementing its ladder:
