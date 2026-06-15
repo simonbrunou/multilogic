@@ -8,10 +8,17 @@ hints) that runs in a Web Worker. v1 ships Sudoku.
 
 ```bash
 bun install
-bun run dev          # dev server
-bun run test         # unit tests (Vitest)
-bun run test:e2e     # Playwright smoke test
+bun run dev           # dev server
+bun run test          # all Vitest tests (unit + browser — browser needs Chromium)
+bun run test:unit     # Node unit tests only (engine + lib logic)
+bun run test:coverage # unit tests with coverage thresholds
+bun run test:browser  # component tests in real Chromium (vitest-browser-svelte)
+bun run test:e2e      # Playwright end-to-end flows
+bun run check         # svelte-check (type-check)
+bun run lint          # eslint
 ```
+
+> First run of the browser/e2e tests needs `bunx playwright install chromium`.
 
 ## Build (static SPA)
 

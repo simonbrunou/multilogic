@@ -1,8 +1,7 @@
 <script lang="ts">
   import { onMount, onDestroy } from 'svelte';
   import { GrecoStore } from '$lib/play/greco.svelte';
-  import { createPuzzleService, type Bundle } from '$lib/puzzle-service';
-  import { createWorkerTransport } from '$lib/worker-transport';
+  import { generateInstance } from '$lib/load-instance';
   import { createStorage } from '$lib/storage';
   import { getModule } from '../../../engine/puzzles/registry';
   import { dailySeed, todayISO } from '$lib/daily';
@@ -47,13 +46,11 @@
     date = resolveDate();
     loading = true;
     error = null;
-    let bundle: Bundle | null = null;
-    try { bundle = await (await fetch('/puzzles.bundle.json')).json(); } catch { bundle = null; }
     try {
-      const transport = createWorkerTransport();
-      currentTransport = transport;
-      const svc = createPuzzleService(transport, { timeoutMs: 6000, bundle });
-      const res = await svc.request('grecolatin', 'medium', dailySeed('grecolatin', date));
+      const res = await generateInstance('grecolatin', 'medium', dailySeed('grecolatin', date), {
+        timeoutMs: 6000,
+        onTransport: (t) => { currentTransport = t; }
+      });
       const inst = getModule('grecolatin').deserializeInstance(res.instance) as GrecoLatinInstance;
       store.load(inst.n, inst.givens);
     } catch (e) {

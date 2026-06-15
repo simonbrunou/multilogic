@@ -3,6 +3,9 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"engines": {
+		"bun": ">=1.1.0"
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
@@ -11,6 +14,9 @@
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"test": "vitest run",
+		"test:unit": "vitest run --project unit",
+		"test:browser": "vitest run --project browser",
+		"test:coverage": "vitest run --project unit --coverage",
 		"test:watch": "vitest",
 		"check:engine": "tsc -p tsconfig.engine.json",
 		"lint": "eslint .",
@@ -25,15 +31,19 @@
 		"@sveltejs/kit": "^2.63.0",
 		"@sveltejs/vite-plugin-svelte": "^7.1.2",
 		"@types/node": "^24",
+		"@vitest/browser": "^4.1.8",
+		"@vitest/browser-playwright": "^4.1.8",
 		"@vitest/coverage-v8": "^4.1.8",
 		"eslint": "^10.5.0",
 		"fallow": "^2.96.0",
 		"fast-check": "^4.8.0",
+		"playwright": "^1.60.0",
 		"svelte": "^5.56.1",
 		"svelte-check": "^4.6.0",
 		"typescript": "^6.0.3",
 		"typescript-eslint": "^8.61.0",
 		"vite": "^8.0.16",
-		"vitest": "^4.1.8"
+		"vitest": "^4.1.8",
+		"vitest-browser-svelte": "^2.1.1"
 	}
 }

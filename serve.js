@@ -26,6 +26,17 @@ const MIME = {
   '.wasm': 'application/wasm'
 };
 
+// Hardening headers applied to every response. The full content policy (script/style/img/…)
+// is emitted as a <meta> CSP by SvelteKit (svelte.config.js `kit.csp`); `frame-ancestors`
+// is not honored in <meta>, so clickjacking + MIME-sniffing + referrer leakage are covered
+// here at the HTTP layer.
+const SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'content-security-policy': "frame-ancestors 'none'",
+  'referrer-policy': 'strict-origin-when-cross-origin'
+};
+
 async function fileAt(p) {
   try {
     const s = await stat(p);
@@ -57,7 +68,8 @@ const server = createServer(async (req, res) => {
     const immutable = resolved.includes('/_app/') && ext !== '.html';
     res.writeHead(status, {
       'content-type': MIME[ext] || 'application/octet-stream',
-      'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache'
+      'cache-control': immutable ? 'public, max-age=31536000, immutable' : 'no-cache',
+      ...SECURITY_HEADERS
     });
     res.end(data);
   } catch {
