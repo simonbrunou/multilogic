@@ -8,7 +8,11 @@ const LABEL: Record<TechniqueName, string> = {
   nakedSingle: 'Naked single',
   hiddenSingle: 'Hidden single',
   lockedCandidates: 'Locked candidates',
-  nakedPair: 'Naked pair'
+  nakedPair: 'Naked pair',
+  hiddenPair: 'Hidden pair',
+  nakedTriple: 'Naked triple',
+  hiddenTriple: 'Hidden triple',
+  xWing: 'X-wing'
 };
 
 /**

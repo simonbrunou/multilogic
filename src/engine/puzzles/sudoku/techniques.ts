@@ -1,6 +1,14 @@
 import { UNITS, ROWS, COLS, BOXES, type Candidates } from './candidates';
 
-export type TechniqueName = 'nakedSingle' | 'hiddenSingle' | 'lockedCandidates' | 'nakedPair';
+export type TechniqueName =
+  | 'nakedSingle'
+  | 'hiddenSingle'
+  | 'lockedCandidates'
+  | 'nakedPair'
+  | 'hiddenPair'
+  | 'nakedTriple'
+  | 'hiddenTriple'
+  | 'xWing';
 
 /**
  * A single deduction step. A step EITHER places digits (`placements`) OR removes
@@ -115,6 +123,33 @@ export function nakedPair(grid: number[], cand: Candidates): Step | null {
             : digits.filter((d) => cand[i].has(d)).map((d) => ({ index: i, digit: d }))
         );
         if (elim.length) return { technique: 'nakedPair', placements: [], eliminations: elim };
+      }
+    }
+  }
+  return null;
+}
+
+/** Two digits whose only homes in a unit are the same two cells → clear other candidates from those cells. */
+// fallow-ignore-next-line complexity
+export function hiddenPair(grid: number[], cand: Candidates): Step | null {
+  for (const unit of UNITS) {
+    const spots = new Map<number, number[]>();
+    for (let d = 1; d <= 9; d++) {
+      if (unit.some((i) => grid[i] === d)) continue;
+      const cells = unit.filter((i) => grid[i] === 0 && cand[i].has(d));
+      if (cells.length === 2) spots.set(d, cells);
+    }
+    const digits = [...spots.keys()];
+    for (let a = 0; a < digits.length; a++) {
+      for (let b = a + 1; b < digits.length; b++) {
+        const d1 = digits[a];
+        const d2 = digits[b];
+        const c1 = spots.get(d1)!;
+        const c2 = spots.get(d2)!;
+        if (c1[0] !== c2[0] || c1[1] !== c2[1]) continue;
+        const elim: Elimination[] = [];
+        for (const i of c1) for (const d of cand[i]) if (d !== d1 && d !== d2) elim.push({ index: i, digit: d });
+        if (elim.length) return { technique: 'hiddenPair', placements: [], eliminations: elim };
       }
     }
   }
