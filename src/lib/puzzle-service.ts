@@ -33,15 +33,27 @@ export interface ServiceOpts {
 
 const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
 
-function pickFromBundle(bundle: Bundle | null | undefined, puzzle: PuzzleType, difficulty: Difficulty): PuzzleResult | null {
+/** Tiny deterministic string hash (engine-free, no Math.random — keeps SSR/replay stable). */
+function hashSeed(s: string): number {
+  let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
+  return h;
+}
+
+export function pickFromBundle(
+  bundle: Bundle | null | undefined,
+  puzzle: PuzzleType,
+  difficulty: Difficulty,
+  seed: string
+): PuzzleResult | null {
   if (!bundle) return null;
   const candidates = bundle.puzzles.filter((p) => p.type === puzzle);
   if (candidates.length === 0) return null;
-  let best = candidates[0];
-  for (const p of candidates) {
-    if (Math.abs(RANK[p.requested] - RANK[difficulty]) < Math.abs(RANK[best.requested] - RANK[difficulty])) best = p;
-  }
-  return { instance: best.instance, solution: best.solution, achievedDifficulty: best.achieved, source: 'baked' };
+  const dist = (p: BakedPuzzle) => Math.abs(RANK[p.achieved] - RANK[difficulty]);
+  const best = candidates.reduce((b, p) => (dist(p) < dist(b) ? p : b), candidates[0]);
+  const close = candidates.filter((p) => dist(p) === dist(best));
+  const pick = close[hashSeed(seed) % close.length];
+  return { instance: pick.instance, solution: pick.solution, achievedDifficulty: pick.achieved, source: 'baked' };
 }
 
 export function createPuzzleService(transport: Transport, opts: ServiceOpts = {}) {
@@ -59,7 +71,7 @@ export function createPuzzleService(transport: Transport, opts: ServiceOpts = {}
       let settled = false;
       const finish = (fn: () => void) => { if (!settled) { settled = true; pending.delete(id); clearTimeout(timer); fn(); } };
       const fallbackOr = (rej: () => void) => {
-        const fb = pickFromBundle(opts.bundle, puzzle, difficulty);
+        const fb = pickFromBundle(opts.bundle, puzzle, difficulty, seed);
         if (fb) resolve(fb); else rej();
       };
       const timer = setTimeout(() => {
