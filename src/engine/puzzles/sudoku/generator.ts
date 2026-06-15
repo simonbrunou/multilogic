@@ -26,8 +26,11 @@ function digToMinimal(prng: PRNG, solution: SudokuGrid): SudokuGrid {
 
 /**
  * Add removed clues back (in PRNG order) until the band drops to `target` or below.
- * Adding a clue never raises difficulty, so this always terminates at <= target
- * (worst case the full solution, which rates `easy`). Stops at the first <=-target band.
+ * Termination is guaranteed: the full solution rates `easy` (the solver is immediately
+ * `isSolved`, hardestRank=0 -> band='easy'), so the loop reaches <= target no later than
+ * the last clue. Individual additions may not monotonically lower the band (the
+ * topRankSteps bump can raise it), but the exit check uses the true `rate()`, so the
+ * <= target guarantee still holds.
  */
 function relaxToTarget(prng: PRNG, minimal: SudokuGrid, solution: SudokuGrid, target: Difficulty): SudokuGrid {
   const givens = [...minimal];
