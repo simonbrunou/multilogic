@@ -89,6 +89,23 @@ Sudoku reuses and *replaces* the existing `LADDER`/`Step`/`apply` machinery in `
 
 **Floor reachability:** for small boards (Tectonic, Kakuro, Yakuso) a type may have *no* seed reaching `expert` under its ladder. This is surfaced loudly by the build-time assertion (§9), and is the signal to lower that type's `expert` cut in `bandForRank` — not to ship a mislabeled puzzle.
 
+### P0 benchmark result (2026-06-15)
+
+Ran `scripts/bench-difficulty.ts` (20 runs per band, budget 2000 ms) on `feat/difficulty-p0-framework-sudoku`:
+
+```
+easy    mean=12.0ms max=29.9ms hitRate=100%
+medium  mean=9.9ms  max=11.8ms hitRate=5%
+hard    mean=10.2ms max=13.0ms hitRate=15%
+expert  mean=12.5ms max=20.5ms hitRate=35%
+
+GATE: worst mean 12.5ms vs budget 2000ms -> PASS — keep full ladder in dig loop
+```
+
+**Perf gate: PASS.** Worst mean across all bands is 12.5 ms, well under the 2000 ms budget. Full-ladder-during-dig is confirmed viable; no effort-proxy split is needed in P4.
+
+**Band reachability finding:** hitRate for medium/hard/expert is 5 %, 15 %, and 35 % respectively. Generation mis-targets these bands because only a ceiling (upper bound) is enforced during the dig — the seed-level FLOOR that discards under-difficult seeds is not yet implemented. This is by design: P0 delivers the rater and framework only. The floor (§6) is a P4 deliverable; until then, a request for `medium`, `hard`, or `expert` frequently produces an `easy` puzzle. The hitRate numbers here are the baseline that P4's floor implementation must improve.
+
 ## 7. Yakuso ladder specification (pre-coding step)
 
 Yakuso currently rates by `effortToSolve` (guess-branch count), not techniques. Before implementing its ladder:
