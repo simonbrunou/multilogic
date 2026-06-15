@@ -2,6 +2,13 @@ import type { YakusoInstance } from '../../engine/puzzles/yakuso/types';
 import { UndoableGame } from './base-game';
 
 /**
+ * Sentinel stored in `cells` for a cell the player has *committed* to `0`
+ * (a visible, crossed-out empty), as distinct from an untouched blank (`0`).
+ * For every rule it normalizes to `0`; it exists only to drive the display.
+ */
+export const MARKED_ZERO = -1;
+
+/**
  * Pure, framework-free YAKUSO play state with undo/redo.
  *
  * The interactive board is the `rows*cols` interior grid (`0` = empty). The
@@ -24,8 +31,25 @@ export class YakusoGame extends UndoableGame {
     return this.instance.clues[index] !== null;
   }
 
+  /** The digit at `i` for rule purposes: a committed zero counts as empty. */
+  private digit(index: number): number {
+    const v = this.cells[index];
+    return v === MARKED_ZERO ? 0 : v;
+  }
+
   protected allows(_index: number, value: number): boolean {
-    return value === 0 || (value >= 1 && value <= this.instance.rows);
+    return value === MARKED_ZERO || value === 0 || (value >= 1 && value <= this.instance.rows);
+  }
+
+  /** Entering `0` commits a visible zero; `1..R` place that digit. (Erase clears to blank.) */
+  input(index: number, value: number): boolean {
+    return super.input(index, value === 0 ? MARKED_ZERO : value);
+  }
+
+  /** Notes only ever hold real digits `1..R`. */
+  toggleNote(index: number, digit: number): boolean {
+    if (digit < 1 || digit > this.instance.rows) return false;
+    return super.toggleNote(index, digit);
   }
 
   /** Indices of the filled cells in row `r`, grouped by their value. */
@@ -34,7 +58,7 @@ export class YakusoGame extends UndoableGame {
     const byDigit = new Map<number, number[]>();
     for (let c = 0; c < cols; c++) {
       const i = r * cols + c;
-      const v = this.cells[i];
+      const v = this.digit(i);
       if (v === 0) continue;
       (byDigit.get(v) ?? byDigit.set(v, []).get(v)!).push(i);
     }
@@ -69,7 +93,7 @@ export class YakusoGame extends UndoableGame {
     }
     for (const list of digitRows.values()) {
       if (list.length < 2) continue;
-      for (const r of list) for (let c = 0; c < cols; c++) if (this.cells[r * cols + c] !== 0) bad.add(r * cols + c);
+      for (const r of list) for (let c = 0; c < cols; c++) if (this.digit(r * cols + c) !== 0) bad.add(r * cols + c);
     }
   }
 
@@ -81,7 +105,8 @@ export class YakusoGame extends UndoableGame {
       const filled: number[] = [];
       for (let r = 0; r < rows; r++) {
         const i = r * cols + c;
-        if (this.cells[i] !== 0) { sum += this.cells[i]; filled.push(i); }
+        const v = this.digit(i);
+        if (v !== 0) { sum += v; filled.push(i); }
       }
       if (sum > totals[c]) for (const i of filled) bad.add(i);
     }
@@ -97,7 +122,7 @@ export class YakusoGame extends UndoableGame {
 
   isSolved(): boolean {
     for (let i = 0; i < this.cells.length; i++) {
-      if (this.cells[i] !== this.solution[i]) return false;
+      if (this.digit(i) !== this.solution[i]) return false;
     }
     return true;
   }
