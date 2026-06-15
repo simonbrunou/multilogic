@@ -13,25 +13,41 @@ export interface GeneratedSudoku {
   difficulty: Difficulty;
 }
 
+/** Remove every clue whose removal preserves a unique solution → the hardest (minimal) form of this grid. */
+function digToMinimal(prng: PRNG, solution: SudokuGrid): SudokuGrid {
+  const givens = [...solution];
+  for (const i of prng.shuffle([...Array(81)].map((_, k) => k))) {
+    const saved = givens[i];
+    givens[i] = 0;
+    if (solveComplete({ givens }, 2).count !== 1) givens[i] = saved;
+  }
+  return givens;
+}
+
 /**
- * Generate a unique Sudoku by digging cells out of a full grid in PRNG order,
- * keeping a removal only if (a) the puzzle stays uniquely solvable and
- * (b) it does not push the difficulty above the target band.
+ * Add removed clues back (in PRNG order) until the band drops to `target` or below.
+ * Adding a clue never raises difficulty, so this always terminates at <= target
+ * (worst case the full solution, which rates `easy`). Stops at the first <=-target band.
+ */
+function relaxToTarget(prng: PRNG, minimal: SudokuGrid, solution: SudokuGrid, target: Difficulty): SudokuGrid {
+  const givens = [...minimal];
+  if (RANK[rate({ givens })] <= RANK[target]) return givens;
+  const removed = prng.shuffle([...Array(81)].map((_, k) => k).filter((k) => givens[k] === 0));
+  for (const i of removed) {
+    givens[i] = solution[i];
+    if (RANK[rate({ givens })] <= RANK[target]) break;
+  }
+  return givens;
+}
+
+/**
+ * Generate a unique Sudoku aimed at `target`. Digs to the minimal (hardest) form, then
+ * relaxes down to the target band. Guarantees `rate(givens) <= target`; hits `== target`
+ * with high yield. The module loop (index.ts) retries seeds for an exact-band match.
  */
 export function generateForDifficulty(prng: PRNG, target: Difficulty): GeneratedSudoku {
   const solution = generateFullGrid(prng);
-  const givens = [...solution];
-  const order = prng.shuffle([...Array(81)].map((_, i) => i));
-  for (const i of order) {
-    const saved = givens[i];
-    givens[i] = 0;
-    if (solveComplete({ givens }, 2).count !== 1) {
-      givens[i] = saved;
-      continue;
-    }
-    if (RANK[rate({ givens })] > RANK[target]) {
-      givens[i] = saved;
-    }
-  }
+  const minimal = digToMinimal(prng, solution);
+  const givens = relaxToTarget(prng, minimal, solution, target);
   return { givens, solution, difficulty: rate({ givens }) };
 }

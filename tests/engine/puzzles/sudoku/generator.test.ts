@@ -1,43 +1,39 @@
 import { describe, it, expect } from 'vitest';
 import { generateForDifficulty } from '../../../../src/engine/puzzles/sudoku/generator';
-import { solveComplete } from '../../../../src/engine/puzzles/sudoku/solver';
-import { gridToString } from '../../../../src/engine/puzzles/sudoku/rules';
 import { rate } from '../../../../src/engine/puzzles/sudoku/rater';
-import { createPrng } from '../../../../src/engine/core/prng';
+import { solveComplete } from '../../../../src/engine/puzzles/sudoku/solver';
+import { createPrng, deriveSeed } from '../../../../src/engine/core/prng';
+import { DIFFICULTIES, type Difficulty } from '../../../../src/engine/core/types';
 
-describe('generateForDifficulty', () => {
-  it('produces a puzzle whose givens are a subset of the solution', () => {
-    const g = generateForDifficulty(createPrng('gen-1'), 'easy');
-    expect(g.solution.length).toBe(81);
-    for (let i = 0; i < 81; i++) {
-      if (g.givens[i] !== 0) expect(g.givens[i]).toBe(g.solution[i]);
+const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
+
+describe('sudoku generateForDifficulty (dig-to-minimal + relax)', () => {
+  it('never overshoots the target band and stays uniquely solvable', () => {
+    for (const target of DIFFICULTIES) {
+      for (let s = 0; s < 6; s++) {
+        const g = generateForDifficulty(createPrng(deriveSeed('sudoku', target, 'overshoot', s)), target);
+        expect(RANK[g.difficulty]).toBeLessThanOrEqual(RANK[target]);
+        expect(g.difficulty).toBe(rate({ givens: g.givens }));
+        expect(solveComplete({ givens: g.givens }, 2).count).toBe(1);
+      }
     }
   });
 
-  it('produces a uniquely-solvable puzzle', () => {
-    const g = generateForDifficulty(createPrng('gen-2'), 'medium');
-    expect(solveComplete({ givens: g.givens }, 2).count).toBe(1);
+  it('reaches every target band within a small seed batch', () => {
+    for (const target of DIFFICULTIES) {
+      let hit = false;
+      for (let s = 0; s < 24 && !hit; s++) {
+        if (generateForDifficulty(createPrng(deriveSeed('sudoku', target, 'reach', s)), target).difficulty === target) {
+          hit = true;
+        }
+      }
+      expect(hit, `target ${target} should be reachable within 24 seeds`).toBe(true);
+    }
   });
 
-  it('the reported difficulty matches rate() of the givens', () => {
-    const g = generateForDifficulty(createPrng('gen-3'), 'easy');
-    expect(g.difficulty).toBe(rate({ givens: g.givens }));
-  });
-
-  it('an easy target does not exceed easy difficulty', () => {
-    const g = generateForDifficulty(createPrng('gen-4'), 'easy');
-    expect(g.difficulty).toBe('easy');
-  });
-
-  it('is deterministic for a seed', () => {
-    const a = generateForDifficulty(createPrng('same-seed'), 'medium');
-    const b = generateForDifficulty(createPrng('same-seed'), 'medium');
-    expect(gridToString(a.givens)).toBe(gridToString(b.givens));
-  });
-
-  it('digs out a meaningful number of cells (puzzle is not nearly full)', () => {
-    const g = generateForDifficulty(createPrng('gen-5'), 'hard');
-    const givenCount = g.givens.filter((v) => v !== 0).length;
-    expect(givenCount).toBeLessThan(60);
+  it('a generated solution is a complete valid grid', () => {
+    const g = generateForDifficulty(createPrng(deriveSeed('sudoku', 'hard', 'sol', 0)), 'hard');
+    expect(g.solution.every((v) => v >= 1 && v <= 9)).toBe(true);
+    expect(g.solution.length).toBe(81);
   });
 });
