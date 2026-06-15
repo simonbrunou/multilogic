@@ -7,7 +7,7 @@ import { getHint as hint } from './hint';
 import { generateForDifficulty, type GeneratedKakuro } from './generator';
 
 const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
-const MAX_ATTEMPTS = 12;
+const MAX_ATTEMPTS = 60;
 
 function validateMove(inst: KakuroInstance, _s: KakuroState, m: KakuroMove): MoveResult {
   if (m.index < 0 || m.index >= inst.black.length) return { ok: false, reason: 'index out of range' };
