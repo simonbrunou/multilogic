@@ -10,6 +10,7 @@ export interface Technique<Ctx> {
 
 /** Everything needed to turn a solve trace into a difficulty band for one puzzle type. */
 export interface TechniqueRater<Ctx> {
+  /** Techniques to try, in ascending rank order (the solver picks the first that progresses). */
   ladder: Technique<Ctx>[];
   isSolved(ctx: Ctx): boolean;
   bandForRank(rank: number): Difficulty;
@@ -47,7 +48,7 @@ export function solveByTechniques<Ctx>(
         break;
       }
     }
-    if (!progressed) break;
+    if (!progressed || isSolved(ctx)) break;
   }
   return { solved: isSolved(ctx), hardestRank, topRankSteps: stepsAtRank.get(hardestRank) ?? 0 };
 }
@@ -55,6 +56,7 @@ export function solveByTechniques<Ctx>(
 /** Next harder band, saturating at `expert`. */
 export function bumpBand(band: Difficulty): Difficulty {
   const i = DIFFICULTIES.indexOf(band);
+  if (i < 0) throw new Error(`bumpBand: unknown band "${band}"`);
   return DIFFICULTIES[Math.min(i + 1, DIFFICULTIES.length - 1)];
 }
 

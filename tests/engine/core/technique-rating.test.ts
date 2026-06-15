@@ -50,6 +50,7 @@ describe('technique-rating framework', () => {
 
   it('bumpBand moves up one band and saturates at expert', () => {
     expect(bumpBand('easy')).toBe('medium');
+    expect(bumpBand('medium')).toBe('hard');
     expect(bumpBand('hard')).toBe('expert');
     expect(bumpBand('expert')).toBe('expert');
   });
