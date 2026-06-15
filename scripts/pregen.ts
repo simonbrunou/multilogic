@@ -2,8 +2,8 @@ import { MODULES } from '../src/engine/puzzles/registry';
 import { createPrng, deriveSeed } from '../src/engine/core/prng';
 import { DIFFICULTIES, type Difficulty, type PuzzleType } from '../src/engine/core/types';
 
-const PER_DIFFICULTY = 1;
-const MAX_SEED_ATTEMPTS = 20;
+const PER_DIFFICULTY = 3;
+const MAX_SEED_ATTEMPTS = 60;
 
 export interface BundledPuzzle {
   type: PuzzleType;
