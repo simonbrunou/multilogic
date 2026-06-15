@@ -12,12 +12,15 @@ const en = {
   },
   home: {
     tagline: 'Procedurally generated logic puzzles.',
+    playHeading: 'Choose a puzzle',
+    more: 'More',
     daily: 'Daily challenges',
     stats: 'Statistics',
     settings: 'Settings'
   },
   settings: {
     title: 'Settings',
+    darkMode: 'Dark mode',
     highlightErrors: 'Highlight errors',
     autoNotes: 'Auto notes',
     language: 'Language'
@@ -37,7 +40,15 @@ const en = {
     generating: 'Generating…',
     solved: 'Solved!',
     solvedEmoji: 'Solved! 🎉',
+    time: (p: { time: string }) => `Time ${p.time}`,
+    newGame: 'New game',
+    howToPlay: 'How to play',
     share: 'Share result',
+    copied: 'Copied!',
+    confirmNewTitle: 'Start a new game?',
+    confirmNewBody: 'Your current progress will be lost.',
+    confirmNewStart: 'Start',
+    cancel: 'Cancel',
     retry: 'Try again',
     genFailed: 'Failed to generate puzzle',
     unknownType: (p: { type: string }) => `Unknown puzzle type: ${p.type}`
@@ -63,7 +74,17 @@ const en = {
   },
   aria: {
     cell: (p: { i: number }) => `cell ${p.i}`,
+    cellAt: (p: { row: number; col: number; value: string }) =>
+      `row ${p.row}, column ${p.col}, ${p.value}`,
+    empty: 'empty',
     letter: (p: { char: string }) => `letter ${p.char}`
+  },
+  rules: {
+    sudoku: 'Fill every row, column, and 3×3 box with the digits 1–9, no repeats.',
+    tectonic: 'Fill each outlined region with 1–n. Identical digits may never touch, even diagonally.',
+    kakuro: 'Fill the white cells so each run sums to its clue. No digit repeats within a run.',
+    grecolatin: 'Place a letter and a digit in every cell so each appears once per row and column, and no letter-digit pair repeats.',
+    yakuso: 'Fill each column so its digits add up to the total at its foot. No digit repeats in a column.'
   },
   puzzle: {
     sudoku: 'Sudoku',
@@ -91,12 +112,15 @@ const fr: typeof en = {
   },
   home: {
     tagline: 'Casse-têtes de logique générés de façon procédurale.',
+    playHeading: 'Choisissez un casse-tête',
+    more: 'Plus',
     daily: 'Défis du jour',
     stats: 'Statistiques',
     settings: 'Paramètres'
   },
   settings: {
     title: 'Paramètres',
+    darkMode: 'Mode sombre',
     highlightErrors: 'Surligner les erreurs',
     autoNotes: 'Notes automatiques',
     language: 'Langue'
@@ -116,7 +140,15 @@ const fr: typeof en = {
     generating: 'Génération…',
     solved: 'Résolu !',
     solvedEmoji: 'Résolu ! 🎉',
+    time: (p) => `Temps ${p.time}`,
+    newGame: 'Nouvelle partie',
+    howToPlay: 'Comment jouer',
     share: 'Partager le résultat',
+    copied: 'Copié !',
+    confirmNewTitle: 'Commencer une nouvelle partie ?',
+    confirmNewBody: 'Votre progression actuelle sera perdue.',
+    confirmNewStart: 'Commencer',
+    cancel: 'Annuler',
     retry: 'Réessayer',
     genFailed: 'Échec de la génération du casse-tête',
     unknownType: (p) => `Type de casse-tête inconnu : ${p.type}`
@@ -142,7 +174,16 @@ const fr: typeof en = {
   },
   aria: {
     cell: (p) => `case ${p.i}`,
+    cellAt: (p) => `ligne ${p.row}, colonne ${p.col}, ${p.value}`,
+    empty: 'vide',
     letter: (p) => `lettre ${p.char}`
+  },
+  rules: {
+    sudoku: 'Remplissez chaque ligne, colonne et boîte 3×3 avec les chiffres 1 à 9, sans répétition.',
+    tectonic: 'Remplissez chaque région délimitée avec 1 à n. Deux chiffres identiques ne peuvent jamais se toucher, même en diagonale.',
+    kakuro: 'Remplissez les cases blanches pour que chaque série atteigne la somme indiquée. Aucun chiffre ne se répète dans une série.',
+    grecolatin: 'Placez une lettre et un chiffre dans chaque case : chacun apparaît une fois par ligne et par colonne, et aucune paire lettre-chiffre ne se répète.',
+    yakuso: 'Remplissez chaque colonne pour que ses chiffres totalisent la valeur indiquée en bas. Aucun chiffre ne se répète dans une colonne.'
   },
   puzzle: {
     sudoku: 'Sudoku',

@@ -9,6 +9,7 @@
   import NumberPad from '$lib/components/NumberPad.svelte';
   import Toolbar from '$lib/components/Toolbar.svelte';
   import TimerView from '$lib/components/TimerView.svelte';
+  import SolvedBanner from '$lib/components/SolvedBanner.svelte';
   import type { PuzzleType } from '../../../engine/core/types';
   import type { Transport } from '$lib/puzzle-service';
   import { PLAY_UI } from '$lib/play/registry';
@@ -97,12 +98,16 @@
       <span>{t('daily.heading', { label: puzzleTypeLabel(puzzleType), date })}</span>
     </header>
 
+    <details class="howto">
+      <summary>{t('play.howToPlay')}</summary>
+      <p>{t(`rules.${puzzleType}`)}</p>
+    </details>
+
     {#if loading}
       <p>{t('play.generating')}</p>
     {:else if store.game}
       {#if solved}
-        <p class="win">{t('play.solved')}</p>
-        <button onclick={share}>{t('play.share')}</button>
+        <SolvedBanner timeMs={store.elapsedMs} hints={store.hintsUsed} onshare={share} />
       {/if}
       <entry.Grid
         game={store.game}
@@ -127,6 +132,8 @@
 <style>
   main { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
   header { display: flex; gap: 16px; align-items: center; width: min(92vw, 480px); justify-content: space-between; }
-  header a { color: #1b3a8f; text-decoration: none; }
-  .win { color: #1b8f3a; font-weight: 700; }
+  header a { color: var(--accent); text-decoration: none; }
+  .howto { width: min(92vw, 480px); font-size: 0.85rem; color: var(--text-muted); }
+  .howto summary { cursor: pointer; padding: 4px 0; min-height: 32px; display: flex; align-items: center; color: var(--accent); }
+  .howto p { margin: 4px 0 0; line-height: 1.5; }
 </style>

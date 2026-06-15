@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { KakuroGame } from '../play/kakuro-game';
   import type { KakuroClue } from '../../engine/puzzles/kakuro/types';
+  import { t } from '$lib/i18n';
 
   let {
     game,
@@ -23,6 +24,12 @@
   function getClue(i: number): KakuroClue | null {
     return game.instance.clues[i] as KakuroClue | null;
   }
+  const label = (i: number, v: number) =>
+    t('aria.cellAt', {
+      row: Math.floor(i / game.instance.width) + 1,
+      col: (i % game.instance.width) + 1,
+      value: v !== 0 ? String(v) : t('aria.empty')
+    });
 </script>
 
 <div class="grid" role="grid" style="grid-template-columns: repeat({game.instance.width}, 1fr);">
@@ -32,7 +39,7 @@
       <div class="cell black" role="gridcell">
         {#if clue && (clue.down !== undefined || clue.right !== undefined)}
           <svg class="clue-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
-            <line x1="0" y1="0" x2="100" y2="100" stroke="#888" stroke-width="2" />
+            <line x1="0" y1="0" x2="100" y2="100" class="clue-line" stroke-width="2" />
             {#if clue.right !== undefined}
               <text x="72" y="38" text-anchor="middle" class="clue-text">{clue.right}</text>
             {/if}
@@ -48,6 +55,8 @@
         class="cell white"
         class:selected={selected === i}
         class:conflict={highlightErrors && conflicts.has(i)}
+        aria-pressed={selected === i}
+        aria-label={label(i, v)}
         onclick={() => onselect(i)}
       >
         {#if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}
@@ -64,7 +73,8 @@
     gap: 0;
   }
   .cell {
-    border: 1px solid #bbb;
+    border: 1px solid var(--border);
+    color: var(--text);
     font-size: clamp(14px, 4vw, 24px);
     display: flex;
     align-items: center;
@@ -75,16 +85,16 @@
     overflow: hidden;
   }
   .cell.black {
-    background: #2a2a2a;
+    background: var(--cell-block);
     cursor: default;
     padding: 0;
   }
   .cell.white {
-    background: #fff;
+    background: var(--surface);
     cursor: pointer;
   }
-  .cell.white.selected { background: #cfe3ff; }
-  .cell.white.conflict { background: #ffd5d5; }
+  .cell.white.selected { background: var(--selected-bg); }
+  .cell.white.conflict { background: var(--danger-bg); color: var(--danger); box-shadow: inset 0 0 0 2px var(--danger); text-decoration: underline wavy var(--danger); text-underline-offset: 2px; }
   .clue-svg {
     width: 100%;
     height: 100%;
@@ -92,11 +102,14 @@
     top: 0;
     left: 0;
   }
+  .clue-line {
+    stroke: color-mix(in oklch, var(--cell-block-text) 55%, transparent);
+  }
   .clue-text {
-    fill: #e0e0e0;
+    fill: var(--cell-block-text);
     font-size: 28px;
     font-family: system-ui, sans-serif;
     font-weight: 600;
   }
-  .notes { font-size: 10px; color: #888; letter-spacing: 1px; }
+  .notes { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
 </style>

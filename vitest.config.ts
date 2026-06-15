@@ -1,3 +1,4 @@
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { playwright } from '@vitest/browser-playwright';
@@ -9,6 +10,13 @@ import { playwright } from '@vitest/browser-playwright';
 // exercised by the browser project and Playwright e2e instead.
 export default defineConfig({
   plugins: [svelte()],
+  // Mirror SvelteKit's `$lib` alias so components that import `$lib/...` (e.g. i18n) can be
+  // mounted in isolation by the browser project. The bare `svelte()` plugin doesn't add it.
+  resolve: {
+    alias: {
+      $lib: fileURLToPath(new URL('./src/lib', import.meta.url))
+    }
+  },
   test: {
     passWithNoTests: true,
     projects: [

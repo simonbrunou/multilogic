@@ -20,10 +20,12 @@
     align-items: center;
   }
   select {
+    min-height: 44px;
     padding: 4px 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--border);
     border-radius: 6px;
-    background: #f4f5f7;
+    background: var(--surface-2);
+    color: var(--text);
     cursor: pointer;
     font: inherit;
   }

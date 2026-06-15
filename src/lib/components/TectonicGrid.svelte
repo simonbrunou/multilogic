@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { TectonicGame } from '../play/tectonic-game';
+  import { t } from '$lib/i18n';
 
   let {
     game,
@@ -18,6 +19,12 @@
   } = $props();
 
   const cellView = $derived.by(() => { void tick; return [...game.cells]; });
+  const label = (i: number, v: number) =>
+    t('aria.cellAt', {
+      row: Math.floor(i / game.instance.width) + 1,
+      col: (i % game.instance.width) + 1,
+      value: v !== 0 ? String(v) : t('aria.empty')
+    });
 
   function hasThickTop(i: number): boolean {
     const row = Math.floor(i / game.instance.width);
@@ -52,6 +59,8 @@
       class:thick-bottom={hasThickBottom(i)}
       class:thick-left={hasThickLeft(i)}
       class:thick-right={hasThickRight(i)}
+      aria-pressed={selected === i}
+      aria-label={label(i, v)}
       onclick={() => onselect(i)}
     >
       {#if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}
@@ -67,8 +76,9 @@
     gap: 0;
   }
   .cell {
-    background: #fff;
-    border: 1px solid #bbb;
+    background: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border);
     font-size: clamp(14px, 4vw, 24px);
     display: flex;
     align-items: center;
@@ -77,12 +87,12 @@
     aspect-ratio: 1;
     box-sizing: border-box;
   }
-  .cell.given { font-weight: 700; color: #1b3a8f; }
-  .cell.selected { background: #cfe3ff; }
-  .cell.conflict { background: #ffd5d5; }
-  .cell.thick-top { border-top: 2px solid #222; }
-  .cell.thick-bottom { border-bottom: 2px solid #222; }
-  .cell.thick-left { border-left: 2px solid #222; }
-  .cell.thick-right { border-right: 2px solid #222; }
-  .notes { font-size: 10px; color: #888; letter-spacing: 1px; }
+  .cell.given { font-weight: 700; color: var(--accent); }
+  .cell.selected { background: var(--selected-bg); }
+  .cell.conflict { background: var(--danger-bg); color: var(--danger); box-shadow: inset 0 0 0 2px var(--danger); text-decoration: underline wavy var(--danger); text-underline-offset: 2px; }
+  .cell.thick-top { border-top: 2px solid var(--grid-line); }
+  .cell.thick-bottom { border-bottom: 2px solid var(--grid-line); }
+  .cell.thick-left { border-left: 2px solid var(--grid-line); }
+  .cell.thick-right { border-right: 2px solid var(--grid-line); }
+  .notes { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
 </style>

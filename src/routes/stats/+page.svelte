@@ -17,4 +17,4 @@
     <tbody>{#each rows as r (r.d)}<tr><td>{difficultyLabel(r.d)}</td><td>{r.s.solved}</td><td>{fmt(r.s.bestMs)}</td></tr>{/each}</tbody>
   </table>
 </main>
-<style>main { max-width: 480px; margin: 40px auto; padding: 0 16px; font-family: system-ui, sans-serif; } table { width: 100%; border-collapse: collapse; } th, td { border-bottom: 1px solid #ddd; padding: 8px; text-align: left; }</style>
+<style>main { max-width: 480px; margin: 40px auto; padding: 0 16px; } header { display: flex; align-items: center; gap: 16px; } header a { color: var(--accent); } table { width: 100%; border-collapse: collapse; } th, td { border-bottom: 1px solid var(--border); padding: 8px; text-align: left; } th { color: var(--text-muted); font-weight: 600; }</style>

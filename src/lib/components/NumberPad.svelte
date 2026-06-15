@@ -11,6 +11,7 @@
 </div>
 <style>
   .pad { display: grid; gap: 6px; margin-top: 14px; }
-  .pad.note .key { color: #888; }
-  .key { aspect-ratio: 1; min-width: 0; padding: 0; font-size: clamp(16px, 5vw, 22px); border: 1px solid #ccc; border-radius: 8px; background: #f4f5f7; cursor: pointer; }
+  .pad.note .key { color: var(--text-muted); }
+  .key { aspect-ratio: 1; min-width: 0; min-height: 44px; padding: 0; font-size: clamp(16px, 5vw, 22px); border: 1px solid var(--border); border-radius: 8px; background: var(--surface-2); color: var(--text); cursor: pointer; }
+  .key:hover { background: var(--surface-3); }
 </style>

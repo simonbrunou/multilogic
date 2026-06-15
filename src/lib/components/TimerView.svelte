@@ -6,4 +6,4 @@
   });
 </script>
 <span class="timer">⏱ {fmt}</span>
-<style>.timer { font-variant-numeric: tabular-nums; color: #555; }</style>
+<style>.timer { font-variant-numeric: tabular-nums; color: var(--text-muted); }</style>
