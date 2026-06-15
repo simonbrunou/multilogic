@@ -2,6 +2,7 @@
   import type { KakuroGame } from '../play/kakuro-game';
   import type { KakuroClue } from '../../engine/puzzles/kakuro/types';
   import { t } from '$lib/i18n';
+  import { gridKeyboard } from '../play/grid-nav';
 
   let {
     game,
@@ -30,13 +31,26 @@
       col: (i % game.instance.width) + 1,
       value: v !== 0 ? String(v) : t('aria.empty')
     });
+  const clueLabel = (clue: KakuroClue | null) =>
+    t('aria.clue', {
+      right: clue?.right !== undefined ? String(clue.right) : '',
+      down: clue?.down !== undefined ? String(clue.down) : ''
+    });
+  const isWhite = (i: number) => !game.instance.black[i];
+  const firstWhite = $derived(cellView.findIndex((_v, i) => isWhite(i)));
+  const tabStop = $derived(selected ?? firstWhite);
 </script>
 
-<div class="grid" role="grid" style="grid-template-columns: repeat({game.instance.width}, 1fr);">
+<div
+  class="grid"
+  role="grid"
+  style="grid-template-columns: repeat({game.instance.width}, 1fr);"
+  use:gridKeyboard={{ cols: game.instance.width, total: cellView.length, focusable: isWhite, selected, onselect }}
+>
   {#each cellView as _v, i (i)}
     {#if game.instance.black[i]}
       {@const clue = getClue(i)}
-      <div class="cell black" role="gridcell">
+      <div class="cell black" role="gridcell" aria-label={clueLabel(clue)}>
         {#if clue && (clue.down !== undefined || clue.right !== undefined)}
           <svg class="clue-svg" viewBox="0 0 100 100" preserveAspectRatio="none">
             <line x1="0" y1="0" x2="100" y2="100" class="clue-line" stroke-width="2" />
@@ -57,6 +71,8 @@
         class:conflict={highlightErrors && conflicts.has(i)}
         aria-pressed={selected === i}
         aria-label={label(i, v)}
+        data-cell={i}
+        tabindex={i === tabStop ? 0 : -1}
         onclick={() => onselect(i)}
       >
         {#if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}

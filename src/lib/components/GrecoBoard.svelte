@@ -1,8 +1,13 @@
 <script lang="ts">
   import type { GrecoStore } from '$lib/play/greco.svelte';
   import { t } from '$lib/i18n';
+  import { gridKeyboard } from '$lib/play/grid-nav';
 
   let { store }: { store: GrecoStore } = $props();
+
+  const isOpen = (i: number) => store.givens[i] === 0;
+  const firstOpen = $derived(store.givens.findIndex((g) => g === 0));
+  const tabStop = $derived(store.selected ?? firstOpen);
 
   const letterChar = (k: number): string => String.fromCharCode(65 + k);
 
@@ -13,7 +18,6 @@
     return `${l}${d}`;
   }
 
-  const result = $derived(store.result);
   const filled = $derived(store.cells.filter((v) => v !== 0).length);
   const sel = $derived(store.selected);
   const selDigit = $derived(sel !== null ? store.digits[sel] : -1);
@@ -21,7 +25,18 @@
 </script>
 
 <div class="board">
-  <div class="grid" role="grid" style="--n: {store.n}">
+  <div
+    class="grid"
+    role="grid"
+    style="--n: {store.n}"
+    use:gridKeyboard={{
+      cols: store.n,
+      total: store.n * store.n,
+      focusable: isOpen,
+      selected: store.selected,
+      onselect: (i) => store.select(i)
+    }}
+  >
     {#each store.cells as _v, i (i)}
       {@const isGiven = store.givens[i] !== 0}
       {@const isSelected = store.selected === i}
@@ -29,6 +44,8 @@
         class="cell"
         class:given={isGiven}
         class:selected={isSelected}
+        data-cell={i}
+        tabindex={i === tabStop ? 0 : -1}
         onclick={() => store.select(i)}
         aria-label={t('aria.cellAt', {
           row: Math.floor(i / store.n) + 1,
@@ -77,15 +94,11 @@
     <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 {t('greco.hint')}</button>
   </div>
 
-  <!-- Status line: neutral progress only, no mistake feedback -->
+  <!-- Status line: neutral progress only, no mistake feedback. The solved banner lives on the
+       route (shared SolvedBanner), so completion UI is consistent with the other puzzles. -->
   <div class="status">
     <span>{t('greco.placed', { filled, total: store.n * store.n })}</span>
   </div>
-
-  <!-- Win banner -->
-  {#if result.complete && result.valid}
-    <div class="win-banner">{t('greco.solvedBanner')}</div>
-  {/if}
 </div>
 
 <style>
@@ -209,13 +222,4 @@
     color: var(--text-muted);
   }
 
-  .win-banner {
-    background: var(--success-bg);
-    color: var(--success-contrast);
-    padding: 10px 22px;
-    border-radius: 10px;
-    font-size: 16px;
-    font-weight: 700;
-    text-align: center;
-  }
 </style>

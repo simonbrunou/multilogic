@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { TectonicGame } from '../play/tectonic-game';
   import { t } from '$lib/i18n';
+  import { gridKeyboard } from '../play/grid-nav';
 
   let {
     game,
@@ -19,6 +20,7 @@
   } = $props();
 
   const cellView = $derived.by(() => { void tick; return [...game.cells]; });
+  const tabStop = $derived(selected ?? 0);
   const label = (i: number, v: number) =>
     t('aria.cellAt', {
       row: Math.floor(i / game.instance.width) + 1,
@@ -48,7 +50,12 @@
   }
 </script>
 
-<div class="grid" role="grid" style="grid-template-columns: repeat({game.instance.width}, 1fr);">
+<div
+  class="grid"
+  role="grid"
+  style="grid-template-columns: repeat({game.instance.width}, 1fr);"
+  use:gridKeyboard={{ cols: game.instance.width, total: cellView.length, focusable: () => true, selected, onselect }}
+>
   {#each cellView as v, i (i)}
     <button
       class="cell"
@@ -61,6 +68,8 @@
       class:thick-right={hasThickRight(i)}
       aria-pressed={selected === i}
       aria-label={label(i, v)}
+      data-cell={i}
+      tabindex={i === tabStop ? 0 : -1}
       onclick={() => onselect(i)}
     >
       {#if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}

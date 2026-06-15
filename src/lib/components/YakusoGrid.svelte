@@ -1,6 +1,7 @@
 <script lang="ts">
   import { MARKED_ZERO, type YakusoGame } from '../play/yakuso-game';
   import { t } from '$lib/i18n';
+  import { gridKeyboard } from '../play/grid-nav';
 
   let {
     game,
@@ -24,9 +25,17 @@
   const valueOf = (v: number) => (v === MARKED_ZERO ? '0' : v !== 0 ? String(v) : t('aria.empty'));
   const label = (i: number, v: number) =>
     t('aria.cellAt', { row: Math.floor(i / cols) + 1, col: (i % cols) + 1, value: valueOf(v) });
+  const isInput = (i: number) => i < cellView.length && !game.isGiven(i);
+  const firstInput = $derived(cellView.findIndex((_v, i) => !game.isGiven(i)));
+  const tabStop = $derived(selected ?? firstInput);
 </script>
 
-<div class="grid" role="grid" style="grid-template-columns: repeat({cols}, minmax(0, 1fr)); width: min(92vw, {cols * 56}px);">
+<div
+  class="grid"
+  role="grid"
+  style="grid-template-columns: repeat({cols}, minmax(0, 1fr)); width: min(92vw, {cols * 56}px);"
+  use:gridKeyboard={{ cols, total: cellView.length, focusable: isInput, selected, onselect }}
+>
   {#each cellView as v, i (i)}
     {#if game.isGiven(i)}
       <div class="cell given" role="gridcell">{v}</div>
@@ -37,6 +46,8 @@
         class:conflict={highlightErrors && conflicts.has(i)}
         aria-pressed={selected === i}
         aria-label={label(i, v)}
+        data-cell={i}
+        tabindex={i === tabStop ? 0 : -1}
         onclick={() => onselect(i)}
       >
         {#if v === MARKED_ZERO}<span class="zero">0</span>{:else if v !== 0}{v}{:else if game.notes[i].size}<span class="notes">{[...game.notes[i]].sort().join('')}</span>{/if}
