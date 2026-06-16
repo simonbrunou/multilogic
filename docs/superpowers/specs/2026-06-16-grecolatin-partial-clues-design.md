@@ -1,7 +1,7 @@
 # Greco-Latin Partial Clues — design
 
 **Date:** 2026-06-16
-**Status:** Brainstormed; pending user review.
+**Status:** Ratified by model-diverse council (Opus 4.8 architect / Sonnet 4.6 red-team / Haiku 4.5 feasibility) — unanimous RATIFY-WITH-NITS after one reconciliation round. Soundness of the per-dimension propagation was the contested point and is **confirmed sound** (red-team conceded); a **Phase-0 measurement gate** and expanded scope were added (this is v2 — see §11). Pending user review.
 **Author:** brainstorming session
 **Origin:** User insight — "the difficulty comes from having only seeded letters or digits sometimes." Adds partial clues as a richer difficulty lever for Greco-Latin. (Larger orders were discussed but **deferred** — this ships partial clues at the existing order n=5.)
 
@@ -94,3 +94,24 @@ This is sound (only fixes a value when it is the unique legal option, so it can 
 - **Candidate-model refactor blast radius** — `analyze`/`candidatesAt` are used by both rater and hint; the generalization must preserve full-pair behavior exactly (covered by keeping/porting existing tests). Mitigated by isolating the change to `candidates.ts` with focused unit tests.
 - **Calibration** — the residual-ratio distribution under partial clues is unmeasured; cuts are recalibrated empirically during implementation (as for the other types). If the middle stays squeezed, the floor + closest-fallback still serve honestly.
 - **UI per-dimension locking** — the store's "is given" logic moves from whole-cell to per-dimension; must ensure a partial-clue cell is selectable for its open dimension but rejects edits to the locked one.
+
+## 11. Council resolution & build sequence (v2)
+
+Unanimously ratified after one reconciliation round. Folded-in changes:
+
+**Soundness — CONFIRMED (was the contested point).** The per-dimension forced-single propagation is sound on satisfiable (real-square-derived) instances. Exclusion sets are built only from *known* values; a partial cell is transparent to the orthogonal projection, so candidate sets are a **superset** of the truly-reachable set — propagation can only *under*-propagate (miss deductions), never *false*-fix. A size-1 computed candidate set therefore equals the (non-empty) true set, so the survivor is entailed by every completion. (The round-1 "false fix via a transparent letter-only cell" was internally inconsistent: the value claimed wrongly-excluded would instead survive as a *second* candidate, blocking the fix.) Implementation constraint: the propagation must **re-`analyze` after each placement, or fix at most one single per pass** — a defensive guard against a stale per-pass snapshot once the pair-distinctness coupling rule can shrink an `a`/`b` set mid-pass. A **gating** soundness cross-check test (propagation never fixes a value ≠ the generating square) is required.
+
+**Phase 0 — measurement gate (build this FIRST, before any UI).** Prototype the generalized `analyze`/`candidatesAt` + per-dimension `residualFreeRatio` + partial-clue generation, then **measure the residual-ratio distribution** across a (reveal-count × partial-fraction) grid at n=5 (e.g. ~8×5×50 trials, ~seconds). **Go/no-go:** do partial clues populate the medium/hard bands materially better than full-pair reveal-ratio (which is bimodal: easy/medium median ≈0, hard/expert ≈0.94/1.0), or is the distribution still bimodal? If still bimodal, **surface to the user** before building the UI — the feature still adds variety + an honest rating, but its primary justification (un-squeezing the middle) would not have materialized, and larger orders (deferred) may be the better lever. Recalibrate band cuts here.
+
+**Expanded scope (round-1 found the spec under-counted these):**
+- `index.ts` `validate` / `validateMove` / `render` all read `inst.givens` and must move to the per-dimension model.
+- Both route pages call `store.load(inst.n, inst.givens)` — update to the new shape.
+- **`GrecoLatinMove` decision:** the move type is whole-pair `{index, value}` with no per-dimension granularity. **Decision: per-dimension locking lives in the play store** (which already drives `setDigit`/`setLetter` directly); `validateMove` (engine) rejects a move only on a **fully-given** cell (both dimensions clued) — partial-clue cells are editable in their open dimension via the store, which enforces the per-dimension lock. The move type does **not** gain a dimension field (YAGNI).
+
+**UI is a real task, not "mostly free":** per-dimension locking in the store (`select`/`setDigit`/`setLetter`/`clear`, centralized in `isDigitGiven(i)`/`isLetterGiven(i)` helpers so the lock test lives in one place); board **per-token rendering** (the clued dimension styled as a given, the open one editable — `cellText`'s concatenated string must become per-token elements); `gridKeyboard` focusable predicate = "at least one dimension open"; a fully-given cell is a non-selectable no-op.
+
+**Hint:** when a hint fills only the open dimension of a partial-clue cell, the hint text names just that dimension ("Place digit Y" / "Place letter X"), not both.
+
+**Added tests:** end-to-end — a partial-clue instance reaches `complete: true, valid: true`; serialization round-trip with `null` clues; per-dimension store locking (selectable for open dim, rejects locked dim); the gating soundness cross-check.
+
+**Build sequence:** Phase 0 (gate) → Phase 1 engine (data model, candidates generalization with ported regression tests, rater per-dimension propagation + soundness cross-check, generator floor, `index.ts`) → Phase 2 UI (store per-dimension locking, board per-token render, keyboard nav, hint text, route pages) → Phase 3 (engineVersion bump + bundle regen, extended tests, manual play-test). Write tests first per phase (TDD).
