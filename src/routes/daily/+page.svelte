@@ -6,6 +6,10 @@
   const keys = ['sudoku', 'tectonic', 'kakuro', 'grecolatin', 'yakuso'];
 </script>
 
+<svelte:head>
+  <title>{t('daily.title')} — Multilogic</title>
+</svelte:head>
+
 <main>
   <header>
     <a href="/">{t('nav.backPuzzles')}</a>

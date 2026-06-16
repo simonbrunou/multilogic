@@ -33,6 +33,7 @@
 <div
   class="grid"
   role="grid"
+  aria-label={t('aria.grid', { label: t('puzzle.yakuso') })}
   style="grid-template-columns: repeat({cols}, minmax(0, 1fr)); width: min(92vw, {cols * 56}px);"
   use:gridKeyboard={{ cols, total: cellView.length, focusable: isInput, selected, onselect }}
 >
@@ -44,7 +45,7 @@
         class="cell input"
         class:selected={selected === i}
         class:conflict={highlightErrors && conflicts.has(i)}
-        aria-pressed={selected === i}
+        aria-current={selected === i ? 'true' : undefined}
         aria-label={label(i, v)}
         data-cell={i}
         tabindex={i === tabStop ? 0 : -1}
@@ -55,11 +56,11 @@
     {/if}
   {/each}
   {#each game.instance.totals as total, c (c)}
-    <div class="cell total" role="gridcell" class:firsttotal={c === 0}>{total}</div>
+    <div class="cell total" role="gridcell" aria-label={t('aria.total', { total })} class:firsttotal={c === 0}>{total}</div>
   {/each}
 </div>
 
-<p class="legend">Totals · {rows} digits</p>
+<p class="legend">{t('yakuso.legend', { rows })}</p>
 
 <style>
   .grid {

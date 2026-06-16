@@ -70,17 +70,21 @@
   }
 </script>
 
+<svelte:head>
+  <title>{t('daily.heading', { label: puzzleTypeLabel('grecolatin'), date })} — Multilogic</title>
+</svelte:head>
+
 <main>
   <header>
     <a href="/daily">{t('nav.backDaily')}</a>
     <TimerView ms={store.elapsedMs} />
-    <span>{t('daily.heading', { label: puzzleTypeLabel('grecolatin'), date })}</span>
+    <h1 class="page-title">{t('daily.heading', { label: puzzleTypeLabel('grecolatin'), date })}</h1>
   </header>
 
   {#if loading}
     <p>{t('play.generating')}</p>
   {:else if error}
-    <p class="error">{error}</p>
+    <p class="error" role="alert">{error}</p>
   {:else}
     {#if result.complete && result.valid}
       <SolvedBanner timeMs={store.elapsedMs} hints={store.hintsUsed} onshare={share} />
@@ -107,6 +111,11 @@
   header a {
     color: var(--accent);
     text-decoration: none;
+  }
+  .page-title {
+    margin: 0;
+    font-size: 1rem;
+    font-weight: 400;
   }
   .error {
     color: var(--danger);

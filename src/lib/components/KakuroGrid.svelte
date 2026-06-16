@@ -44,6 +44,7 @@
 <div
   class="grid"
   role="grid"
+  aria-label={t('aria.grid', { label: t('puzzle.kakuro') })}
   style="grid-template-columns: repeat({game.instance.width}, 1fr);"
   use:gridKeyboard={{ cols: game.instance.width, total: cellView.length, focusable: isWhite, selected, onselect }}
 >
@@ -69,7 +70,7 @@
         class="cell white"
         class:selected={selected === i}
         class:conflict={highlightErrors && conflicts.has(i)}
-        aria-pressed={selected === i}
+        aria-current={selected === i ? 'true' : undefined}
         aria-label={label(i, v)}
         data-cell={i}
         tabindex={i === tabStop ? 0 : -1}

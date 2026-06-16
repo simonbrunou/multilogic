@@ -25,6 +25,7 @@
   <div
     class="grid"
     role="grid"
+    aria-label={t('aria.grid', { label: t('puzzle.grecolatin') })}
     style="--n: {store.n}"
     use:gridKeyboard={{
       cols: store.n,
@@ -54,7 +55,7 @@
           value: (store.letters[i] >= 0 ? letterChar(store.letters[i]) : '') +
                  (store.digits[i] >= 0 ? String(store.digits[i] + 1) : '') || t('aria.empty')
         })}
-        aria-pressed={isSelected}
+        aria-current={isSelected ? 'true' : undefined}
       >
         <span class="token letter-token" class:given={letterGiven}>
           {store.letters[i] >= 0 ? letterChar(store.letters[i]) : ''}
@@ -91,6 +92,7 @@
         class:active={selDigit === k}
         disabled={selDigitLocked}
         onclick={() => store.setDigit(k)}
+        aria-label={t('aria.digit', { n: k + 1 })}
       >
         {k + 1}
       </button>

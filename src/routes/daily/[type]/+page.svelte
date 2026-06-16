@@ -85,6 +85,10 @@
   }
 </script>
 
+<svelte:head>
+  <title>{entry ? `${t('daily.heading', { label: puzzleTypeLabel(puzzleType), date })} — Multilogic` : 'Multilogic'}</title>
+</svelte:head>
+
 <svelte:window onkeydown={onkey} />
 
 <main>
@@ -95,7 +99,7 @@
     <header>
       <a href="/daily">{t('nav.backDaily')}</a>
       <TimerView ms={store.elapsedMs} />
-      <span>{t('daily.heading', { label: puzzleTypeLabel(puzzleType), date })}</span>
+      <h1 class="page-title">{t('daily.heading', { label: puzzleTypeLabel(puzzleType), date })}</h1>
     </header>
 
     <details class="howto">
@@ -133,7 +137,8 @@
   main { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
   header { display: flex; gap: 16px; align-items: center; width: min(92vw, 480px); justify-content: space-between; }
   header a { color: var(--accent); text-decoration: none; }
+  .page-title { margin: 0; font-size: 1rem; font-weight: 400; }
   .howto { width: min(92vw, 480px); font-size: 0.85rem; color: var(--text-muted); }
-  .howto summary { cursor: pointer; padding: 4px 0; min-height: 32px; display: flex; align-items: center; color: var(--accent); }
+  .howto summary { cursor: pointer; padding: 4px 0; min-height: 44px; display: flex; align-items: center; color: var(--accent); }
   .howto p { margin: 4px 0 0; line-height: 1.5; }
 </style>

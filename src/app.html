@@ -5,10 +5,14 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
 		<script>
-			// Apply the saved theme before first paint so dark-mode users never see a light flash.
+			// Apply saved theme and language before first paint: dark-mode users never see a
+			// light flash, and the document lang matches the chosen locale so screen readers use
+			// the right pronunciation from first render (the static markup defaults to fr).
 			try {
 				var s = JSON.parse(localStorage.getItem('ml:settings') || '{}');
 				if (s.theme === 'dark') document.documentElement.dataset.theme = 'dark';
+				var lang = localStorage.getItem('ml:lang');
+				if (lang === 'en' || lang === 'fr') document.documentElement.lang = lang;
 			} catch (e) {}
 		</script>
 		%sveltekit.head%

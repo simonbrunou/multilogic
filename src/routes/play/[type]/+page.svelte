@@ -71,13 +71,57 @@
     else confirmDiff = d;
   }
 
+  // Focus management for the confirm dialog: move focus in when it opens, restore it to the
+  // control that triggered it on close, and trap Tab/Escape while it's up (role="alertdialog"
+  // promises a modal, so keyboard focus must behave like one).
+  let confirmEl = $state<HTMLElement | null>(null);
+  let lastFocused: HTMLElement | null = null;
+
+  $effect(() => {
+    if (confirmDiff && confirmEl) {
+      lastFocused = document.activeElement as HTMLElement | null;
+      confirmEl.focus();
+    }
+  });
+
+  function closeConfirm() {
+    confirmDiff = null;
+    lastFocused?.focus();
+  }
+
+  function onConfirmKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeConfirm();
+      return;
+    }
+    if (e.key !== 'Tab' || !confirmEl) return;
+    const f = confirmEl.querySelectorAll<HTMLElement>('button');
+    if (f.length === 0) return;
+    const first = f[0];
+    const last = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === first) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && document.activeElement === last) {
+      e.preventDefault();
+      first.focus();
+    }
+  }
+
   function onkey(e: KeyboardEvent) {
+    // While the modal confirm is up, leave the board behind it untouched.
+    if (confirmDiff) return;
     const d = Number(e.key);
     if (d >= 1 && d <= maxDigit) store.enter(d);
     else if (e.key === '0' && allowZero) store.enter(0);
     else if (e.key === 'Backspace' || e.key === 'Delete') store.erase();
   }
 </script>
+
+<svelte:head>
+  <title>{entry ? `${puzzleTypeLabel(puzzleType)} · ${difficultyLabel(difficulty)} — Multilogic` : 'Multilogic'}</title>
+</svelte:head>
 
 <svelte:window onkeydown={onkey} />
 
@@ -89,7 +133,7 @@
     <header>
       <a href="/">{t('nav.backPuzzles')}</a>
       <TimerView ms={store.elapsedMs} />
-      <span>{puzzleTypeLabel(puzzleType)} · {difficultyLabel(difficulty)}</span>
+      <h1 class="page-title">{puzzleTypeLabel(puzzleType)} · {difficultyLabel(difficulty)}</h1>
     </header>
 
     <details class="howto">
@@ -119,11 +163,20 @@
       />
 
       {#if confirmDiff}
-        <div class="confirm" role="alertdialog" aria-label={t('play.confirmNewTitle')}>
-          <p class="confirm-title">{t('play.confirmNewTitle')}</p>
-          <p class="confirm-body">{t('play.confirmNewBody')}</p>
+        <div
+          class="confirm"
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="confirm-title"
+          aria-describedby="confirm-body"
+          tabindex="-1"
+          bind:this={confirmEl}
+          onkeydown={onConfirmKeydown}
+        >
+          <p class="confirm-title" id="confirm-title">{t('play.confirmNewTitle')}</p>
+          <p class="confirm-body" id="confirm-body">{t('play.confirmNewBody')}</p>
           <div class="confirm-actions">
-            <button class="btn" onclick={() => (confirmDiff = null)}>{t('play.cancel')}</button>
+            <button class="btn" onclick={closeConfirm}>{t('play.cancel')}</button>
             <button
               class="btn btn-primary"
               onclick={() => {
@@ -149,8 +202,11 @@
   main { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px; }
   header { display: flex; gap: 16px; align-items: center; width: min(92vw, 480px); justify-content: space-between; }
   header a { color: var(--accent); }
+  /* The page heading doubles as the in-header status line; keep it at body weight/size so the
+     visual layout is unchanged while screen-reader users still get a real h1 to navigate to. */
+  .page-title { margin: 0; font-size: 1rem; font-weight: 400; }
   .howto { width: min(92vw, 480px); font-size: 0.85rem; color: var(--text-muted); }
-  .howto summary { cursor: pointer; padding: 4px 0; min-height: 32px; display: flex; align-items: center; color: var(--accent); }
+  .howto summary { cursor: pointer; padding: 4px 0; min-height: 44px; display: flex; align-items: center; color: var(--accent); }
   .howto p { margin: 4px 0 0; line-height: 1.5; }
   .diffs { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; justify-content: center; }
   .confirm { display: flex; flex-direction: column; align-items: center; gap: 4px; width: min(92vw, 360px); margin-top: 12px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface); text-align: center; }
