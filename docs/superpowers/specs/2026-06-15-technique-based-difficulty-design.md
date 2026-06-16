@@ -64,7 +64,7 @@ Each type defines a ladder and a transparent `bandForRank`. `expert` = the top b
 
 | Type | Ladder (rank → technique) | `bandForRank` |
 |---|---|---|
-| **Sudoku** | 1 singles · 2 locked candidates · 3 naked/hidden pairs · 4 naked/hidden triples · 5 X-wing · 6 XY-wing/swordfish · 7 chains | easy ≤1 · medium ≤2 · hard ≤4 · expert ≥5 or unsolved |
+| **Sudoku** | 1 singles · 2 locked candidates · 3 naked/hidden pairs · 4 naked/hidden triples · 5 X-wing · 6 XY-wing/swordfish · 7 chains | **recalibrated 2026-06-16:** easy ≤1 · medium ≤3 · hard ≤5 · expert = unsolved (step-bump threshold 1) |
 | **Tectonic** | 1 naked single · 2 hidden single · 3 locked candidates (region↔line) · 4 naked pair | easy ≤1 · medium ≤2 · hard ≤3 · expert ≥4 or unsolved |
 | **Kakuro** | 1 forced cell · 2 unique sum-combo · 3 cross-run intersection · 4 combo elimination | easy ≤1 · medium ≤2 · hard ≤3 · expert ≥4 or unsolved |
 | **Yakuso** | 4 ranks, **specified empirically before coding** (see §7) | easy ≤1 · medium ≤2 · hard ≤3 · expert ≥4 or unsolved |
@@ -170,6 +170,12 @@ Bundle: all 12 Tectonic entries in-band (3 per band). **Conclusion:** Tectonic d
 ### Yakuso decision — left as-is (investigated 2026-06-16)
 
 **Outcome: NO change.** Investigation found Yakuso's difficulty is already honestly **board-size-driven** (easy 3×4 → medium 4×5 → hard 5×6 → expert 6×7) — a real, meaningful gradient where expert (6×7) is genuinely demanding (65% of generated experts exceed the effort cap). This is exactly the size-by-difficulty model recommended as Greco's future. A prototype technique ladder was built and verified sound (0 false placements/eliminations) but **adds little**: it discriminates a bit within easy/medium (rank-1 local forcing vs rank-2 column-sum elimination) yet collapses to a binary "solvable / needs-backtracking" for hard/expert (50–75% land in the top rank; the permutation tier is ~absent at 1.25% of puzzles). So technique-rating Yakuso would be **lopsided, low-value churn** that doesn't improve the upper bands over the existing effort signal — and risks making them worse. **Decision (user-approved): keep the current size-driven + capped-effort rating.** The §7 pre-coding ladder spec below is therefore superseded by this finding and not implemented. Optional future polish: a technique sub-band for easy/medium only.
+
+### Sudoku band recalibration (2026-06-16)
+
+**Finding:** the technique-rank distribution of ~200 minimal Sudokus is **strongly bimodal** — ≈41% rank-1 (singles → easy), ≈45% unsolved-by-ladder (expert), and only ≈14% in the middle (ranks 2–4, of which ranks 3–5 are just ≈3%). Singles step-count is *not* a difficulty signal (near-constant 52–59, just the empty-cell count), confirming the `hardestRank≥2` bump guard. So the middle is **intrinsically sparse** — the same bimodality seen in Kakuro and Greco — and no cut mapping can populate it more; the 60-attempt generation retry loop is the architectural answer (end-to-end reliability stays 100%).
+
+**Change:** recalibrated `bandForRank` from `medium ≤2 / hard ≤4` to **`medium ≤3 / hard ≤5`**, and `topRankStepThreshold` from 4 to **1**. This (a) **rebalances the middle** — the worst-served band, `hard`, nearly doubles in single-call yield while `medium` settles to a similar level (80-seed before→after: medium 13%→9%, hard 6%→11%, easy/expert unchanged at 100%/40%), and (b) makes labels more **human-accurate** — naked/hidden **pairs are now `medium`** (was hard) and **triples/X-wing are `hard`**, matching conventional Sudoku grading; repeated use of the top technique bumps up one band. Net middle yield is unchanged (intrinsically sparse), just better distributed and more meaningfully labelled. 233 tests green.
 
 ## 7. Yakuso ladder specification (pre-coding step) — SUPERSEDED (see "Yakuso decision" above; not implemented)
 

@@ -62,10 +62,15 @@ const LADDER: Technique<SudokuCtx>[] = [
   wrap('xWing', 5, xWing)
 ];
 
+// Calibrated against the measured rank distribution of minimal Sudokus (2026-06-16):
+// the distribution is bimodal (≈41% rank-1 / ≈45% unsolved), so the middle is thin.
+// medium = locked candidates or pairs (≤3); hard = triples or X-wing (≤5); expert =
+// beyond the ladder (unsolved). This split + the step-count bump below roughly doubles
+// the `hard` generation yield vs. the original ≤2/≤4 cuts.
 function bandForRank(rank: number): Difficulty {
   if (rank <= 1) return 'easy';
-  if (rank <= 2) return 'medium';
-  if (rank <= 4) return 'hard';
+  if (rank <= 3) return 'medium';
+  if (rank <= 5) return 'hard';
   return 'expert';
 }
 
@@ -79,8 +84,9 @@ const sudokuRater: TechniqueRater<SudokuCtx> = {
   ladder: LADDER,
   isSolved,
   bandForRank,
-  // Bump one band when the hardest rank (>= 2) had to be used more than this many times.
-  topRankStepThreshold: 4
+  // Bump one band when the hardest rank (>= 2) had to be used more than once — repeated
+  // use of the top technique is harder (e.g. locked-candidates twice ⇒ hard, not medium).
+  topRankStepThreshold: 1
 };
 
 /** Solve as far as the technique ladder allows; report solved + hardest rank + steps at that rank. */
