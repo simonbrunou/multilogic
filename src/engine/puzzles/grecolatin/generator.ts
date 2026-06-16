@@ -98,37 +98,53 @@ export function buildSquare(n: number, prng: PRNG): number[] | null {
   return permute(sol, n, prng);
 }
 
-const REVEAL: Record<Difficulty, number> = { easy: 0.6, medium: 0.45, hard: 0.3, expert: 0.2 };
+// Per-band generation schedule seeded from the Phase-0 sweep (count = cells revealed,
+// partial = fraction of reveals that expose only one dimension). Tuned in Task 6.
+const SCHEDULE: Record<Difficulty, { count: number; partial: number }> = {
+  easy: { count: 12, partial: 0.0 },
+  medium: { count: 10, partial: 0.5 },
+  hard: { count: 12, partial: 0.75 },
+  expert: { count: 6, partial: 0.5 }
+};
 const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
-const GEN_ATTEMPTS = 60;
+const GEN_ATTEMPTS = 80;
 
 export interface GeneratedGreco {
   instance: GrecoLatinInstance;
   difficulty: Difficulty;
 }
 
-/** Reveal round(n*n*reveal) random cells of a solved square (at least 1). */
-function revealGivens(sol: number[], n: number, reveal: number, prng: PRNG): number[] {
-  const givens = new Array<number>(n * n).fill(0);
+/** Reveal `count` random cells; each is full / digit-only / letter-only per `partial`. */
+function revealPartial(
+  sol: number[], n: number, count: number, partial: number, prng: PRNG
+): { digitClues: (number | null)[]; letterClues: (number | null)[] } {
+  const digitClues = new Array<number | null>(n * n).fill(null);
+  const letterClues = new Array<number | null>(n * n).fill(null);
   const order = prng.shuffle(sol.map((_, i) => i));
-  const count = Math.max(1, Math.round(n * n * reveal));
-  for (let k = 0; k < count; k++) givens[order[k]] = sol[order[k]];
-  return givens;
+  const k = Math.max(1, Math.min(count, n * n));
+  for (let m = 0; m < k; m++) {
+    const i = order[m];
+    const p = decodePair(sol[i], n)!;
+    if (prng.next() >= partial) { digitClues[i] = p.a; letterClues[i] = p.b; }      // full
+    else if (prng.next() < 0.5) digitClues[i] = p.a;                                 // digit-only
+    else letterClues[i] = p.b;                                                       // letter-only
+  }
+  return { digitClues, letterClues };
 }
 
 export function generateForDifficulty(prng: PRNG, target: Difficulty, n = 5): GeneratedGreco {
+  const { count, partial } = SCHEDULE[target];
   let best: GeneratedGreco | null = null;
   for (let attempt = 0; attempt < GEN_ATTEMPTS; attempt++) {
     const sol = buildSquare(n, prng);
     if (!sol) throw new Error(`grecolatin: failed to build a square of order ${n}`);
-    const instance: GrecoLatinInstance = { n, givens: revealGivens(sol, n, REVEAL[target], prng) };
+    const { digitClues, letterClues } = revealPartial(sol, n, count, partial, prng);
+    const instance: GrecoLatinInstance = { n, digitClues, letterClues };
     const difficulty = rate(instance);
     if (difficulty === target) return { instance, difficulty };
     if (best === null || Math.abs(RANK[difficulty] - RANK[target]) < Math.abs(RANK[best.difficulty] - RANK[target])) {
       best = { instance, difficulty };
     }
   }
-  // non-null: GEN_ATTEMPTS >= 1 and every attempt either returns or assigns `best`
-  // (the throw above only fires if buildSquare fails, which exits the function).
   return best!;
 }
