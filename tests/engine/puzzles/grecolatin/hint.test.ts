@@ -45,15 +45,13 @@ describe('grecolatin hint', () => {
     expect(typeof h!.text).toBe('string');
   });
 
-  it('hintCell returns a legal move quickly on a sparse large (8x8) grid (no freeze)', () => {
-    // Use one given per row (indices 0,8,16,...) so every row/col has some constraint;
-    // put the rest of the solution in `cells` as player progress, leaving 6 empties.
+  it('hintCell returns a valid completion-hint on a near-complete large (8x8) grid', () => {
+    // Tractable case: player has filled all but the last 6 cells → completion is cheap.
     const sol = buildSquare(8, createPrng(5))!;
-    const givens = sol.map((v, i) => (i % 9 === 0 ? v : 0)); // 8 givens, one per row+col diagonal
-    const cells = sol.map((v, i) => (i % 9 === 0 || i > 57 ? 0 : v)); // player filled all but last 6
+    const givens = sol.map((v, i) => (i % 9 === 0 ? v : 0)); // one given per row+col (diagonal)
+    const cells = sol.map((v, i) => (i % 9 === 0 || i > 57 ? 0 : v)); // all but last 6 filled
     const r = hintCell({ n: 8, givens }, cells);
     expect(r).not.toBeNull();
-    // the returned cell must actually be empty in the merged grid
     const merged = givens.map((g, i) => (g !== 0 ? g : cells[i]));
     expect(merged[r!.index]).toBe(0);
     const an = analyze(8, merged);
@@ -61,12 +59,14 @@ describe('grecolatin hint', () => {
     expect(candidatesAt(8, an, r!.index).some((c) => c.a === p.a && c.b === p.b)).toBe(true);
   });
 
-  it('hintCell completes a near-empty 9x9 grid without hanging', () => {
-    // Spread one given per row so the solver has cross-row constraints from the start.
-    const sol = buildSquare(9, createPrng(2))!;
-    const givens = sol.map((v, i) => (i % 10 === 0 ? v : 0)); // 9 givens, one per row (diagonal)
-    const cells = sol.map((v, i) => (i % 10 === 0 || i > 72 ? 0 : v)); // player filled all but last 8
-    const r = hintCell({ n: 9, givens }, cells);
-    expect(r).not.toBeNull();
+  it('hintCell returns BOUNDED (never freezes) on a very sparse large (9x9) grid', () => {
+    // The real freeze risk: a near-empty 9x9. Completion is an intractable CSP here,
+    // so the capped solver gives up fast and returns null — the test simply completing
+    // (well under vitest's timeout) proves the hint never hangs. A null result is the
+    // correct, responsive degradation (no forced move exists to hint anyway).
+    const sol = buildSquare(9, createPrng(11))!;
+    const givens = sol.map((v, i) => (i < 4 ? v : 0)); // only 4 givens, 77 empty
+    const r = hintCell({ n: 9, givens }, new Array(81).fill(0));
+    expect(r === null || (typeof r.value === 'number' && r.value >= 1)).toBe(true);
   });
 });

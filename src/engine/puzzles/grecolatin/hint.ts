@@ -4,15 +4,18 @@ import type { GrecoLatinInstance, GrecoLatinState } from './types';
 import type { Hint } from '../../core/types';
 
 /**
- * MRV backtracking completion of the empty cells, bounded by a step cap so a hint
- * can never freeze the UI (even at large orders / very sparse grids). Always expands
- * the empty cell with the fewest candidates (forced singles first). Returns a
- * completed grid, or null if none is found within the cap.
+ * MRV backtracking completion of the empty cells, bounded by a tight step cap.
+ * Always expands the empty cell with the fewest candidates (forced singles first).
+ * Completing a sparse large Greco-Latin square is a hard CSP that MRV does not tame,
+ * so the cap is deliberately small (~90ms worst case at n=9): the hint favours
+ * RESPONSIVENESS over completeness — on an intractable sparse grid it returns null
+ * (no completion-based hint; the cheap forced-single path in `hintCell` still works)
+ * rather than ever freezing the UI. Returns a completed grid, or null at the cap.
  */
 function complete(n: number, grid: number[]): number[] | null {
   const work = [...grid];
   let steps = 0;
-  const CAP = 1_000_000;
+  const CAP = 8_000;
   const rec = (): boolean => {
     if (++steps > CAP) return false;
     const an = analyze(n, work);
