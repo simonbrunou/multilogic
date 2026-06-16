@@ -115,3 +115,11 @@ Unanimously ratified after one reconciliation round. Folded-in changes:
 **Added tests:** end-to-end — a partial-clue instance reaches `complete: true, valid: true`; serialization round-trip with `null` clues; per-dimension store locking (selectable for open dim, rejects locked dim); the gating soundness cross-check.
 
 **Build sequence:** Phase 0 (gate) → Phase 1 engine (data model, candidates generalization with ported regression tests, rater per-dimension propagation + soundness cross-check, generator floor, `index.ts`) → Phase 2 UI (store per-dimension locking, board per-token render, keyboard nav, hint text, route pages) → Phase 3 (engineVersion bump + bundle regen, extended tests, manual play-test). Write tests first per phase (TDD).
+
+## 12. Result — shipped (2026-06-16)
+
+Implemented engine + UI; `bun run check` 0 errors, 239 unit + 13 browser tests green. The instance model is `{ n, digitClues, letterClues }`; the candidate model and rater are per-dimension; generation reveals a full/partial mix floored to the real rating; the play UI locks clued dimensions per cell-dimension (per-token board rendering). Soundness was independently verified twice (council proof + a 40-seed cross-check vs the generating square — 0 false fixes).
+
+**Difficulty outcome (honest):** partial clues deliver a genuinely-hard, reachable Greco band (residual ~0.85, requiring real cross-projection deduction) — the primary win, since `hard` was effectively unreachable before. At n=5, however, the `medium` and `hard` residual medians both land ~0.85 and do **not** separate cleanly, so `medium` stays squeezed and is served by closest-fallback (still honest — `achievedDifficulty` is always the measured `rate`). easy ≈ 0, expert ≈ 1. **Follow-up to separate medium/hard:** enable larger orders (n=7/8/9) — the hint solver was already hardened (bounded) to make that safe; the order knob is the lever the n=5 board can't provide.
+
+**Deferred (non-blocking nits from final review):** digit-picker `aria-label` (a11y parity with letters); a DOM-level test asserting picker `disabled` bindings.
