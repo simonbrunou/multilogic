@@ -145,7 +145,8 @@
     padding: 0;
   }
 
-  .cell:hover:not(.given):not(.partial-given) {
+  /* Partial-given cells are still clickable (the open dimension is editable), so they get hover too. */
+  .cell:hover:not(.given) {
     filter: brightness(0.92);
   }
 

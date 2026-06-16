@@ -44,9 +44,12 @@ function allSame(xs: number[]): boolean {
   return xs.length > 0 && xs.every((x) => x === xs[0]);
 }
 
-// Cut points are recalibrated in Task 6 against the partial-clue distribution. Phase-0
-// found the populated region is ~0.5–0.97 (plus easy ≈0, expert ≈1); these starting
-// cuts split it into medium/hard and are tuned by the calibration step.
+// Cut points calibrated against the n=5 partial-clue residual distribution (2026-06-16).
+// Partial clues populate a genuinely-hard region (~0.85), so `hard` is now reachable —
+// the win. But at n=5 the medium and hard medians both land ~0.85 and do NOT separate
+// cleanly, so `medium` stays squeezed and is served by closest-fallback (still honest:
+// `generateForDifficulty` always reports the real `rate`). easy ≈ 0, expert ≈ 1. Larger
+// orders (deferred) would separate medium/hard better.
 function bandForRatio(r: number): Difficulty {
   if (r <= 0.05) return 'easy';
   if (r <= 0.73) return 'medium';
