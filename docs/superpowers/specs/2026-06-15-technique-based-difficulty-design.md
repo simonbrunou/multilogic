@@ -167,7 +167,11 @@ Bundle: all 12 Tectonic entries in-band (3 per band). **Conclusion:** Tectonic d
 
 **Measured (module, 15 runs/band):** `easy→easy` (0.2ms) · `medium→` easy 13 / hard 2 (closest-fallback for the squeezed band, 2.4ms) · `hard→hard` (0.1ms) · `expert→expert` (0.0ms). **Conclusion:** "too easy" is addressed honestly for Greco — `hard`/`expert` requests are now *verified* to require real guessing (high residual ratio), not just sparse reveals, and the served difficulty is the true rating. `medium` honestly serves the nearest reachable band. **Follow-up:** to recover a distinct `medium` (and harder tiers), offer larger orders (n=7/8/9) after hardening the `hint.ts` completion solver (MRV + a step cap/timeout).
 
-## 7. Yakuso ladder specification (pre-coding step)
+### Yakuso decision — left as-is (investigated 2026-06-16)
+
+**Outcome: NO change.** Investigation found Yakuso's difficulty is already honestly **board-size-driven** (easy 3×4 → medium 4×5 → hard 5×6 → expert 6×7) — a real, meaningful gradient where expert (6×7) is genuinely demanding (65% of generated experts exceed the effort cap). This is exactly the size-by-difficulty model recommended as Greco's future. A prototype technique ladder was built and verified sound (0 false placements/eliminations) but **adds little**: it discriminates a bit within easy/medium (rank-1 local forcing vs rank-2 column-sum elimination) yet collapses to a binary "solvable / needs-backtracking" for hard/expert (50–75% land in the top rank; the permutation tier is ~absent at 1.25% of puzzles). So technique-rating Yakuso would be **lopsided, low-value churn** that doesn't improve the upper bands over the existing effort signal — and risks making them worse. **Decision (user-approved): keep the current size-driven + capped-effort rating.** The §7 pre-coding ladder spec below is therefore superseded by this finding and not implemented. Optional future polish: a technique sub-band for easy/medium only.
+
+## 7. Yakuso ladder specification (pre-coding step) — SUPERSEDED (see "Yakuso decision" above; not implemented)
 
 Yakuso currently rates by `effortToSolve` (guess-branch count), not techniques. Before implementing its ladder:
 1. Generate ~40 `expert`-target Yakuso instances with the existing generator.
