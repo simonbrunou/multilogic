@@ -53,7 +53,7 @@ export async function buildBundle(engineVersion: number): Promise<PuzzleBundle> 
 
 if (import.meta.main) {
   const { writeFileSync, mkdirSync } = await import('node:fs');
-  const ENGINE_VERSION = 1;
+  const ENGINE_VERSION = 2;
   const bundle = await buildBundle(ENGINE_VERSION);
   mkdirSync('static', { recursive: true });
   writeFileSync('static/puzzles.bundle.json', JSON.stringify(bundle));

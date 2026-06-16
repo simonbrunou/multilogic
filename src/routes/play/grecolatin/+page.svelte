@@ -35,7 +35,7 @@
         onTransport: (t) => { currentTransport = t; }
       });
       const inst = getModule('grecolatin').deserializeInstance(res.instance) as GrecoLatinInstance;
-      store.load(inst.n, inst.givens);
+      store.load(inst.n, inst.digitClues, inst.letterClues);
     } catch (e) {
       error = e instanceof Error ? e.message : t('play.genFailed');
     } finally {

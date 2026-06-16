@@ -1,10 +1,12 @@
-import { encodePair, decodePair, validateGrid } from '../../engine/puzzles/grecolatin/rules';
+import { encodePair, validateGrid } from '../../engine/puzzles/grecolatin/rules';
 import type { ValidationResult } from '../../engine/puzzles/grecolatin/rules';
 import { hintCell } from '../../engine/puzzles/grecolatin/hint';
+import type { GrecoLatinInstance } from '../../engine/puzzles/grecolatin/types';
 
 export class GrecoStore {
 	n = $state(5);
-	givens = $state<number[]>([]);
+	digitClues = $state<(number | null)[]>([]);
+	letterClues = $state<(number | null)[]>([]);
 	// Digit and letter are tracked independently so a player can place just one dimension
 	// while thinking. -1 = empty, 0..n-1 = a placed value.
 	digits = $state<number[]>([]);
@@ -15,6 +17,18 @@ export class GrecoStore {
 
 	private timer: ReturnType<typeof setInterval> | null = null;
 	private startedAt = 0;
+
+	isDigitGiven(i: number): boolean {
+		return this.digitClues[i] !== null && this.digitClues[i] !== undefined;
+	}
+
+	isLetterGiven(i: number): boolean {
+		return this.letterClues[i] !== null && this.letterClues[i] !== undefined;
+	}
+
+	isFullyGiven(i: number): boolean {
+		return this.isDigitGiven(i) && this.isLetterGiven(i);
+	}
 
 	/** Encoded grid for the rules engine: a cell counts only when BOTH dimensions are placed. */
 	get cells(): number[] {
@@ -27,11 +41,12 @@ export class GrecoStore {
 		return validateGrid(this.n, this.cells);
 	}
 
-	load(n: number, givens: number[]): void {
+	load(n: number, digitClues: (number | null)[], letterClues: (number | null)[]): void {
 		this.n = n;
-		this.givens = [...givens];
-		this.digits = givens.map((g) => (g !== 0 ? decodePair(g, n)!.a : -1));
-		this.letters = givens.map((g) => (g !== 0 ? decodePair(g, n)!.b : -1));
+		this.digitClues = [...digitClues];
+		this.letterClues = [...letterClues];
+		this.digits = digitClues.map((a) => (a !== null ? a : -1));
+		this.letters = letterClues.map((b) => (b !== null ? b : -1));
 		this.selected = null;
 		this.elapsedMs = 0;
 		this.hintsUsed = 0;
@@ -39,7 +54,7 @@ export class GrecoStore {
 	}
 
 	select(i: number): void {
-		if (this.givens[i] === 0) {
+		if (!this.isFullyGiven(i)) {
 			this.selected = i;
 		}
 	}
@@ -47,7 +62,7 @@ export class GrecoStore {
 	/** Set the digit of the selected cell; tapping the same digit again clears it. */
 	setDigit(d: number): void {
 		const i = this.selected;
-		if (i === null || this.givens[i] !== 0) return;
+		if (i === null || this.isDigitGiven(i)) return;
 		const next = [...this.digits];
 		next[i] = next[i] === d ? -1 : d;
 		this.digits = next;
@@ -56,7 +71,7 @@ export class GrecoStore {
 	/** Set the letter of the selected cell; tapping the same letter again clears it. */
 	setLetter(l: number): void {
 		const i = this.selected;
-		if (i === null || this.givens[i] !== 0) return;
+		if (i === null || this.isLetterGiven(i)) return;
 		const next = [...this.letters];
 		next[i] = next[i] === l ? -1 : l;
 		this.letters = next;
@@ -64,28 +79,34 @@ export class GrecoStore {
 
 	clear(): void {
 		const i = this.selected;
-		if (i === null || this.givens[i] !== 0) return;
-		const nd = [...this.digits];
-		nd[i] = -1;
-		this.digits = nd;
-		const nl = [...this.letters];
-		nl[i] = -1;
-		this.letters = nl;
+		if (i === null) return;
+		if (!this.isDigitGiven(i)) {
+			const nd = [...this.digits];
+			nd[i] = -1;
+			this.digits = nd;
+		}
+		if (!this.isLetterGiven(i)) {
+			const nl = [...this.letters];
+			nl[i] = -1;
+			this.letters = nl;
+		}
 	}
 
 	hint(): void {
-		const inst = { n: this.n, givens: this.givens };
+		const inst: GrecoLatinInstance = { n: this.n, digitClues: this.digitClues, letterClues: this.letterClues };
 		const result = hintCell(inst, this.cells);
 		if (!result) return;
-		const { index, value } = result;
-		const p = decodePair(value, this.n);
-		if (!p) return;
-		const nd = [...this.digits];
-		nd[index] = p.a;
-		this.digits = nd;
-		const nl = [...this.letters];
-		nl[index] = p.b;
-		this.letters = nl;
+		const { index, a, b } = result;
+		if (a !== null) {
+			const nd = [...this.digits];
+			nd[index] = a;
+			this.digits = nd;
+		}
+		if (b !== null) {
+			const nl = [...this.letters];
+			nl[index] = b;
+			this.letters = nl;
+		}
 		this.selected = index;
 		this.hintsUsed += 1;
 	}

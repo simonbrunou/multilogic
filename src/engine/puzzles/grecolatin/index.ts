@@ -4,21 +4,32 @@ import { validateGrid, serializeInstance, deserializeInstance, serializeSolution
 import { generateForDifficulty } from './generator';
 import { getHint as hint } from './hint';
 
+function mergedCells(inst: GrecoLatinInstance, state: GrecoLatinState): number[] {
+  const n = inst.n;
+  return Array.from({ length: n * n }, (_, i) => {
+    const a = inst.digitClues[i] !== null ? inst.digitClues[i] : null;
+    const b = inst.letterClues[i] !== null ? inst.letterClues[i] : null;
+    const v = state.cells[i] || 0;
+    const pa = a !== null ? a : v !== 0 ? Math.floor((v - 1) / n) : null;
+    const pb = b !== null ? b : v !== 0 ? (v - 1) % n : null;
+    return pa !== null && pb !== null ? pa * n + pb + 1 : 0;
+  });
+}
+
 function validate(inst: GrecoLatinInstance, state: GrecoLatinState): ConstructionResult {
-  const grid = inst.givens.map((g, i) => (g !== 0 ? g : state.cells[i] || 0));
-  const r = validateGrid(inst.n, grid);
+  const r = validateGrid(inst.n, mergedCells(inst, state));
   return { complete: r.complete, valid: r.valid, score: r.score };
 }
 
 function validateMove(inst: GrecoLatinInstance, _s: GrecoLatinState, m: GrecoLatinMove): MoveResult {
   if (m.index < 0 || m.index >= inst.n * inst.n) return { ok: false, reason: 'index out of range' };
-  if (inst.givens[m.index] !== 0) return { ok: false, reason: 'cell is a given' };
+  if (inst.digitClues[m.index] !== null && inst.letterClues[m.index] !== null) return { ok: false, reason: 'cell is fully given' };
   if (m.value !== 0 && (m.value < 1 || m.value > inst.n * inst.n)) return { ok: false, reason: 'invalid pair' };
   return { ok: true };
 }
 
 function render(inst: GrecoLatinInstance, state: GrecoLatinState): RenderModel {
-  return { kind: 'grecolatin', n: inst.n, givens: inst.givens, cells: state.cells };
+  return { kind: 'grecolatin', n: inst.n, digitClues: inst.digitClues, letterClues: inst.letterClues, cells: state.cells };
 }
 
 export const grecolatin: ConstructionPuzzle<GrecoLatinInstance, GrecoLatinState, GrecoLatinMove> = {
