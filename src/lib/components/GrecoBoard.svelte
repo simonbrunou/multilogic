@@ -5,23 +5,20 @@
 
   let { store }: { store: GrecoStore } = $props();
 
-  const isOpen = (i: number) => store.givens[i] === 0;
-  const firstOpen = $derived(store.givens.findIndex((g) => g === 0));
+  const isOpen = (i: number) => !store.isFullyGiven(i);
+  const firstOpen = $derived(
+    store.digitClues.findIndex((_: number | null, i: number) => !store.isFullyGiven(i))
+  );
   const tabStop = $derived(store.selected ?? firstOpen);
 
   const letterChar = (k: number): string => String.fromCharCode(65 + k);
-
-  // A cell shows its letter then its digit, e.g. "A4"; either part may be absent while solving.
-  function cellText(digit: number, letter: number): string {
-    const l = letter >= 0 ? letterChar(letter) : '';
-    const d = digit >= 0 ? String(digit + 1) : '';
-    return `${l}${d}`;
-  }
 
   const filled = $derived(store.cells.filter((v) => v !== 0).length);
   const sel = $derived(store.selected);
   const selDigit = $derived(sel !== null ? store.digits[sel] : -1);
   const selLetter = $derived(sel !== null ? store.letters[sel] : -1);
+  const selDigitLocked = $derived(sel !== null && store.isDigitGiven(sel));
+  const selLetterLocked = $derived(sel !== null && store.isLetterGiven(sel));
 </script>
 
 <div class="board">
@@ -38,11 +35,15 @@
     }}
   >
     {#each store.cells as _v, i (i)}
-      {@const isGiven = store.givens[i] !== 0}
+      {@const digitGiven = store.isDigitGiven(i)}
+      {@const letterGiven = store.isLetterGiven(i)}
+      {@const fullyGiven = digitGiven && letterGiven}
+      {@const partialGiven = (digitGiven || letterGiven) && !fullyGiven}
       {@const isSelected = store.selected === i}
       <button
         class="cell"
-        class:given={isGiven}
+        class:given={fullyGiven}
+        class:partial-given={partialGiven}
         class:selected={isSelected}
         data-cell={i}
         tabindex={i === tabStop ? 0 : -1}
@@ -50,11 +51,17 @@
         aria-label={t('aria.cellAt', {
           row: Math.floor(i / store.n) + 1,
           col: (i % store.n) + 1,
-          value: cellText(store.digits[i], store.letters[i]) || t('aria.empty')
+          value: (store.letters[i] >= 0 ? letterChar(store.letters[i]) : '') +
+                 (store.digits[i] >= 0 ? String(store.digits[i] + 1) : '') || t('aria.empty')
         })}
         aria-pressed={isSelected}
       >
-        {cellText(store.digits[i], store.letters[i])}
+        <span class="token letter-token" class:given={letterGiven}>
+          {store.letters[i] >= 0 ? letterChar(store.letters[i]) : ''}
+        </span>
+        <span class="token digit-token" class:given={digitGiven}>
+          {store.digits[i] >= 0 ? String(store.digits[i] + 1) : ''}
+        </span>
       </button>
     {/each}
   </div>
@@ -66,6 +73,7 @@
       <button
         class="let-btn"
         class:active={selLetter === k}
+        disabled={selLetterLocked}
         onclick={() => store.setLetter(k)}
         aria-label={t('aria.letter', { char: letterChar(k) })}
       >
@@ -81,6 +89,7 @@
       <button
         class="sym-btn"
         class:active={selDigit === k}
+        disabled={selDigitLocked}
         onclick={() => store.setDigit(k)}
       >
         {k + 1}
@@ -124,7 +133,7 @@
     border: none;
     background: var(--surface);
     color: var(--text);
-    font-size: clamp(14px, 4vw, 24px);
+    font-size: clamp(11px, 3.5vw, 20px);
     font-weight: 600;
     display: flex;
     align-items: center;
@@ -132,9 +141,11 @@
     cursor: pointer;
     aspect-ratio: 1;
     transition: filter 0.1s;
+    gap: 1px;
+    padding: 0;
   }
 
-  .cell:hover:not(.given) {
+  .cell:hover:not(.given):not(.partial-given) {
     filter: brightness(0.92);
   }
 
@@ -146,10 +157,25 @@
     cursor: default;
   }
 
+  .cell.partial-given {
+    background: var(--surface-2);
+    border: 2px solid var(--border);
+    box-sizing: border-box;
+  }
+
   .cell.selected {
     outline: 3px solid var(--ring);
     outline-offset: -2px;
     z-index: 1;
+  }
+
+  .token {
+    line-height: 1;
+  }
+
+  .token.given {
+    font-weight: 800;
+    color: var(--text);
   }
 
   .picker-row {
@@ -176,6 +202,12 @@
     cursor: pointer;
     font-size: 15px;
     color: var(--text);
+  }
+
+  .sym-btn:disabled,
+  .let-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
   }
 
   .let-btn {
@@ -221,5 +253,4 @@
     font-size: 14px;
     color: var(--text-muted);
   }
-
 </style>
