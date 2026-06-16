@@ -36,11 +36,11 @@ describe('kakuro module', () => {
       expect(res.solution).not.toBeNull();
       expect(res.instance.black.length).toBe(res.solution!.length);
     }
-  });
+  }, 120000); // generates all 4 bands incl. medium/hard (always full retry budget); slow under CI coverage
 
   it('an expert request reliably yields a non-easy puzzle within the attempt budget', async () => {
     const prng = createPrng(deriveSeed('kakuro', 'expert', 'module-expert', 0));
     const res = await kakuro.generate({ difficulty: 'expert', prng, signal: new AbortController().signal });
     expect(['hard', 'expert']).toContain(res.achievedDifficulty);
-  });
+  }, 120000);
 });
