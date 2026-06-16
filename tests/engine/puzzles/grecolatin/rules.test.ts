@@ -44,7 +44,7 @@ describe('grecolatin rules', () => {
     expect(r.conflicts.has(8)).toBe(true);
   });
   it('serialize/deserialize round-trips', () => {
-    const inst = { n: 5, givens: new Array(25).fill(0) };
+    const inst = { n: 5, digitClues: new Array(25).fill(null), letterClues: new Array(25).fill(null) };
     expect(deserializeInstance(serializeInstance(inst))).toEqual(inst);
   });
 });

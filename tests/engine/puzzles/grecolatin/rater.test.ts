@@ -12,6 +12,33 @@ function fullClues(n: number, sol: number[]): GrecoLatinInstance {
   return { n, digitClues, letterClues };
 }
 
+/** Run one propagation step; returns true if any dimension was fixed (caller re-runs). */
+function propagateStep(
+  n: number,
+  kA: (number | null)[],
+  kB: (number | null)[],
+  solA: number[],
+  solB: number[]
+): boolean {
+  const an = analyze(n, kA, kB);
+  for (let i = 0; i < n * n; i++) {
+    if (kA[i] !== null && kB[i] !== null) continue;
+    const cands = candidatesAt(n, an, kA, kB, i);
+    if (cands.length === 0) continue;
+    if (kA[i] === null && cands.every((c) => c.a === cands[0].a)) {
+      expect(cands[0].a).toBe(solA[i]);
+      kA[i] = cands[0].a;
+      return true;
+    }
+    if (kB[i] === null && cands.every((c) => c.b === cands[0].b)) {
+      expect(cands[0].b).toBe(solB[i]);
+      kB[i] = cands[0].b;
+      return true;
+    }
+  }
+  return false;
+}
+
 describe('grecolatin rater (partial-aware)', () => {
   it('a fully-given square has residual ratio 0 and rates easy', () => {
     const sol = buildSquare(5, createPrng(1))!;
@@ -39,7 +66,7 @@ describe('grecolatin rater (partial-aware)', () => {
   });
 
   it('SOUNDNESS: propagation never fixes a dimension to a value inconsistent with the generating square', () => {
-    for (let seed = 1; seed <= 15; seed++) {
+    for (let seed = 1; seed <= 40; seed++) {
       const prng = createPrng(seed * 7);
       const sol = buildSquare(5, prng)!;
       const n = 5;
@@ -48,24 +75,7 @@ describe('grecolatin rater (partial-aware)', () => {
       // Reveal partial: odd cells digit-only, even cells letter-only, first 5 dropped
       const kA: (number | null)[] = sol.map((v, i) => i < 5 ? null : i % 2 === 1 ? solA[i] : null);
       const kB: (number | null)[] = sol.map((v, i) => i < 5 ? null : i % 2 === 0 ? solB[i] : null);
-      let changed = true;
-      while (changed) {
-        changed = false;
-        const an = analyze(n, kA, kB);
-        for (let i = 0; i < n * n; i++) {
-          if (kA[i] !== null && kB[i] !== null) continue;
-          const cands = candidatesAt(n, an, kA, kB, i);
-          if (cands.length === 0) continue;
-          if (kA[i] === null && cands.every((c) => c.a === cands[0].a)) {
-            expect(cands[0].a).toBe(solA[i]);
-            kA[i] = cands[0].a; changed = true; break;
-          }
-          if (kB[i] === null && cands.every((c) => c.b === cands[0].b)) {
-            expect(cands[0].b).toBe(solB[i]);
-            kB[i] = cands[0].b; changed = true; break;
-          }
-        }
-      }
+      while (propagateStep(n, kA, kB, solA, solB)) { /* repeat until fixed point */ }
     }
   });
 });
