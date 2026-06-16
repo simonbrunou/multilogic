@@ -14,6 +14,7 @@
 <div
   class="grid"
   role="grid"
+  aria-label={t('aria.grid', { label: t('puzzle.sudoku') })}
   use:gridKeyboard={{ cols: 9, total: 81, focusable: () => true, selected, onselect }}
 >
   {#each cellView as v, i (i)}
@@ -24,7 +25,7 @@
       class:conflict={highlightErrors && conflicts.has(i)}
       class:boxedge-r={i % 3 === 2}
       class:boxedge-b={Math.floor(i / 9) % 3 === 2}
-      aria-pressed={selected === i}
+      aria-current={selected === i ? 'true' : undefined}
       aria-label={label(i, v)}
       data-cell={i}
       tabindex={i === tabStop ? 0 : -1}

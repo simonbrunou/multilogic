@@ -71,6 +71,9 @@ const en = {
     hint: 'Hint',
     placed: (p: { filled: number; total: number }) => `${p.filled}/${p.total} placed`
   },
+  yakuso: {
+    legend: (p: { rows: number }) => `Totals · ${p.rows} digits`
+  },
   aria: {
     cell: (p: { i: number }) => `cell ${p.i}`,
     cellAt: (p: { row: number; col: number; value: string }) =>
@@ -82,7 +85,12 @@ const en = {
       if (p.down) parts.push(`down ${p.down}`);
       return parts.length ? `clue: ${parts.join(', ')}` : 'block';
     },
-    letter: (p: { char: string }) => `letter ${p.char}`
+    letter: (p: { char: string }) => `letter ${p.char}`,
+    digit: (p: { n: number }) => `digit ${p.n}`,
+    grid: (p: { label: string }) => `${p.label} grid`,
+    total: (p: { total: number }) => `column total ${p.total}`,
+    timer: 'Elapsed time',
+    pad: (p: { notes: boolean }): string => (p.notes ? 'Number pad, notes mode' : 'Number pad')
   },
   rules: {
     sudoku: 'Fill every row, column, and 3×3 box with the digits 1–9, no repeats.',
@@ -176,6 +184,9 @@ const fr: typeof en = {
     hint: 'Indice',
     placed: (p) => `${p.filled}/${p.total} placées`
   },
+  yakuso: {
+    legend: (p) => `Totaux · ${p.rows} chiffres`
+  },
   aria: {
     cell: (p) => `case ${p.i}`,
     cellAt: (p) => `ligne ${p.row}, colonne ${p.col}, ${p.value}`,
@@ -186,7 +197,12 @@ const fr: typeof en = {
       if (p.down) parts.push(`vertical ${p.down}`);
       return parts.length ? `indice : ${parts.join(', ')}` : 'case noire';
     },
-    letter: (p) => `lettre ${p.char}`
+    letter: (p) => `lettre ${p.char}`,
+    digit: (p) => `chiffre ${p.n}`,
+    grid: (p) => `grille ${p.label}`,
+    total: (p) => `total de la colonne ${p.total}`,
+    timer: 'Temps écoulé',
+    pad: (p) => (p.notes ? 'Pavé numérique, mode notes' : 'Pavé numérique')
   },
   rules: {
     sudoku: 'Remplissez chaque ligne, colonne et boîte 3×3 avec les chiffres 1 à 9, sans répétition.',

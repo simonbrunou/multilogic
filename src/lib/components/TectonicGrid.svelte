@@ -53,6 +53,7 @@
 <div
   class="grid"
   role="grid"
+  aria-label={t('aria.grid', { label: t('puzzle.tectonic') })}
   style="grid-template-columns: repeat({game.instance.width}, 1fr);"
   use:gridKeyboard={{ cols: game.instance.width, total: cellView.length, focusable: () => true, selected, onselect }}
 >
@@ -66,7 +67,7 @@
       class:thick-bottom={hasThickBottom(i)}
       class:thick-left={hasThickLeft(i)}
       class:thick-right={hasThickRight(i)}
-      aria-pressed={selected === i}
+      aria-current={selected === i ? 'true' : undefined}
       aria-label={label(i, v)}
       data-cell={i}
       tabindex={i === tabStop ? 0 : -1}

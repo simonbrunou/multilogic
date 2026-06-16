@@ -17,6 +17,7 @@
 </script>
 
 <svelte:head>
+	<title>Multilogic</title>
 	<link rel="icon" href={favicon} />
 </svelte:head>
 

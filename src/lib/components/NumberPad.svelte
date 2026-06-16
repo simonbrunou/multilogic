@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { t } from '$lib/i18n';
   let { onenter, noteMode = false, maxDigit = 9, allowZero = false }: { onenter: (n: number) => void; noteMode?: boolean; maxDigit?: number; allowZero?: boolean } = $props();
   const digits = $derived(Array.from({ length: maxDigit }, (_, i) => i + 1));
   const keys = $derived(allowZero ? [...digits, 0] : digits);
@@ -6,7 +7,7 @@
   // squeezing keys below the 44px touch-target floor.
   const maxw = $derived(keys.length * 58);
 </script>
-<div class="pad" class:note={noteMode} style="--maxw: {maxw}px;">
+<div class="pad" class:note={noteMode} role="group" aria-label={t('aria.pad', { notes: noteMode })} style="--maxw: {maxw}px;">
   {#each keys as n (n)}
     <button class="key" onclick={() => onenter(n)}>{n}</button>
   {/each}

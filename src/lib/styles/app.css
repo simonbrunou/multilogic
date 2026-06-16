@@ -102,6 +102,23 @@ body {
 }
 
 /*
+ * Visually hidden but available to assistive tech. Use for labels that give
+ * screen-reader users context the sighted layout already conveys visually
+ * (e.g. "Elapsed time" before the ticking clock).
+ */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/*
  * Shared control vocabulary. One button shape across every screen so "the same action
  * never looks different in two places". Variants layer on top of .btn.
  * 44px min height is the touch-target floor (WCAG 2.5.5).
