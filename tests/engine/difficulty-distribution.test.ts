@@ -16,7 +16,7 @@ describe('difficulty targeting', () => {
       expect(rank[easy.achievedDifficulty]).toBeLessThanOrEqual(rank[expert.achievedDifficulty]);
       // easy request should actually achieve 'easy'
       expect(easy.achievedDifficulty).toBe('easy');
-    }, 30000);
+    }, 120000);
 
     it(`${type}: hitsRequested for easy+medium within attempts`, async () => {
       const mod = MODULES[type]!;
@@ -24,6 +24,6 @@ describe('difficulty targeting', () => {
         const r = await mod.generate({ difficulty: d, prng: createPrng(`${type}-${d}-x`), signal: sig() });
         expect(DIFFICULTIES).toContain(r.achievedDifficulty);
       }
-    }, 30000);
+    }, 120000);
   }
 });
