@@ -4,13 +4,31 @@
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="text-scale" content="scale" />
+		<meta name="description" content="Casse-têtes de logique générés de façon procédurale, jouables hors ligne." />
+
+		<!-- PWA: installable, offline-capable, themed. -->
+		<link rel="manifest" href="/manifest.webmanifest" />
+		<meta name="theme-color" content="#f9fafd" />
+		<link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+		<link rel="icon" href="/favicon-32.png" sizes="32x32" type="image/png" />
+		<link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+		<meta name="application-name" content="Multilogic" />
+		<meta name="apple-mobile-web-app-title" content="Multilogic" />
+		<meta name="mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-capable" content="yes" />
+		<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
 		<script>
-			// Apply saved theme and language before first paint: dark-mode users never see a
-			// light flash, and the document lang matches the chosen locale so screen readers use
-			// the right pronunciation from first render (the static markup defaults to fr).
+			// Apply saved theme and language before first paint: dark-mode users never see a light
+			// flash, the document lang matches the chosen locale so screen readers use the right
+			// pronunciation, and the browser/OS UI chrome (theme-color) matches the active palette.
 			try {
 				var s = JSON.parse(localStorage.getItem('ml:settings') || '{}');
-				if (s.theme === 'dark') document.documentElement.dataset.theme = 'dark';
+				if (s.theme === 'dark') {
+					document.documentElement.dataset.theme = 'dark';
+					var m = document.querySelector('meta[name="theme-color"]');
+					if (m) m.setAttribute('content', '#14161b');
+				}
 				var lang = localStorage.getItem('ml:lang');
 				if (lang === 'en' || lang === 'fr') document.documentElement.lang = lang;
 			} catch (e) {}

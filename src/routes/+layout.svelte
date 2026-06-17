@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import favicon from '$lib/assets/favicon.svg';
 	import { initLocale, t } from '$lib/i18n';
 	import { initTheme } from '$lib/theme.svelte';
 	import '$lib/styles/app.css';
@@ -18,7 +17,6 @@
 
 <svelte:head>
 	<title>Multilogic</title>
-	<link rel="icon" href={favicon} />
 </svelte:head>
 
 <svelte:boundary onerror={(error) => console.error('[multilogic] render error', error)}>
