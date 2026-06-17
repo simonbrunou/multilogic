@@ -120,8 +120,9 @@
   });
   onDestroy(() => { persist(); store.stopTimer(); currentTransport?.dispose?.(); });
 
-  // Persist after every move (store.tick bumps on each input/erase/undo/redo).
-  $effect(() => { void store.tick; if (!loading) persist(); });
+  // Persist after every move (store.tick) and after a hint (hint() bumps hintsUsed, not tick),
+  // so a reload right after a hint keeps the count.
+  $effect(() => { void store.tick; void store.hintsUsed; if (!loading) persist(); });
 
   async function share() {
     if (!entry) return;

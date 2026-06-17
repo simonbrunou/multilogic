@@ -82,6 +82,15 @@ describe('storage', () => {
     expect(s.loadGame(SLOT)).toBeNull();
   });
 
+  it('discards an older-schema save instead of reading absent fields', () => {
+    // A pre-v3 save lacked hintsUsed/recorded; loading it would have made `recorded` undefined
+    // (double-counting a resumed solve). The version gate must drop it, not adapt to it.
+    const backend = memoryBackend();
+    backend.setItem('ml:game:play:sudoku', JSON.stringify({ version: 2, data: { type: 'sudoku', solved: true } }));
+    const s = createStorage(backend);
+    expect(s.loadGame(SLOT)).toBeNull();
+  });
+
   it('records and reads per-type/difficulty stats', () => {
     const s = createStorage(memoryBackend());
     s.recordSolve('sudoku', 'easy', 5000);

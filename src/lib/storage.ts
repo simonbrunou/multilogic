@@ -4,7 +4,9 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-const SCHEMA_VERSION = 2;
+// v3 added hintsUsed + recorded to the saved shapes; bumping discards older saves (incl. the
+// field-less v2 written by an earlier build of this branch) rather than reading absent fields.
+const SCHEMA_VERSION = 3;
 
 /** What the grid-based puzzles (sudoku/tectonic/kakuro/yakuso) persist to resume a board. */
 export interface SavedGame {

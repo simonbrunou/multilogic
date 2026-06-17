@@ -97,8 +97,9 @@
   });
   onDestroy(() => { persist(); store.stopTimer(); currentTransport?.dispose?.(); });
 
-  // Persist after every move (store.tick bumps on each input/erase/undo/redo).
-  $effect(() => { void store.tick; if (!loading) persist(); });
+  // Persist after every move (store.tick bumps on each input/erase/undo/redo) and after a hint
+  // (hint() bumps hintsUsed but not tick), so a reload right after a hint keeps the count.
+  $effect(() => { void store.tick; void store.hintsUsed; if (!loading) persist(); });
 
   const conflicts = $derived(store.game && store.tick >= 0 ? store.game.conflicts() : new Set<number>());
   const solved = $derived(store.game && store.tick >= 0 ? store.game.isSolved() : false);
