@@ -57,6 +57,10 @@ const en = {
     title: 'Something went wrong.',
     reload: 'Reload'
   },
+  update: {
+    available: 'A new version is available.',
+    reload: 'Reload'
+  },
   toolbar: {
     notes: 'Notes',
     undo: 'Undo',
@@ -169,6 +173,10 @@ const fr: typeof en = {
   },
   error: {
     title: 'Une erreur est survenue.',
+    reload: 'Recharger'
+  },
+  update: {
+    available: 'Une nouvelle version est disponible.',
     reload: 'Recharger'
   },
   toolbar: {
