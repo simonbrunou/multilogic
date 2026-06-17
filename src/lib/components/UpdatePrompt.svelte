@@ -1,68 +1,74 @@
 <script lang="ts">
-  // "New version available — reload" prompt for the PWA. The service worker installs a new build
-  // but waits (we never auto-skipWaiting, so a running session's hashed chunks are never swapped
-  // underneath it). Here we surface a waiting worker, and only when the user accepts do we ask it
-  // to take over and then reload onto the new version.
+  // "New version available — reload" prompt for the PWA. A new build installs but waits (the
+  // service worker never auto-skipWaiting, so a running session's hashed chunks are never swapped
+  // underneath it). This surfaces the waiting worker and, when the user accepts, asks it to take
+  // over; once it controls the page we reload onto the new version.
   import { onMount } from 'svelte';
   import { t } from '$lib/i18n';
 
   let waiting = $state<ServiceWorker | null>(null);
-  let userAccepted = false;
+  let accepting = $state(false);
 
   onMount(() => {
     if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+    const sw = navigator.serviceWorker;
 
-    // The new worker activates (after we ask it to skip waiting) → load the new version. Guarded
-    // so the first-install controllerchange (clients.claim on a fresh visit) never reloads.
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (userAccepted) location.reload();
-    });
+    // A controller change on an already-controlled session means a new build has taken over —
+    // either because the user accepted here, or accepted in another tab (skipWaiting + claim
+    // controls every client). Reload so all tabs converge on the new version; in-progress puzzle
+    // state is persisted and restored, so this is non-destructive. A first install (no prior
+    // controller) must NOT reload — that controllerchange is just the initial claim.
+    const hadController = !!sw.controller;
+    const onControllerChange = () => { if (hadController) location.reload(); };
+    sw.addEventListener('controllerchange', onControllerChange);
 
     let reg: ServiceWorkerRegistration | undefined;
-    // A worker counts as an update only when one already controls the page (else it's first install).
-    const consider = (w: ServiceWorker | null) => {
-      if (w && navigator.serviceWorker.controller) waiting = w;
+    // Only surface an update once a worker already controls the page (else it's the first install).
+    const consider = (w: ServiceWorker | null) => { if (w && sw.controller) waiting = w; };
+
+    // The browser checks for a new worker on navigation / ~daily; we also nudge it on mount and on
+    // refocus, throttled so a user flipping tabs doesn't spam the network with SW-script fetches.
+    let lastCheck = 0;
+    const check = () => {
+      const now = Date.now();
+      if (now - lastCheck < 30_000) return;
+      lastCheck = now;
+      reg?.update().catch(() => {});
     };
 
-    navigator.serviceWorker.getRegistration().then(async (r) => {
+    // `ready` (not the one-shot getRegistration(), which can resolve undefined during startup
+    // before SvelteKit's auto-registration lands) resolves with the active registration.
+    sw.ready.then((r) => {
       reg = r;
-      if (!reg) return;
-      consider(reg.waiting); // a build that finished installing while we were away
-      reg.addEventListener('updatefound', () => {
-        const nw = reg!.installing;
-        nw?.addEventListener('statechange', () => {
-          if (nw.state === 'installed') consider(nw);
-        });
+      consider(r.waiting); // a build that finished installing while we were away
+      r.addEventListener('updatefound', () => {
+        const nw = r.installing;
+        nw?.addEventListener('statechange', () => { if (nw.state === 'installed') consider(nw); });
       });
-      try {
-        await reg.update(); // check now (the browser otherwise only checks on navigation / ~daily)
-        consider(reg.waiting);
-      } catch {
-        /* offline or transient — the navigation/visibility checks will catch it later */
-      }
+      check();
     });
 
-    // Re-check when an installed app is brought back to the foreground.
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') reg?.update().catch(() => {});
-    };
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
     document.addEventListener('visibilitychange', onVisible);
-    return () => document.removeEventListener('visibilitychange', onVisible);
+    return () => {
+      sw.removeEventListener('controllerchange', onControllerChange);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
   });
 
-  function reload() {
-    userAccepted = true;
+  function accept() {
+    accepting = true;
     waiting?.postMessage({ type: 'SKIP_WAITING' });
-    // controllerchange (above) reloads once the new worker activates. Fallback in case it is
-    // already controlling (e.g. the worker was already active by the time we posted).
-    if (waiting?.state === 'activated' || !navigator.serviceWorker.controller) location.reload();
+    // controllerchange reloads once the new worker activates; defensive fallback if the page is
+    // somehow already uncontrolled.
+    if (!navigator.serviceWorker.controller) location.reload();
   }
 </script>
 
 {#if waiting}
   <div class="update" role="status" aria-live="polite">
     <span class="msg">{t('update.available')}</span>
-    <button class="btn" onclick={reload}>{t('update.reload')}</button>
+    <button class="btn" onclick={accept} disabled={accepting}>{t('update.reload')}</button>
   </div>
 {/if}
 
@@ -100,7 +106,11 @@
     font-size: 0.85rem;
     cursor: pointer;
   }
-  .btn:hover {
+  .btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .btn:not(:disabled):hover {
     background: var(--accent-strong);
   }
   @keyframes rise {
