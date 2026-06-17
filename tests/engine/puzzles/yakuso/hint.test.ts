@@ -25,6 +25,7 @@ describe('yakuso hint', () => {
     const i = h!.cells[0];
     expect(g.instance.clues[i]).toBeNull(); // not a given
     expect(g.solution[i]).toBe(0);          // a zero to cross out
+    expect(h!.text).toBe('Cross out');      // labelled as a cross-out, not "Place 0"
   });
 
   it('returns null once every cell is filled or crossed out', () => {

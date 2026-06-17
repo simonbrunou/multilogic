@@ -8,8 +8,10 @@ import { solveComplete } from './solver';
  * solution is `0` — a zero to cross out. Digit placements are offered first; a cross-out is
  * offered only once no digit remains, since the win check now requires every empty cell to be
  * explicitly crossed out, not just left blank. A cell the player has already filled OR crossed
- * out (any non-zero entry, including the play layer's MARKED_ZERO sentinel) is skipped. Never
- * returns a totals position. Returns null only when nothing is left to do.
+ * out (any non-zero entry, including the play layer's MARKED_ZERO sentinel) is skipped — it is
+ * not re-checked against the solution, so a wrong value reads as "done" here (the conflict view
+ * flags mistakes; the hint only suggests the next blank). Never returns a totals position.
+ * Returns null when no blank cell remains.
  */
 export function getHint(inst: YakusoInstance, state: YakusoState): Hint | null {
   const { solution } = solveComplete(inst, 1);
