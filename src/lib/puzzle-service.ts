@@ -4,6 +4,8 @@ import type { WorkerRequest, WorkerResponse } from '../worker/protocol';
 export interface Transport {
   post(req: WorkerRequest): void;
   onMessage(handler: (res: WorkerResponse) => void): void;
+  /** Fatal transport failure (e.g. the worker script can't load — offline before it was cached). */
+  onError?(handler: () => void): void;
   dispose?(): void;
 }
 
@@ -62,6 +64,12 @@ export function createPuzzleService(transport: Transport, opts: ServiceOpts = {}
   transport.onMessage((res) => {
     const h = pending.get(res.id);
     if (h) h(res);
+  });
+  // If the worker itself fails (notably: an offline cold start where its chunk was never cached),
+  // fail every in-flight request now so they fall back to the baked bundle immediately instead of
+  // hanging until the per-request timeout.
+  transport.onError?.(() => {
+    for (const [id, h] of [...pending]) h({ kind: 'error', id, message: 'puzzle worker unavailable' });
   });
 
   function request(puzzle: PuzzleType, difficulty: Difficulty, seed: string): Promise<PuzzleResult> {

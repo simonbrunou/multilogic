@@ -10,6 +10,10 @@ export function createWorkerTransport(): Transport {
     onMessage: (handler: (res: WorkerResponse) => void) => {
       worker.onmessage = (e: MessageEvent<WorkerResponse>) => handler(e.data);
     },
+    onError: (handler: () => void) => {
+      // Fires when the worker script can't load/run (e.g. offline before its chunk was cached).
+      worker.onerror = () => handler();
+    },
     dispose: () => worker.terminate()
   };
 }

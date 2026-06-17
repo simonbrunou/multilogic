@@ -51,13 +51,20 @@ sw.addEventListener('fetch', (event) => {
 
       try {
         const response = await fetch(event.request);
-        if (response.status === 200) cache.put(event.request, response.clone());
+        // Runtime-cache non-navigation assets only (e.g. the lazily-loaded generator worker
+        // chunk), so an HTML page is never served stale and the cache can't grow per visited
+        // route. Best-effort — a full quota must not reject the response.
+        if (response.status === 200 && event.request.mode !== 'navigate') {
+          cache.put(event.request, response.clone()).catch(() => {});
+        }
         return response;
       } catch {
         const hit = await cache.match(event.request);
         if (hit) return hit;
+        // Offline deep link to a client-rendered route → serve the cached app shell (`/` is
+        // prerendered + precached); the SPA router then renders the requested route.
         if (event.request.mode === 'navigate') {
-          const shell = (await cache.match('/')) ?? (await cache.match('/index.html'));
+          const shell = await cache.match('/');
           if (shell) return shell;
         }
         throw new Error('offline and not in cache');

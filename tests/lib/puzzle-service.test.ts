@@ -98,4 +98,19 @@ describe('puzzle service', () => {
     const res = await svc.request('sudoku', 'easy', 'seed1');
     expect(res.source).toBe('baked');
   });
+
+  it('falls back at once when the worker fails to load (onError), without waiting the timeout', async () => {
+    // Simulates an offline cold start: the worker script never loads, so onError fires instead of
+    // any message. A huge timeout proves the resolution comes from onError, not the timer.
+    let fireError: () => void = () => {};
+    const t: Transport = {
+      post: () => fireError(), // a dead worker: asking it to generate triggers the error path
+      onMessage: () => {},
+      onError: (h) => { fireError = h; }
+    };
+    const svc = createPuzzleService(t, { timeoutMs: 60_000, bundle: BUNDLE });
+    const res = await svc.request('sudoku', 'easy', 'seed1');
+    expect(res.source).toBe('baked');
+    expect(res.instance).toBe('g-easy');
+  });
 });
