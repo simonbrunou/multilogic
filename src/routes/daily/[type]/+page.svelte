@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from 'svelte';
+  import { onMount, onDestroy, untrack } from 'svelte';
   import { page } from '$app/state';
   import { GameStore } from '$lib/game.svelte';
   import { generateInstance } from '$lib/load-instance';
@@ -13,8 +13,8 @@
   import type { PuzzleType } from '../../../engine/core/types';
   import type { Transport } from '$lib/puzzle-service';
   import { PLAY_UI } from '$lib/play/registry';
+  import type { SavedGame } from '$lib/storage';
   import { t, puzzleTypeLabel, locale } from '$lib/i18n';
-  import { SvelteSet } from 'svelte/reactivity';
 
   const puzzleType = $derived(page.params.type as PuzzleType);
   const entry = $derived(PLAY_UI[puzzleType]);
@@ -32,27 +32,32 @@
   let loading = $state(true);
   let date = $state(todayISO(new Date()));
   let currentInstanceStr = $state('');
+  let currentSolutionStr = '';
   let currentTransport: Transport | null = null;
   const storage = typeof localStorage !== 'undefined' ? createStorage(localStorage) : null;
-  // Tracks keys for which we already recorded a solve to prevent duplicate records.
-  const recordedSolves = new SvelteSet<string>();
+  const slot = $derived(`daily:${puzzleType}:${date}`);
+  // Guards against a [type]→[type] client nav reusing this component (see play/[type]).
+  let loadedType = '';
+  // Whether this daily's solve has been counted, so resuming a finished daily never re-records it.
+  let recorded = false;
 
   const conflicts = $derived(store.game && store.tick >= 0 ? store.game.conflicts() : new Set<number>());
   const solved = $derived(store.game && store.tick >= 0 ? store.game.isSolved() : false);
   const maxDigit = $derived(entry && currentInstanceStr ? entry.maxDigit(currentInstanceStr) : 9);
 
+  // Count a solve exactly once: live transition only, never on resuming an already-finished daily.
   $effect(() => {
-    if (!solved || !store.game || !storage) return;
-    const key = `${puzzleType}:daily:${Math.floor(store.elapsedMs / 250)}`;
-    if (recordedSolves.has(key)) return;
-    recordedSolves.add(key);
-    storage.recordSolve(puzzleType, 'daily', store.elapsedMs);
+    if (solved && store.game && storage && !recorded && loadedType === puzzleType) {
+      recorded = true;
+      storage.recordSolve(puzzleType, 'daily', store.elapsedMs);
+    }
   });
 
   async function loadDaily(type: string) {
     const entryNow = PLAY_UI[type as PuzzleType];
     if (!entryNow) return;
     loading = true;
+    recorded = false;
     currentTransport?.dispose?.();
     date = resolveDate(type);
     const res = await generateInstance(type as PuzzleType, 'medium', dailySeed(type, date), {
@@ -60,13 +65,59 @@
       onTransport: (t) => { currentTransport = t; }
     });
     currentInstanceStr = res.instance;
+    currentSolutionStr = res.solution;
+    loadedType = type;
     const game = entryNow.makeGame(res.instance, res.solution);
     store.load(game, entryNow.hintProvider(res.instance));
     loading = false;
+    persist();
   }
 
-  onMount(() => { loadDaily(puzzleType); });
-  onDestroy(() => { store.stopTimer(); currentTransport?.dispose?.(); });
+  /** Persist today's daily so a reload restores the finished board (no re-acing for a faster time). */
+  function persist(): void {
+    if (!storage || !entry || !store.game || loading || loadedType !== puzzleType) return;
+    const saved: SavedGame = {
+      type: puzzleType,
+      difficulty: 'daily',
+      instance: currentInstanceStr,
+      solution: currentSolutionStr,
+      cells: [...store.game.cells],
+      notes: store.game.notes.map((s, i) => [i, [...s]] as [number, number[]]).filter(([, d]) => d.length),
+      // Untracked so the 250ms timer writes don't make persist a 4Hz write storm (see play/[type]).
+      elapsedMs: untrack(() => store.elapsedMs),
+      solved: store.game.isSolved()
+    };
+    storage.saveGame(slot, saved);
+  }
+
+  function resume(saved: SavedGame): boolean {
+    if (!entry) return false;
+    try {
+      const game = entry.makeGame(saved.instance, saved.solution);
+      game.restore(saved.cells, saved.notes);
+      currentInstanceStr = saved.instance;
+      currentSolutionStr = saved.solution;
+      loadedType = puzzleType;
+      recorded = saved.solved;
+      store.load(game, entry.hintProvider(saved.instance), saved.elapsedMs);
+      if (saved.solved) store.stopTimer();
+      loading = false;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  onMount(() => {
+    date = resolveDate(puzzleType);
+    storage?.pruneDailies([todayISO(new Date()), date]);
+    const saved = storage?.loadGame<SavedGame>(`daily:${puzzleType}:${date}`);
+    if (!(saved && saved.type === puzzleType && saved.instance && resume(saved))) loadDaily(puzzleType);
+  });
+  onDestroy(() => { persist(); store.stopTimer(); currentTransport?.dispose?.(); });
+
+  // Persist after every move (store.tick bumps on each input/erase/undo/redo).
+  $effect(() => { void store.tick; if (!loading) persist(); });
 
   async function share() {
     if (!entry) return;

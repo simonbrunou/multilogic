@@ -17,6 +17,24 @@ export class GrecoStore {
 
 	private timer: ReturnType<typeof setInterval> | null = null;
 	private startedAt = 0;
+	// Undo history: a snapshot of both dimensions taken before each edit.
+	private undoStack = $state<{ digits: number[]; letters: number[] }[]>([]);
+
+	get canUndo(): boolean {
+		return this.undoStack.length > 0;
+	}
+
+	private pushUndo(): void {
+		this.undoStack.push({ digits: [...this.digits], letters: [...this.letters] });
+		if (this.undoStack.length > 100) this.undoStack.shift();
+	}
+
+	undo(): void {
+		const prev = this.undoStack.pop();
+		if (!prev) return;
+		this.digits = prev.digits;
+		this.letters = prev.letters;
+	}
 
 	isDigitGiven(i: number): boolean {
 		return this.digitClues[i] !== null && this.digitClues[i] !== undefined;
@@ -50,6 +68,16 @@ export class GrecoStore {
 		this.selected = null;
 		this.elapsedMs = 0;
 		this.hintsUsed = 0;
+		this.undoStack = [];
+		this.startTimer();
+	}
+
+	/** Resume a saved board: caller has already `load()`ed the clues; restore placements + clock. */
+	restoreState(digits: number[], letters: number[], elapsedMs: number): void {
+		this.digits = [...digits];
+		this.letters = [...letters];
+		this.elapsedMs = elapsedMs;
+		this.undoStack = [];
 		this.startTimer();
 	}
 
@@ -63,6 +91,7 @@ export class GrecoStore {
 	setDigit(d: number): void {
 		const i = this.selected;
 		if (i === null || this.isDigitGiven(i)) return;
+		this.pushUndo();
 		const next = [...this.digits];
 		next[i] = next[i] === d ? -1 : d;
 		this.digits = next;
@@ -72,6 +101,7 @@ export class GrecoStore {
 	setLetter(l: number): void {
 		const i = this.selected;
 		if (i === null || this.isLetterGiven(i)) return;
+		this.pushUndo();
 		const next = [...this.letters];
 		next[i] = next[i] === l ? -1 : l;
 		this.letters = next;
@@ -80,6 +110,10 @@ export class GrecoStore {
 	clear(): void {
 		const i = this.selected;
 		if (i === null) return;
+		const willClear =
+			(!this.isDigitGiven(i) && this.digits[i] !== -1) ||
+			(!this.isLetterGiven(i) && this.letters[i] !== -1);
+		if (willClear) this.pushUndo();
 		if (!this.isDigitGiven(i)) {
 			const nd = [...this.digits];
 			nd[i] = -1;
@@ -96,6 +130,7 @@ export class GrecoStore {
 		const inst: GrecoLatinInstance = { n: this.n, digitClues: this.digitClues, letterClues: this.letterClues };
 		const result = hintCell(inst, this.cells);
 		if (!result) return;
+		this.pushUndo();
 		const { index, a, b } = result;
 		if (a !== null) {
 			const nd = [...this.digits];

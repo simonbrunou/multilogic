@@ -5,6 +5,8 @@ export interface PlayableGame {
   input(index: number, value: number): boolean;
   erase(index: number): boolean;
   toggleNote(index: number, digit: number): boolean;
+  /** Overwrite cells + notes from a saved game and reset undo/redo history. */
+  restore(cells: number[], notes: [number, number[]][]): void;
   undo(): void;
   redo(): void;
   conflicts(): Set<number>;

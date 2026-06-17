@@ -96,6 +96,26 @@ test('a letter-only given cell is selectable and its letter picker is disabled',
   expect(store.digits[2]).toBe(2);
 });
 
+test('undo reverts the last placement and the button disables when history is empty', async () => {
+  const { store } = await renderBoard();
+  expect(store.canUndo).toBe(false);
+  store.select(3); // open cell
+  store.setDigit(2);
+  expect(store.digits[3]).toBe(2);
+  store.setLetter(1);
+  expect(store.letters[3]).toBe(1);
+  expect(store.canUndo).toBe(true);
+
+  store.undo(); // undo the letter
+  expect(store.letters[3]).toBe(-1);
+  expect(store.digits[3]).toBe(2);
+  store.undo(); // undo the digit
+  expect(store.digits[3]).toBe(-1);
+  expect(store.canUndo).toBe(false);
+  store.undo(); // no-op past the start
+  expect(store.digits[3]).toBe(-1);
+});
+
 test('a fully-given cell has the given class; partial-given cells have partial-given class', async () => {
   const { store, cells } = await renderBoard();
   // Cell 0 is fully given → has 'given' class

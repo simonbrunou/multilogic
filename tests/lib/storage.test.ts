@@ -12,36 +12,47 @@ function memoryBackend(): StorageLike {
 
 const SAMPLE: SavedGame = {
   type: 'sudoku',
-  givens: 'G',
+  difficulty: 'easy',
+  instance: 'G',
   solution: 'S',
   cells: new Array(81).fill(0),
   notes: [],
   elapsedMs: 1234,
-  difficulty: 'easy'
+  solved: false
 };
+
+const SLOT = 'play:sudoku';
 
 describe('storage', () => {
   it('saves and resumes an in-progress game', () => {
     const s = createStorage(memoryBackend());
-    s.saveGame(SAMPLE);
-    const loaded = s.loadGame('sudoku');
+    s.saveGame(SLOT, SAMPLE);
+    const loaded = s.loadGame<SavedGame>(SLOT);
     expect(loaded).not.toBeNull();
     expect(loaded!.elapsedMs).toBe(1234);
     expect(loaded!.cells.length).toBe(81);
   });
 
+  it('keeps daily and practice saves of one type in separate slots', () => {
+    const s = createStorage(memoryBackend());
+    s.saveGame(SLOT, SAMPLE);
+    s.saveGame('daily:sudoku:2026-06-17', { ...SAMPLE, elapsedMs: 99, solved: true });
+    expect(s.loadGame<SavedGame>(SLOT)!.elapsedMs).toBe(1234);
+    expect(s.loadGame<SavedGame>('daily:sudoku:2026-06-17')!.solved).toBe(true);
+  });
+
   it('clearGame removes the saved game', () => {
     const s = createStorage(memoryBackend());
-    s.saveGame(SAMPLE);
-    s.clearGame('sudoku');
-    expect(s.loadGame('sudoku')).toBeNull();
+    s.saveGame(SLOT, SAMPLE);
+    s.clearGame(SLOT);
+    expect(s.loadGame(SLOT)).toBeNull();
   });
 
   it('returns null for a save written by a newer schema version', () => {
     const backend = memoryBackend();
-    backend.setItem('ml:game:sudoku', JSON.stringify({ version: 999, type: 'sudoku' }));
+    backend.setItem('ml:game:play:sudoku', JSON.stringify({ version: 999, data: SAMPLE }));
     const s = createStorage(backend);
-    expect(s.loadGame('sudoku')).toBeNull();
+    expect(s.loadGame(SLOT)).toBeNull();
   });
 
   it('records and reads per-type/difficulty stats', () => {

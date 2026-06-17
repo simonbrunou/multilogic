@@ -28,7 +28,7 @@ export abstract class UndoableGame implements PlayableGame {
     return { cells: [...this.cells], notes: this.notes.map((s) => [...s]) };
   }
 
-  private restore(s: Snapshot): void {
+  private restoreSnapshot(s: Snapshot): void {
     this.cells = [...s.cells];
     this.notes = s.notes.map((ds) => new Set(ds));
   }
@@ -76,17 +76,26 @@ export abstract class UndoableGame implements PlayableGame {
     return true;
   }
 
+  /** Resume a saved game: replace cells + notes and drop undo/redo history. */
+  restore(cells: number[], notes: [number, number[]][]): void {
+    this.cells = [...cells];
+    this.notes = this.notes.map(() => new Set<number>());
+    for (const [i, ds] of notes) if (this.notes[i]) this.notes[i] = new Set(ds);
+    this.undoStack = [];
+    this.redoStack = [];
+  }
+
   undo(): void {
     const s = this.undoStack.pop();
     if (!s) return;
     this.redoStack.push(this.snapshot());
-    this.restore(s);
+    this.restoreSnapshot(s);
   }
 
   redo(): void {
     const s = this.redoStack.pop();
     if (!s) return;
     this.undoStack.push(this.snapshot());
-    this.restore(s);
+    this.restoreSnapshot(s);
   }
 }
