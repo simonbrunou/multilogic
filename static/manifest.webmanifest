@@ -1,0 +1,61 @@
+{
+  "id": "/",
+  "name": "Multilogic",
+  "short_name": "Multilogic",
+  "description": "Casse-têtes de logique générés de façon procédurale — Sudoku, Tectonic, Kakuro, Gréco-latin et Yakuso, jouables hors ligne.",
+  "lang": "fr",
+  "dir": "ltr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#f9fafd",
+  "background_color": "#f9fafd",
+  "categories": ["games", "puzzle", "education"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Défi du jour",
+      "short_name": "Défi du jour",
+      "description": "Le casse-tête quotidien",
+      "url": "/daily",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Sudoku",
+      "short_name": "Sudoku",
+      "url": "/play/sudoku",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Statistiques",
+      "short_name": "Stats",
+      "url": "/stats",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshot-home.png",
+      "sizes": "540x1170",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Choix des casse-têtes"
+    },
+    {
+      "src": "/screenshot-play.png",
+      "sizes": "540x1170",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Une grille en cours"
+    }
+  ],
+  "prefer_related_applications": false
+}

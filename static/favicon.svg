@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-label="Multilogic">
+  <defs>
+    <linearGradient id="g" x1="64" y1="48" x2="448" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4063b8"/>
+      <stop offset="1" stop-color="#1a3b8b"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#g)"/>
+  <path d="M150 350 V162 L256 300 L362 162 V350" fill="none" stroke="#fafcff"
+        stroke-width="50" stroke-linejoin="round" stroke-linecap="round"/>
+</svg>
