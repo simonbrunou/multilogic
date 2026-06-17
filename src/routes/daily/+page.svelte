@@ -1,9 +1,20 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
   import { todayISO } from '$lib/daily';
+  import { createStorage } from '$lib/storage';
   import { t, puzzleTypeLabel } from '$lib/i18n';
 
   const date = todayISO(new Date());
   const keys = ['sudoku', 'tectonic', 'kakuro', 'grecolatin', 'yakuso'];
+
+  // Which of today's dailies are already finished (read from the saved board on the client).
+  let done = $state<Record<string, boolean>>({});
+  onMount(() => {
+    const s = createStorage(localStorage);
+    done = Object.fromEntries(
+      keys.map((k) => [k, !!s.loadGame<{ solved: boolean }>(`daily:${k}:${date}`)?.solved])
+    );
+  });
 </script>
 
 <svelte:head>
@@ -18,7 +29,10 @@
   <ul>
     {#each keys as key (key)}
       <li>
-        <a href="/daily/{key}">{t('daily.heading', { label: puzzleTypeLabel(key), date })}</a>
+        <a href="/daily/{key}">
+          <span>{t('daily.heading', { label: puzzleTypeLabel(key), date })}</span>
+          {#if done[key]}<span class="done" aria-label={t('play.solved')}>✓</span>{/if}
+        </a>
       </li>
     {/each}
   </ul>
@@ -51,7 +65,10 @@
     gap: 10px;
   }
   li a {
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     padding: 12px 14px;
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -62,5 +79,10 @@
   }
   li a:hover {
     background: var(--surface-3);
+  }
+  .done {
+    flex: none;
+    color: var(--success, var(--accent));
+    font-weight: 800;
   }
 </style>

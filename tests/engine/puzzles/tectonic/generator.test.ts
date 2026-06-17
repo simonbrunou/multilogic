@@ -8,6 +8,10 @@ import { DIFFICULTIES, type Difficulty } from '../../../../src/engine/core/types
 const RANK: Record<Difficulty, number> = { easy: 1, medium: 2, hard: 3, expert: 4 };
 
 describe('tectonic generateForDifficulty (dig-to-minimal + relax)', () => {
+  // Generous timeouts: expert tectonic generation (dig-to-minimal + uniqueness solve) is
+  // CPU-heavy and runs ~3–6s here, which overshoots vitest's 5s default once coverage
+  // instrumentation slows it on shared CI runners. Matches the pattern in
+  // difficulty-distribution.test.ts; not flakiness we can assert our way out of.
   it('never overshoots the target band and stays uniquely solvable', () => {
     for (const target of DIFFICULTIES) {
       for (let s = 0; s < 4; s++) {
@@ -17,7 +21,7 @@ describe('tectonic generateForDifficulty (dig-to-minimal + relax)', () => {
         expect(solveComplete(g.instance, 2).count).toBe(1);
       }
     }
-  });
+  }, 60000);
 
   it('reaches each target band within a seed batch', () => {
     for (const target of DIFFICULTIES) {
@@ -29,5 +33,5 @@ describe('tectonic generateForDifficulty (dig-to-minimal + relax)', () => {
       }
       expect(hit, `target ${target} should be reachable`).toBe(true);
     }
-  });
+  }, 60000);
 });

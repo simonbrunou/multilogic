@@ -122,6 +122,10 @@ export class YakusoGame extends UndoableGame {
 
   isSolved(): boolean {
     for (let i = 0; i < this.cells.length; i++) {
+      // Every interactive cell must be explicitly placed before the board counts as
+      // finished — an untouched blank (still 0, never a committed MARKED_ZERO) is not a
+      // placed 0, even where the solution is 0. Givens are already placed.
+      if (!this.isGiven(i) && this.cells[i] === 0) return false;
       if (this.digit(i) !== this.solution[i]) return false;
     }
     return true;

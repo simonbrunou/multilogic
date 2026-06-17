@@ -64,4 +64,16 @@ describe('SudokuGame', () => {
     g.input(80, 9);
     expect(g.isSolved()).toBe(true);
   });
+
+  it('restore reloads cells + notes and clears undo history (for resuming a saved game)', () => {
+    const g = game();
+    const cells = [...GIVENS];
+    cells[2] = 4;
+    g.restore(cells, [[5, [1, 2, 3]]]);
+    expect(g.cells[2]).toBe(4);
+    expect([...g.notes[5]].sort()).toEqual([1, 2, 3]);
+    // History was wiped, so there is nothing to undo back to.
+    g.undo();
+    expect(g.cells[2]).toBe(4);
+  });
 });

@@ -4,20 +4,41 @@ export interface StorageLike {
   removeItem(key: string): void;
 }
 
-const SCHEMA_VERSION = 1;
+// v3 added hintsUsed + recorded to the saved shapes; bumping discards older saves (incl. the
+// field-less v2 written by an earlier build of this branch) rather than reading absent fields.
+const SCHEMA_VERSION = 3;
 
+/** What the grid-based puzzles (sudoku/tectonic/kakuro/yakuso) persist to resume a board. */
 export interface SavedGame {
   type: string;
-  givens: string;
+  difficulty: string;
+  instance: string;
   solution: string;
   cells: number[];
   notes: [number, number[]][];
   elapsedMs: number;
-  difficulty: string;
+  hintsUsed: number;
+  solved: boolean;
+  /** Whether this board's solve was already counted, so a resume never double-records it. */
+  recorded: boolean;
 }
 
-interface StoredGame extends SavedGame {
+/** What Greco-Latin persists — it tracks two dimensions independently, not a single cell array. */
+export interface SavedGreco {
+  type: 'grecolatin';
+  difficulty: string;
+  instance: string;
+  digits: number[];
+  letters: number[];
+  elapsedMs: number;
+  hintsUsed: number;
+  solved: boolean;
+  recorded: boolean;
+}
+
+interface Envelope<T> {
   version: number;
+  data: T;
 }
 
 export interface Stats {
@@ -44,22 +65,43 @@ function safeParse<T>(raw: string | null): T | null {
 }
 
 export function createStorage(backend: StorageLike) {
-  const gameKey = (type: string) => `ml:game:${type}`;
+  // `slot` namespaces a save, e.g. `play:sudoku` or `daily:yakuso:2026-06-17`, so the
+  // practice board and each day's daily of the same type never clobber one another.
+  const gameKey = (slot: string) => `ml:game:${slot}`;
   const statsKey = 'ml:stats';
   const settingsKey = 'ml:settings';
 
   return {
-    saveGame(game: SavedGame): void {
-      const stored: StoredGame = { ...game, version: SCHEMA_VERSION };
-      backend.setItem(gameKey(game.type), JSON.stringify(stored));
+    saveGame<T>(slot: string, game: T): void {
+      const env: Envelope<T> = { version: SCHEMA_VERSION, data: game };
+      // Best-effort: persistence is a convenience, never crash play if the quota is full.
+      try { backend.setItem(gameKey(slot), JSON.stringify(env)); } catch { /* quota or disabled storage */ }
     },
-    loadGame(type: string): SavedGame | null {
-      const stored = safeParse<StoredGame>(backend.getItem(gameKey(type)));
-      if (!stored || stored.version !== SCHEMA_VERSION) return null;
-      return stored;
+    loadGame<T = SavedGame>(slot: string): T | null {
+      const env = safeParse<Envelope<T>>(backend.getItem(gameKey(slot)));
+      if (!env || env.version !== SCHEMA_VERSION) return null;
+      return env.data;
     },
-    clearGame(type: string): void {
-      backend.removeItem(gameKey(type));
+    clearGame(slot: string): void {
+      backend.removeItem(gameKey(slot));
+    },
+    /**
+     * Drop *finished* daily saves whose date is not in `keepDates`, so the date-stamped `daily:*`
+     * slots don't accumulate forever. In-progress boards (any date) are always kept — only solves
+     * already recorded are disposable. No-op on backends that can't be enumerated (the test stub).
+     */
+    pruneDailies(keepDates: string[]): void {
+      const b = backend as unknown as { length?: number; key?(i: number): string | null };
+      if (typeof b.length !== 'number' || typeof b.key !== 'function') return;
+      const prefix = 'ml:game:daily:';
+      const stale: string[] = [];
+      for (let i = 0; i < b.length; i++) {
+        const k = b.key(i);
+        if (!k || !k.startsWith(prefix) || keepDates.some((d) => k.endsWith(`:${d}`))) continue;
+        const env = safeParse<Envelope<{ solved?: boolean }>>(backend.getItem(k));
+        if (env?.data?.solved) stale.push(k); // never discard an unfinished puzzle
+      }
+      for (const k of stale) backend.removeItem(k);
     },
     recordSolve(type: string, difficulty: string, ms: number): void {
       const all = safeParse<Record<string, Stats>>(backend.getItem(statsKey)) ?? {};
@@ -69,7 +111,8 @@ export function createStorage(backend: StorageLike) {
       cur.totalMs += ms;
       cur.bestMs = cur.bestMs === null ? ms : Math.min(cur.bestMs, ms);
       all[key] = cur;
-      backend.setItem(statsKey, JSON.stringify(all));
+      // Best-effort, like saveGame: a full quota must not throw out of the solve $effect.
+      try { backend.setItem(statsKey, JSON.stringify(all)); } catch { /* quota or disabled storage */ }
     },
     getStats(type: string, difficulty: string): Stats {
       const all = safeParse<Record<string, Stats>>(backend.getItem(statsKey)) ?? {};

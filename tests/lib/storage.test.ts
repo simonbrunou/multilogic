@@ -10,38 +10,85 @@ function memoryBackend(): StorageLike {
   };
 }
 
+/** Backend that also exposes length/key, so pruneDailies (which feature-detects them) can run. */
+function enumerableBackend(): StorageLike & { length: number; key(i: number): string | null } {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k) => (m.has(k) ? m.get(k)! : null),
+    setItem: (k, v) => { m.set(k, v); },
+    removeItem: (k) => { m.delete(k); },
+    get length() { return m.size; },
+    key: (i) => [...m.keys()][i] ?? null
+  };
+}
+
 const SAMPLE: SavedGame = {
   type: 'sudoku',
-  givens: 'G',
+  difficulty: 'easy',
+  instance: 'G',
   solution: 'S',
   cells: new Array(81).fill(0),
   notes: [],
   elapsedMs: 1234,
-  difficulty: 'easy'
+  hintsUsed: 0,
+  solved: false,
+  recorded: false
 };
+
+const SLOT = 'play:sudoku';
 
 describe('storage', () => {
   it('saves and resumes an in-progress game', () => {
     const s = createStorage(memoryBackend());
-    s.saveGame(SAMPLE);
-    const loaded = s.loadGame('sudoku');
+    s.saveGame(SLOT, SAMPLE);
+    const loaded = s.loadGame<SavedGame>(SLOT);
     expect(loaded).not.toBeNull();
     expect(loaded!.elapsedMs).toBe(1234);
     expect(loaded!.cells.length).toBe(81);
   });
 
+  it('keeps daily and practice saves of one type in separate slots', () => {
+    const s = createStorage(memoryBackend());
+    s.saveGame(SLOT, SAMPLE);
+    s.saveGame('daily:sudoku:2026-06-17', { ...SAMPLE, elapsedMs: 99, solved: true });
+    expect(s.loadGame<SavedGame>(SLOT)!.elapsedMs).toBe(1234);
+    expect(s.loadGame<SavedGame>('daily:sudoku:2026-06-17')!.solved).toBe(true);
+  });
+
+  it('pruneDailies drops finished dailies of other dates but keeps in-progress ones', () => {
+    const s = createStorage(enumerableBackend());
+    s.saveGame('daily:sudoku:2026-06-16', { ...SAMPLE, solved: true });   // old, finished
+    s.saveGame('daily:kakuro:2026-06-16', { ...SAMPLE, solved: false });  // old, in-progress
+    s.saveGame('daily:sudoku:2026-06-17', { ...SAMPLE, solved: false });  // today
+    s.saveGame(SLOT, SAMPLE);                                             // practice — untouched
+    s.pruneDailies(['2026-06-17']);
+    expect(s.loadGame('daily:sudoku:2026-06-16')).toBeNull();              // finished + stale → gone
+    expect(s.loadGame('daily:kakuro:2026-06-16')).not.toBeNull();          // unfinished → kept
+    expect(s.loadGame('daily:sudoku:2026-06-17')).not.toBeNull();          // today → kept
+    expect(s.loadGame(SLOT)).not.toBeNull();                               // practice slot → kept
+  });
+
   it('clearGame removes the saved game', () => {
     const s = createStorage(memoryBackend());
-    s.saveGame(SAMPLE);
-    s.clearGame('sudoku');
-    expect(s.loadGame('sudoku')).toBeNull();
+    s.saveGame(SLOT, SAMPLE);
+    s.clearGame(SLOT);
+    expect(s.loadGame(SLOT)).toBeNull();
   });
 
   it('returns null for a save written by a newer schema version', () => {
     const backend = memoryBackend();
-    backend.setItem('ml:game:sudoku', JSON.stringify({ version: 999, type: 'sudoku' }));
+    backend.setItem('ml:game:play:sudoku', JSON.stringify({ version: 999, data: SAMPLE }));
     const s = createStorage(backend);
-    expect(s.loadGame('sudoku')).toBeNull();
+    expect(s.loadGame(SLOT)).toBeNull();
+  });
+
+  it('discards an older-schema save instead of reading absent fields', () => {
+    // A pre-v3 save lacked hintsUsed/recorded; loading it would have made `recorded` undefined
+    // (double-counting a resumed solve). The version gate must drop it, not adapt to it.
+    const backend = memoryBackend();
+    backend.setItem('ml:game:play:sudoku', JSON.stringify({ version: 2, data: { type: 'sudoku', solved: true } }));
+    const s = createStorage(backend);
+    expect(s.loadGame(SLOT)).toBeNull();
   });
 
   it('records and reads per-type/difficulty stats', () => {

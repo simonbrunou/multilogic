@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { YakusoGame } from '../../src/lib/play/yakuso-game';
+import { YakusoGame, MARKED_ZERO } from '../../src/lib/play/yakuso-game';
 import { generateForDifficulty } from '../../src/engine/puzzles/yakuso/generator';
 import { createPrng } from '../../src/engine/core/prng';
 
@@ -44,6 +44,35 @@ describe('YakusoGame', () => {
     const conf = game.conflicts();
     expect(conf.has(a)).toBe(true);
     expect(conf.has(b)).toBe(true);
+  });
+
+  it('is not finished until every empty (0) cell is explicitly crossed out', () => {
+    const { game, gen } = mkGame('yg-zero');
+    // A non-given cell whose solution is an empty 0 — the player must commit it, not leave it blank.
+    const zeroIdx = gen.solution.findIndex((v, i) => v === 0 && gen.instance.clues[i] === null);
+    expect(zeroIdx).toBeGreaterThanOrEqual(0); // sanity: yakuso solutions are sparse
+    // Place every other non-given cell at its solution value, leaving zeroIdx untouched.
+    for (let i = 0; i < gen.solution.length; i++) {
+      if (gen.instance.clues[i] === null && i !== zeroIdx) game.input(i, gen.solution[i]);
+    }
+    expect(game.isSolved()).toBe(false); // blank 0 doesn't count as a placed 0
+    game.input(zeroIdx, 0); // cross it out (MARKED_ZERO)
+    expect(game.isSolved()).toBe(true);
+  });
+
+  it('restore round-trips committed zeros (MARKED_ZERO) for resuming a saved board', () => {
+    const { game, gen } = mkGame('yg-restore');
+    const zeroIdx = gen.solution.findIndex((v, i) => v === 0 && gen.instance.clues[i] === null);
+    const digitIdx = gen.solution.findIndex((v, i) => v > 0 && gen.instance.clues[i] === null);
+    game.input(zeroIdx, 0); // crossed-out zero → MARKED_ZERO (-1)
+    game.input(digitIdx, gen.solution[digitIdx]);
+    expect(game.cells[zeroIdx]).toBe(MARKED_ZERO);
+    // Simulate save → resume: a fresh game restored from the serialized cells.
+    const saved = [...game.cells];
+    const resumed = new YakusoGame(gen.instance, gen.solution);
+    resumed.restore(saved, []);
+    expect(resumed.cells[zeroIdx]).toBe(MARKED_ZERO); // the -1 sentinel survives the round-trip
+    expect(resumed.cells[digitIdx]).toBe(gen.solution[digitIdx]);
   });
 
   it('isSolved is true exactly at the full solution and supports undo', () => {

@@ -101,6 +101,7 @@
 
   <!-- Action buttons -->
   <div class="actions">
+    <button class="action-btn undo-btn" onclick={() => store.undo()} disabled={!store.canUndo}>↶ {t('greco.undo')}</button>
     <button class="action-btn erase-btn" onclick={() => store.clear()}>{t('greco.erase')}</button>
     <button class="action-btn hint-btn" onclick={() => store.hint()}>💡 {t('greco.hint')}</button>
   </div>
@@ -139,13 +140,17 @@
     font-weight: 600;
     display: flex;
     align-items: center;
-    justify-content: center;
+    /* Letter pinned left, digit pinned right, so a missing dimension shows as an empty
+       half — the eye can scan the grid for what's still unplaced at a glance. */
+    justify-content: space-between;
     cursor: pointer;
     aspect-ratio: 1;
     transition: filter 0.1s;
-    gap: 1px;
-    padding: 0;
+    padding-inline: clamp(3px, 2vw, 11px);
   }
+
+  .letter-token { text-align: left; }
+  .digit-token { text-align: right; }
 
   /* Partial-given cells are still clickable (the open dimension is editable), so they get hover too. */
   .cell:hover:not(.given) {
@@ -239,9 +244,15 @@
     font-weight: 600;
   }
 
+  .undo-btn,
   .erase-btn {
     background: var(--surface-2);
     color: var(--text);
+  }
+
+  .undo-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
   }
 
   .hint-btn {

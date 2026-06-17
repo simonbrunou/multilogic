@@ -67,6 +67,7 @@ const en = {
   greco: {
     letter: 'Letter:',
     digit: 'Digit:',
+    undo: 'Undo',
     erase: 'Erase',
     hint: 'Hint',
     placed: (p: { filled: number; total: number }) => `${p.filled}/${p.total} placed`
@@ -180,6 +181,7 @@ const fr: typeof en = {
   greco: {
     letter: 'Lettre :',
     digit: 'Chiffre :',
+    undo: 'Annuler',
     erase: 'Effacer',
     hint: 'Indice',
     placed: (p) => `${p.filled}/${p.total} placées`
