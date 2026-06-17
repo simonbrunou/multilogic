@@ -10,6 +10,18 @@ function memoryBackend(): StorageLike {
   };
 }
 
+/** Backend that also exposes length/key, so pruneDailies (which feature-detects them) can run. */
+function enumerableBackend(): StorageLike & { length: number; key(i: number): string | null } {
+  const m = new Map<string, string>();
+  return {
+    getItem: (k) => (m.has(k) ? m.get(k)! : null),
+    setItem: (k, v) => { m.set(k, v); },
+    removeItem: (k) => { m.delete(k); },
+    get length() { return m.size; },
+    key: (i) => [...m.keys()][i] ?? null
+  };
+}
+
 const SAMPLE: SavedGame = {
   type: 'sudoku',
   difficulty: 'easy',
@@ -18,7 +30,9 @@ const SAMPLE: SavedGame = {
   cells: new Array(81).fill(0),
   notes: [],
   elapsedMs: 1234,
-  solved: false
+  hintsUsed: 0,
+  solved: false,
+  recorded: false
 };
 
 const SLOT = 'play:sudoku';
@@ -39,6 +53,19 @@ describe('storage', () => {
     s.saveGame('daily:sudoku:2026-06-17', { ...SAMPLE, elapsedMs: 99, solved: true });
     expect(s.loadGame<SavedGame>(SLOT)!.elapsedMs).toBe(1234);
     expect(s.loadGame<SavedGame>('daily:sudoku:2026-06-17')!.solved).toBe(true);
+  });
+
+  it('pruneDailies drops finished dailies of other dates but keeps in-progress ones', () => {
+    const s = createStorage(enumerableBackend());
+    s.saveGame('daily:sudoku:2026-06-16', { ...SAMPLE, solved: true });   // old, finished
+    s.saveGame('daily:kakuro:2026-06-16', { ...SAMPLE, solved: false });  // old, in-progress
+    s.saveGame('daily:sudoku:2026-06-17', { ...SAMPLE, solved: false });  // today
+    s.saveGame(SLOT, SAMPLE);                                             // practice — untouched
+    s.pruneDailies(['2026-06-17']);
+    expect(s.loadGame('daily:sudoku:2026-06-16')).toBeNull();              // finished + stale → gone
+    expect(s.loadGame('daily:kakuro:2026-06-16')).not.toBeNull();          // unfinished → kept
+    expect(s.loadGame('daily:sudoku:2026-06-17')).not.toBeNull();          // today → kept
+    expect(s.loadGame(SLOT)).not.toBeNull();                               // practice slot → kept
   });
 
   it('clearGame removes the saved game', () => {

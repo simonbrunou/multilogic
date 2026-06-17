@@ -64,7 +64,9 @@
       // Read untracked so the timer's 250ms elapsedMs writes don't make this a dependency of the
       // persist $effect (which would turn every move-persist into a 4Hz write storm).
       elapsedMs: untrack(() => store.elapsedMs),
-      solved: store.game.isSolved()
+      hintsUsed: untrack(() => store.hintsUsed),
+      solved: store.game.isSolved(),
+      recorded
     };
     storage.saveGame(slot, saved);
   }
@@ -78,8 +80,9 @@
       currentInstanceStr = saved.instance;
       currentSolutionStr = saved.solution;
       loadedType = puzzleType;
-      recorded = saved.solved; // already-finished board was counted in its original session
+      recorded = saved.recorded; // counted once, durably — survives an un-solve + reload
       store.load(game, entry.hintProvider(saved.instance), saved.elapsedMs);
+      store.hintsUsed = saved.hintsUsed;
       if (saved.solved) store.stopTimer();
       loading = false;
       return true;
@@ -107,6 +110,7 @@
     if (solved && store.game && storage && !recorded && loadedType === puzzleType) {
       recorded = true;
       storage.recordSolve(puzzleType, difficulty, store.elapsedMs);
+      persist(); // durably mark recorded so an un-solve + reload can't re-count this board
     }
   });
 

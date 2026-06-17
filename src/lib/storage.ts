@@ -15,7 +15,10 @@ export interface SavedGame {
   cells: number[];
   notes: [number, number[]][];
   elapsedMs: number;
+  hintsUsed: number;
   solved: boolean;
+  /** Whether this board's solve was already counted, so a resume never double-records it. */
+  recorded: boolean;
 }
 
 /** What Greco-Latin persists — it tracks two dimensions independently, not a single cell array. */
@@ -26,7 +29,9 @@ export interface SavedGreco {
   digits: number[];
   letters: number[];
   elapsedMs: number;
+  hintsUsed: number;
   solved: boolean;
+  recorded: boolean;
 }
 
 interface Envelope<T> {
@@ -79,8 +84,9 @@ export function createStorage(backend: StorageLike) {
       backend.removeItem(gameKey(slot));
     },
     /**
-     * Drop daily saves whose date is not in `keepDates`, so the date-stamped `daily:*` slots
-     * don't accumulate forever. No-op on backends that can't be enumerated (e.g. the test stub).
+     * Drop *finished* daily saves whose date is not in `keepDates`, so the date-stamped `daily:*`
+     * slots don't accumulate forever. In-progress boards (any date) are always kept — only solves
+     * already recorded are disposable. No-op on backends that can't be enumerated (the test stub).
      */
     pruneDailies(keepDates: string[]): void {
       const b = backend as unknown as { length?: number; key?(i: number): string | null };
@@ -89,7 +95,9 @@ export function createStorage(backend: StorageLike) {
       const stale: string[] = [];
       for (let i = 0; i < b.length; i++) {
         const k = b.key(i);
-        if (k && k.startsWith(prefix) && !keepDates.some((d) => k.endsWith(`:${d}`))) stale.push(k);
+        if (!k || !k.startsWith(prefix) || keepDates.some((d) => k.endsWith(`:${d}`))) continue;
+        const env = safeParse<Envelope<{ solved?: boolean }>>(backend.getItem(k));
+        if (env?.data?.solved) stale.push(k); // never discard an unfinished puzzle
       }
       for (const k of stale) backend.removeItem(k);
     },
@@ -101,7 +109,8 @@ export function createStorage(backend: StorageLike) {
       cur.totalMs += ms;
       cur.bestMs = cur.bestMs === null ? ms : Math.min(cur.bestMs, ms);
       all[key] = cur;
-      backend.setItem(statsKey, JSON.stringify(all));
+      // Best-effort, like saveGame: a full quota must not throw out of the solve $effect.
+      try { backend.setItem(statsKey, JSON.stringify(all)); } catch { /* quota or disabled storage */ }
     },
     getStats(type: string, difficulty: string): Stats {
       const all = safeParse<Record<string, Stats>>(backend.getItem(statsKey)) ?? {};

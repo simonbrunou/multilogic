@@ -50,6 +50,7 @@
     if (solved && store.game && storage && !recorded && loadedType === puzzleType) {
       recorded = true;
       storage.recordSolve(puzzleType, 'daily', store.elapsedMs);
+      persist(); // durably mark recorded so an un-solve + reload can't re-count this daily
     }
   });
 
@@ -85,7 +86,9 @@
       notes: store.game.notes.map((s, i) => [i, [...s]] as [number, number[]]).filter(([, d]) => d.length),
       // Untracked so the 250ms timer writes don't make persist a 4Hz write storm (see play/[type]).
       elapsedMs: untrack(() => store.elapsedMs),
-      solved: store.game.isSolved()
+      hintsUsed: untrack(() => store.hintsUsed),
+      solved: store.game.isSolved(),
+      recorded
     };
     storage.saveGame(slot, saved);
   }
@@ -98,8 +101,9 @@
       currentInstanceStr = saved.instance;
       currentSolutionStr = saved.solution;
       loadedType = puzzleType;
-      recorded = saved.solved;
+      recorded = saved.recorded;
       store.load(game, entry.hintProvider(saved.instance), saved.elapsedMs);
+      store.hintsUsed = saved.hintsUsed;
       if (saved.solved) store.stopTimer();
       loading = false;
       return true;

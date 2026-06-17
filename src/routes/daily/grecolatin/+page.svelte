@@ -42,6 +42,7 @@
     if (!storage || recorded) return;
     recorded = true;
     storage.recordSolve('grecolatin', 'daily', store.elapsedMs);
+    persist(); // durably mark recorded so an un-solve + reload can't re-count this daily
   });
 
   // Persist after every placement so a reload restores the finished daily (no re-acing).
@@ -57,7 +58,9 @@
       letters: [...store.letters],
       // Untracked so the 250ms timer writes don't make persist a 4Hz write storm.
       elapsedMs: untrack(() => store.elapsedMs),
-      solved: result.complete && result.valid
+      hintsUsed: untrack(() => store.hintsUsed),
+      solved: result.complete && result.valid,
+      recorded
     };
     storage.saveGame(slot, saved);
   }
@@ -67,8 +70,9 @@
       const inst = getModule('grecolatin').deserializeInstance(saved.instance) as GrecoLatinInstance;
       store.load(inst.n, inst.digitClues, inst.letterClues);
       store.restoreState(saved.digits, saved.letters, saved.elapsedMs);
+      store.hintsUsed = saved.hintsUsed;
       currentInstanceStr = saved.instance;
-      recorded = saved.solved;
+      recorded = saved.recorded;
       if (saved.solved) store.stopTimer();
       loading = false;
       return true;
