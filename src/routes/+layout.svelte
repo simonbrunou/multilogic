@@ -2,6 +2,7 @@
 	import { browser } from '$app/environment';
 	import { initLocale, t } from '$lib/i18n';
 	import { initTheme } from '$lib/theme.svelte';
+	import UpdatePrompt from '$lib/components/UpdatePrompt.svelte';
 	import '$lib/styles/app.css';
 
 	let { children } = $props();
@@ -29,6 +30,8 @@
 		</main>
 	{/snippet}
 </svelte:boundary>
+
+<UpdatePrompt />
 
 <style>
 	.app-error {

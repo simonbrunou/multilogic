@@ -34,6 +34,12 @@ sw.addEventListener('activate', (event) => {
   );
 });
 
+// A new build installs but waits (we never auto-skipWaiting). The client shows an "update
+// available" prompt and, only if the user accepts, asks this waiting worker to take over now.
+sw.addEventListener('message', (event) => {
+  if ((event.data as { type?: string } | null)?.type === 'SKIP_WAITING') sw.skipWaiting();
+});
+
 sw.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
