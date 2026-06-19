@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { MARKED_ZERO, type YakusoGame } from '../play/yakuso-game';
+  import { MARKED_ZERO, AUTO_ZERO, type YakusoGame } from '../play/yakuso-game';
   import { t } from '$lib/i18n';
   import { gridKeyboard } from '../play/grid-nav';
 
@@ -22,11 +22,14 @@
   const cellView = $derived.by(() => { void tick; return [...game.cells]; });
   const cols = $derived(game.instance.cols);
   const rows = $derived(game.instance.rows);
-  const valueOf = (v: number) => (v === MARKED_ZERO ? '0' : v !== 0 ? String(v) : t('aria.empty'));
+  const isZero = (v: number) => v === MARKED_ZERO || v === AUTO_ZERO;
+  const valueOf = (v: number) => (isZero(v) ? '0' : v !== 0 ? String(v) : t('aria.empty'));
   const label = (i: number, v: number) =>
     t('aria.cellAt', { row: Math.floor(i / cols) + 1, col: (i % cols) + 1, value: valueOf(v) });
-  const isInput = (i: number) => i < cellView.length && !game.isGiven(i);
-  const firstInput = $derived(cellView.findIndex((_v, i) => !game.isGiven(i)));
+  // Auto-filled zeros are read-only (locked), so they neither take input nor join keyboard nav.
+  const isInput = (i: number) =>
+    i < cellView.length && !game.isGiven(i) && cellView[i] !== AUTO_ZERO;
+  const firstInput = $derived(cellView.findIndex((v, i) => !game.isGiven(i) && v !== AUTO_ZERO));
   const tabStop = $derived(selected ?? firstInput);
 </script>
 
@@ -40,6 +43,10 @@
   {#each cellView as v, i (i)}
     {#if game.isGiven(i)}
       <div class="cell given" role="gridcell">{v}</div>
+    {:else if v === AUTO_ZERO}
+      <div class="cell input auto-zero" role="gridcell" aria-label={label(i, v)}>
+        <span class="zero">0</span>
+      </div>
     {:else}
       <button
         class="cell input"
@@ -87,6 +94,7 @@
   .cell.input.selected { background: var(--selected-bg); }
   .cell.input.conflict { background: var(--danger-bg); color: var(--danger); box-shadow: inset 0 0 0 2px var(--danger); }
   .cell.input .zero { color: var(--text-muted); font-weight: 700; }
+  .cell.input.auto-zero { cursor: default; }
   .cell.total {
     background: var(--cell-block);
     color: var(--cell-block-text);
