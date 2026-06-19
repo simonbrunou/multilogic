@@ -37,7 +37,9 @@ test('yakuso play page renders a grid and accepts input', async ({ page }) => {
   await page.goto('/play/yakuso');
   await expect(page.locator('.cell.input').first()).toBeVisible({ timeout: 30000 });
   await expect(page.locator('.cell.total').first()).toBeVisible(); // totals row shown
-  const empty = page.locator('.cell.input').first();
+  // Only editable cells are <button>s; locked auto-zero cells (a completed row's filled blanks)
+  // also carry .cell.input but are read-only <div>s, so click an editable one or input goes nowhere.
+  const empty = page.locator('button.cell.input').first();
   await empty.click();
   await page.keyboard.press('1');
   await expect(page.locator('.cell.input').filter({ hasText: /[1-9]/ }).first()).toBeVisible();
