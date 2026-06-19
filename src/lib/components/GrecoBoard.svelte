@@ -153,8 +153,20 @@
     padding-inline: 24%;
   }
 
-  .letter-token { text-align: left; }
-  .digit-token { text-align: right; }
+  /* Letter vs digit contrast: each cell holds a (letter, digit) pair, and with both in the same
+     style only their left/right position told them apart. Differentiate by BOTH hue and font so the
+     distinction survives grayscale and color-vision deficiency: letters are an italic serif in the
+     accent hue, digits stay an upright sans-serif in neutral text. */
+  .letter-token {
+    text-align: left;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
+    color: var(--accent);
+  }
+  .digit-token {
+    text-align: right;
+    color: var(--text);
+  }
 
   /* Partial-given cells are still clickable (the open dimension is editable), so they get hover too. */
   .cell:hover:not(.given) {
@@ -185,9 +197,10 @@
     line-height: 1;
   }
 
+  /* Givens read heavier, but keep their per-token hue (accent letters / neutral digits) rather than
+     flattening both back to --text — that's what separates the two dimensions at a glance. */
   .token.given {
     font-weight: 800;
-    color: var(--text);
   }
 
   .picker-row {
@@ -222,15 +235,24 @@
     cursor: not-allowed;
   }
 
+  /* Match the in-grid letter treatment (accent italic serif) so the picker reinforces which
+     dimension it edits — the digit picker stays upright neutral sans, mirroring the grid digits. */
   .let-btn {
+    font-family: Georgia, 'Times New Roman', serif;
+    font-style: italic;
     font-weight: 700;
+    color: var(--accent);
   }
 
-  .sym-btn.active,
-  .let-btn.active {
+  .sym-btn.active {
     border-color: var(--accent);
     background: var(--selected-bg);
     color: var(--text);
+  }
+
+  .let-btn.active {
+    border-color: var(--accent);
+    background: var(--selected-bg);
   }
 
   .actions {
