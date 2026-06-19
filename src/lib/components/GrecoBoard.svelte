@@ -146,7 +146,11 @@
     cursor: pointer;
     aspect-ratio: 1;
     transition: filter 0.1s;
-    padding-inline: clamp(3px, 2vw, 11px);
+    /* Percentage padding (relative to cell width) pulls the pinned letter/digit inward
+       toward the centre. A middle ground: centring them together was too cramped to scan,
+       but pinning them to the hard edges (space-between + tiny padding) left too big a gap.
+       Scales with cell size, so the spacing holds across every grid size n. */
+    padding-inline: 24%;
   }
 
   .letter-token { text-align: left; }
