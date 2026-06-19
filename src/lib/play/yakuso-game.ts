@@ -9,6 +9,15 @@ import { UndoableGame } from './base-game';
 export const MARKED_ZERO = -1;
 
 /**
+ * Sentinel stored in `cells` for a `0` the game placed *automatically* when its
+ * row was completed (its owned digit `d` appears exactly `d` times). It displays
+ * like {@link MARKED_ZERO} but is **locked**: the player cannot edit it, and it is
+ * cleared back to a blank `0` automatically when the row stops being complete.
+ * For every rule it normalizes to `0`.
+ */
+export const AUTO_ZERO = -2;
+
+/**
  * Pure, framework-free YAKUSO play state with undo/redo.
  *
  * The interactive board is the `rows*cols` interior grid (`0` = empty). The
@@ -24,6 +33,7 @@ export class YakusoGame extends UndoableGame {
     super(instance.clues.map((c) => c ?? 0), n);
     this.instance = instance;
     this.solution = solution;
+    this.reconcileAll();
   }
 
   /** Seeded clue cells are fixed. */
@@ -31,10 +41,15 @@ export class YakusoGame extends UndoableGame {
     return this.instance.clues[index] !== null;
   }
 
-  /** The digit at `i` for rule purposes: a committed zero counts as empty. */
+  /** An auto-filled `0` is read-only while its row stays complete. */
+  isLocked(index: number): boolean {
+    return this.cells[index] === AUTO_ZERO;
+  }
+
+  /** The digit at `i` for rule purposes: any committed zero counts as empty. */
   private digit(index: number): number {
     const v = this.cells[index];
-    return v === MARKED_ZERO ? 0 : v;
+    return v === MARKED_ZERO || v === AUTO_ZERO ? 0 : v;
   }
 
   protected allows(_index: number, value: number): boolean {
@@ -43,7 +58,62 @@ export class YakusoGame extends UndoableGame {
 
   /** Entering `0` commits a visible zero; `1..R` place that digit. (Erase clears to blank.) */
   input(index: number, value: number): boolean {
-    return super.input(index, value === 0 ? MARKED_ZERO : value);
+    if (this.isGiven(index) || this.isLocked(index)) return false;
+    const v = value === 0 ? MARKED_ZERO : value;
+    if (!this.allows(index, v)) return false;
+    this.commit(() => {
+      this.cells[index] = v;
+      this.notes[index].clear();
+      this.reconcileRow(Math.floor(index / this.instance.cols));
+    });
+    return true;
+  }
+
+  /** Erasing clears to a blank `0`; then reconcile the row (a removed digit drops its auto-zeros). */
+  erase(index: number): boolean {
+    if (this.isGiven(index) || this.isLocked(index)) return false;
+    this.commit(() => {
+      this.cells[index] = 0;
+      this.notes[index].clear();
+      this.reconcileRow(Math.floor(index / this.instance.cols));
+    });
+    return true;
+  }
+
+  /** Restore a saved board, then re-derive locked auto-zeros from the restored cells. */
+  restore(cells: number[], notes: [number, number[]][]): void {
+    super.restore(cells, notes);
+    this.reconcileAll();
+  }
+
+  /**
+   * Keep a row's auto-filled zeros in sync with its completion state, in one pass:
+   * a row is *complete* when it holds a single digit `d` exactly `d` times. When
+   * complete, every untouched blank (`0`) becomes a locked {@link AUTO_ZERO}; when
+   * not, any {@link AUTO_ZERO} reverts to a blank `0`. Hand-placed zeros
+   * ({@link MARKED_ZERO}) and givens are never touched.
+   */
+  private reconcileRow(r: number): void {
+    const { cols } = this.instance;
+    const byDigit = this.rowByDigit(r);
+    let complete = false;
+    if (byDigit.size === 1) {
+      const [[d, list]] = byDigit;
+      complete = list.length === d;
+    }
+    for (let c = 0; c < cols; c++) {
+      const i = r * cols + c;
+      if (this.isGiven(i)) continue;
+      if (complete) {
+        if (this.cells[i] === 0) this.cells[i] = AUTO_ZERO;
+      } else if (this.cells[i] === AUTO_ZERO) {
+        this.cells[i] = 0;
+      }
+    }
+  }
+
+  private reconcileAll(): void {
+    for (let r = 0; r < this.instance.rows; r++) this.reconcileRow(r);
   }
 
   /** Notes only ever hold real digits `1..R`. */
