@@ -11,8 +11,10 @@ describe('yakuso generator', () => {
       const g = generateForDifficulty(createPrng(`yakuso-${d}-gen`), d);
       // solution is a valid complete YAKUSO grid
       expect(isCompleteSolution(g.instance, g.solution)).toBe(true);
-      // totals come from the solution
-      expect(columnSums(g.solution, g.instance.rows, g.instance.cols)).toEqual(g.instance.totals);
+      // exactly one total is hidden (null); the rest come from the solution
+      const sums = columnSums(g.solution, g.instance.rows, g.instance.cols);
+      expect(g.instance.totals.filter((t) => t === null)).toHaveLength(1);
+      g.instance.totals.forEach((t, c) => { if (t !== null) expect(t).toBe(sums[c]); });
       // uniquely solvable
       const r = solveComplete(g.instance, 2);
       expect(r.count).toBe(1);

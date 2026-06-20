@@ -1,4 +1,5 @@
 import type { YakusoInstance } from '../../engine/puzzles/yakuso/types';
+import { effectiveTotals } from '../../engine/puzzles/yakuso/rules';
 import { UndoableGame } from './base-game';
 
 /**
@@ -167,9 +168,10 @@ export class YakusoGame extends UndoableGame {
     }
   }
 
-  /** Per column: the filled sum must not exceed the displayed total. */
+  /** Per column: the filled sum must not exceed its total. The hidden total is reconstructed. */
   private columnConflicts(bad: Set<number>): void {
-    const { rows, cols, totals } = this.instance;
+    const { rows, cols } = this.instance;
+    const totals = effectiveTotals(this.instance);
     for (let c = 0; c < cols; c++) {
       let sum = 0;
       const filled: number[] = [];

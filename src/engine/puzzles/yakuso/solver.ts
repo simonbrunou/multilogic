@@ -1,6 +1,6 @@
 import type { YakusoInstance, YakusoSolution } from './types';
 import type { SolveResult } from '../../core/types';
-import { combinations } from './rules';
+import { combinations, effectiveTotals } from './rules';
 
 /** One way to fill a single row: own digit `d`, placed in columns `cols`. */
 interface Placement { d: number; cols: number[] }
@@ -30,8 +30,8 @@ function analyzeRowClues(inst: YakusoInstance, r: number): RowClues {
 }
 
 /** Ways to place `d` copies of digit `d` in row `r`, given residual capacity and clues. */
-function placementsForDigit(inst: YakusoInstance, r: number, d: number, colSum: number[], rc: RowClues): Placement[] {
-  const { cols, totals, clues } = inst;
+function placementsForDigit(inst: YakusoInstance, totals: number[], r: number, d: number, colSum: number[], rc: RowClues): Placement[] {
+  const { cols, clues } = inst;
   const base = r * cols;
   if (rc.forced.length > d) return [];
   if (rc.forced.some((c) => colSum[c] + d > totals[c])) return [];
@@ -51,7 +51,7 @@ function placementsForDigit(inst: YakusoInstance, r: number, d: number, colSum: 
  * source of YAKUSO's placement rule, shared by the uniqueness solver and the
  * effort-based rater (no drift).
  */
-function rowPlacements(inst: YakusoInstance, r: number, colSum: number[], used: Set<number>): Placement[] {
+function rowPlacements(inst: YakusoInstance, totals: number[], r: number, colSum: number[], used: Set<number>): Placement[] {
   const rc = analyzeRowClues(inst, r);
   if (rc.contradictory) return [];
   const digits = rc.pinned !== 0 ? [rc.pinned] : [];
@@ -59,18 +59,18 @@ function rowPlacements(inst: YakusoInstance, r: number, colSum: number[], used: 
   const out: Placement[] = [];
   for (const d of digits) {
     if (used.has(d)) continue;
-    out.push(...placementsForDigit(inst, r, d, colSum, rc));
+    out.push(...placementsForDigit(inst, totals, r, d, colSum, rc));
   }
   return out;
 }
 
 /** Most-constrained unassigned row (MRV); `null` on a dead end (some row has no placement). */
-function pickRow(inst: YakusoInstance, colSum: number[], used: Set<number>, assigned: boolean[]): { row: number; placements: Placement[] } | null {
+function pickRow(inst: YakusoInstance, totals: number[], colSum: number[], used: Set<number>, assigned: boolean[]): { row: number; placements: Placement[] } | null {
   let bestRow = -1;
   let best: Placement[] | null = null;
   for (let r = 0; r < inst.rows; r++) {
     if (assigned[r]) continue;
-    const ps = rowPlacements(inst, r, colSum, used);
+    const ps = rowPlacements(inst, totals, r, colSum, used);
     if (ps.length === 0) return null;
     if (best === null || ps.length < best.length) { bestRow = r; best = ps; }
   }
@@ -88,7 +88,9 @@ interface SearchResult { solutions: YakusoSolution[]; guesses: number }
  * `Infinity`.
  */
 function search(inst: YakusoInstance, limit: number, measure: boolean, effortCap: number): SearchResult {
-  const { rows, cols, totals } = inst;
+  const { rows, cols } = inst;
+  // Reconstruct the one hidden total so the search runs against full column constraints.
+  const totals = effectiveTotals(inst);
   const colSum = new Array<number>(cols).fill(0);
   const used = new Set<number>();
   const assigned = new Array<boolean>(rows).fill(false);
@@ -117,7 +119,7 @@ function search(inst: YakusoInstance, limit: number, measure: boolean, effortCap
       if (totals.every((t, c) => t === colSum[c])) solutions.push(buildGrid());
       return;
     }
-    const choice = pickRow(inst, colSum, used, assigned);
+    const choice = pickRow(inst, totals, colSum, used, assigned);
     if (!choice) return;
     const branched = choice.placements.length > 1;
     for (const p of choice.placements) {

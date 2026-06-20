@@ -31,6 +31,14 @@
     i < cellView.length && !game.isGiven(i) && cellView[i] !== AUTO_ZERO;
   const firstInput = $derived(cellView.findIndex((v, i) => !game.isGiven(i) && v !== AUTO_ZERO));
   const tabStop = $derived(selected ?? firstInput);
+  // One total per column; `null` is hidden — the player must deduce that column's sum.
+  const totalCells = $derived(
+    game.instance.totals.map((total) => ({
+      text: total === null ? '' : String(total),
+      hidden: total === null,
+      aria: total === null ? t('aria.hiddenTotal') : t('aria.total', { total })
+    }))
+  );
 </script>
 
 <div
@@ -62,8 +70,14 @@
       </button>
     {/if}
   {/each}
-  {#each game.instance.totals as total, c (c)}
-    <div class="cell total" role="gridcell" aria-label={t('aria.total', { total })} class:firsttotal={c === 0}>{total}</div>
+  {#each totalCells as cell, c (c)}
+    <div
+      class="cell total"
+      role="gridcell"
+      aria-label={cell.aria}
+      class:hidden-total={cell.hidden}
+      class:firsttotal={c === 0}
+    >{cell.text}</div>
   {/each}
 </div>
 
@@ -101,6 +115,9 @@
     font-weight: 700;
     margin-top: 4px;
   }
+  /* A hidden total: the player must deduce this column's sum. */
+  .cell.total.hidden-total { background: var(--surface-3); color: var(--text-muted); }
+  .cell.total.hidden-total::before { content: '?'; opacity: 0.5; }
   .notes { font-size: 10px; color: var(--text-muted); letter-spacing: 1px; }
   .legend { font-size: 12px; color: var(--text-muted); margin: 4px 0 0; }
 </style>
