@@ -30,9 +30,10 @@ function randomSolution(prng: PRNG, rows: number, cols: number): number[] {
  * harder — the player must deduce that column's sum), then seed every interior
  * cell and dig: remove a seed only when the result stays uniquely solvable AND
  * does not rate harder than the target (so more-seeds-is-easier holds and
- * difficulty stays bounded). The hidden total is in force throughout, so the
- * uniqueness oracle and rater both account for it; the final instance is always
- * verified unique. `achievedDifficulty` is reported honestly by `rate`.
+ * difficulty stays bounded). The hidden total is exactly recoverable from the
+ * others (see `effectiveTotals`), so the uniqueness oracle and rater reconstruct
+ * it and the final instance is always verified unique. `achievedDifficulty` is
+ * reported honestly by `rate`.
  */
 export function generateForDifficulty(prng: PRNG, target: Difficulty): GeneratedYakuso {
   const rows = ROWS[target];

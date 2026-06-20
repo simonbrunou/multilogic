@@ -51,9 +51,9 @@ describe('yakuso solver', () => {
     expect(effortToSolve(inst([...exampleGrid]))).toBe(0);
   });
 
-  it('a hidden total (null) imposes no column constraint but the grid still solves', () => {
-    // Hide column 2's total; the fully-seeded grid is still uniquely solvable to itself,
-    // and the hidden column places no upper bound during the search.
+  it('reconstructs a hidden total (null) from the others and still solves uniquely', () => {
+    // Hide column 2's total; the solver recovers it (Σ d² − shown totals) and the
+    // fully-seeded grid is still uniquely solvable to itself.
     const totals = exampleTotals.map((t, c) => (c === 2 ? null : t)) as (number | null)[];
     const r = solveComplete(inst([...exampleGrid], totals), 2);
     expect(r.count).toBe(1);
