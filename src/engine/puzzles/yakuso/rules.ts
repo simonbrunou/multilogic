@@ -49,7 +49,8 @@ export function isCompleteSolution(inst: YakusoInstance, grid: number[]): boolea
     usedDigits.add(digit);
   }
   const sums = columnSums(grid, rows, cols);
-  return totals.every((t, c) => t === sums[c]);
+  // A hidden total (`null`) is unconstrained; the row rules already pin the grid there.
+  return totals.every((t, c) => t === null || t === sums[c]);
 }
 
 export function serializeInstance(inst: YakusoInstance): string { return JSON.stringify(inst); }

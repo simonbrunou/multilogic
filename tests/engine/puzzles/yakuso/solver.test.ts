@@ -15,8 +15,8 @@ const exampleGrid = [
 ];
 const exampleTotals = [5, 1, 5, 3];
 
-function inst(clues: (number | null)[]): YakusoInstance {
-  return { rows: 3, cols: 4, totals: exampleTotals, clues };
+function inst(clues: (number | null)[], totals: (number | null)[] = exampleTotals): YakusoInstance {
+  return { rows: 3, cols: 4, totals, clues };
 }
 
 describe('yakuso solver', () => {
@@ -49,6 +49,15 @@ describe('yakuso solver', () => {
 
   it('effort is 0 for a fully forced (complete) instance', () => {
     expect(effortToSolve(inst([...exampleGrid]))).toBe(0);
+  });
+
+  it('a hidden total (null) imposes no column constraint but the grid still solves', () => {
+    // Hide column 2's total; the fully-seeded grid is still uniquely solvable to itself,
+    // and the hidden column places no upper bound during the search.
+    const totals = exampleTotals.map((t, c) => (c === 2 ? null : t)) as (number | null)[];
+    const r = solveComplete(inst([...exampleGrid], totals), 2);
+    expect(r.count).toBe(1);
+    expect(r.solution).toEqual(exampleGrid);
   });
 
   it('over-determined / contradictory instance has no solution', () => {

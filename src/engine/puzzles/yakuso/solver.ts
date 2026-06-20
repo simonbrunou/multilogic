@@ -33,12 +33,14 @@ function analyzeRowClues(inst: YakusoInstance, r: number): RowClues {
 function placementsForDigit(inst: YakusoInstance, r: number, d: number, colSum: number[], rc: RowClues): Placement[] {
   const { cols, totals, clues } = inst;
   const base = r * cols;
+  // A hidden total (`null`) places no upper bound on its column.
+  const fits = (c: number): boolean => totals[c] === null || colSum[c] + d <= totals[c]!;
   if (rc.forced.length > d) return [];
-  if (rc.forced.some((c) => colSum[c] + d > totals[c])) return [];
+  if (rc.forced.some((c) => !fits(c))) return [];
   const free: number[] = [];
   for (let c = 0; c < cols; c++) {
     if (rc.forced.includes(c) || rc.zero.has(c) || clues[base + c] !== null) continue;
-    if (colSum[c] + d <= totals[c]) free.push(c);
+    if (fits(c)) free.push(c);
   }
   const need = d - rc.forced.length;
   if (need < 0 || need > free.length) return [];
@@ -114,7 +116,8 @@ function search(inst: YakusoInstance, limit: number, measure: boolean, effortCap
   const rec = (depth: number): void => {
     if (capped || solutions.length >= limit) return;
     if (depth === rows) {
-      if (totals.every((t, c) => t === colSum[c])) solutions.push(buildGrid());
+      // A hidden total imposes no equality constraint; any reached sum is admissible there.
+      if (totals.every((t, c) => t === null || t === colSum[c])) solutions.push(buildGrid());
       return;
     }
     const choice = pickRow(inst, colSum, used, assigned);

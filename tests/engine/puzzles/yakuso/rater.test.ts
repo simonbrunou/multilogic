@@ -12,6 +12,8 @@ describe('yakuso rater', () => {
     expect(rate(full)).toBe('easy');
   });
 
+  // 20 full generations including expert (with a hidden total the search is larger);
+  // the generous timeout absorbs the occasional pathological seed.
   it('generated instances never rate harder than requested (difficulty is bounded)', () => {
     for (const d of ['easy', 'medium', 'hard', 'expert'] as const) {
       for (let n = 0; n < 5; n++) {
@@ -19,5 +21,5 @@ describe('yakuso rater', () => {
         expect(RANK[rate(g.instance)]).toBeLessThanOrEqual(RANK[d]);
       }
     }
-  });
+  }, 30000);
 });

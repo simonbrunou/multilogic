@@ -167,10 +167,12 @@ export class YakusoGame extends UndoableGame {
     }
   }
 
-  /** Per column: the filled sum must not exceed the displayed total. */
+  /** Per column: the filled sum must not exceed the displayed total. A hidden total imposes no bound. */
   private columnConflicts(bad: Set<number>): void {
     const { rows, cols, totals } = this.instance;
     for (let c = 0; c < cols; c++) {
+      const cap = totals[c];
+      if (cap === null) continue;
       let sum = 0;
       const filled: number[] = [];
       for (let r = 0; r < rows; r++) {
@@ -178,7 +180,7 @@ export class YakusoGame extends UndoableGame {
         const v = this.digit(i);
         if (v !== 0) { sum += v; filled.push(i); }
       }
-      if (sum > totals[c]) for (const i of filled) bad.add(i);
+      if (sum > cap) for (const i of filled) bad.add(i);
     }
   }
 

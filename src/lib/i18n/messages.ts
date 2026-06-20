@@ -94,6 +94,7 @@ const en = {
     digit: (p: { n: number }) => `digit ${p.n}`,
     grid: (p: { label: string }) => `${p.label} grid`,
     total: (p: { total: number }) => `column total ${p.total}`,
+    hiddenTotal: 'hidden column total',
     timer: 'Elapsed time',
     pad: (p: { notes: boolean }): string => (p.notes ? 'Number pad, notes mode' : 'Number pad')
   },
@@ -211,6 +212,7 @@ const fr: typeof en = {
     digit: (p) => `chiffre ${p.n}`,
     grid: (p) => `grille ${p.label}`,
     total: (p) => `total de la colonne ${p.total}`,
+    hiddenTotal: 'total de colonne masqué',
     timer: 'Temps écoulé',
     pad: (p) => (p.notes ? 'Pavé numérique, mode notes' : 'Pavé numérique')
   },

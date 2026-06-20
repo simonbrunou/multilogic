@@ -4,15 +4,16 @@
  * A board of `rows` interior rows × `cols` columns with `cols === rows + 1`.
  * Each interior row owns a distinct digit `d ∈ 1..rows`, holding the value `d`
  * exactly `d` times and `0` in its other cells (the rows form a permutation of
- * `1..rows`). The `totals` row beneath the grid gives each column's sum and is
- * always shown. Some interior cells are revealed as `clues` (the difficulty
- * knob). The solution is unique.
+ * `1..rows`). The `totals` row beneath the grid gives each column's sum. Exactly
+ * one total is **hidden** (`null`) — the player must deduce that column's sum,
+ * which makes the grid harder; the others are shown. Some interior cells are
+ * revealed as `clues` (the difficulty knob). The solution is unique.
  */
 export interface YakusoInstance {
   rows: number; // R
   cols: number; // C = R + 1
-  /** length `cols`; column sums, always shown to the player. */
-  totals: number[];
+  /** length `cols`; column sums. `null` = hidden from the player (one per grid). */
+  totals: (number | null)[];
   /** length `rows*cols`; `null` = unseeded, else the seeded value (`0..rows`). */
   clues: (number | null)[];
 }
