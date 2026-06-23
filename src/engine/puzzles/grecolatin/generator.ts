@@ -1,5 +1,6 @@
 import { encodePair, decodePair } from './rules';
 import { rate } from './rater';
+import { solveComplete } from './solver';
 import type { PRNG } from '../../core/prng';
 import type { Difficulty } from '../../core/types';
 import type { GrecoLatinInstance } from './types';
@@ -114,20 +115,39 @@ export interface GeneratedGreco {
   difficulty: Difficulty;
 }
 
-/** Reveal `count` random cells; each is full / digit-only / letter-only per `partial`. */
-function revealPartial(
+/**
+ * Reveal `count` cells (each full / digit-only / letter-only per `partial`), then TOP UP
+ * with additional full cells until the clue set has a unique completion. The scheduled
+ * partial reveals alone do not guarantee uniqueness — at the sparse end (e.g. `expert`'s
+ * 6 cells) a clue set almost always admits many Greco-Latin completions — so we keep
+ * revealing cells from the same shuffled order until `solveComplete` reports exactly one
+ * solution. Revealing the full underlying square is the terminating worst case, so this
+ * always converges on a uniquely-solvable instance.
+ */
+function revealUnique(
   sol: number[], n: number, count: number, partial: number, prng: PRNG
 ): { digitClues: (number | null)[]; letterClues: (number | null)[] } {
   const digitClues = new Array<number | null>(n * n).fill(null);
   const letterClues = new Array<number | null>(n * n).fill(null);
   const order = prng.shuffle(sol.map((_, i) => i));
-  const k = Math.max(1, Math.min(count, n * n));
+  const total = n * n;
+  const k = Math.max(1, Math.min(count, total));
   for (let m = 0; m < k; m++) {
     const i = order[m];
     const p = decodePair(sol[i], n)!;
     if (prng.next() >= partial) { digitClues[i] = p.a; letterClues[i] = p.b; }      // full
     else if (prng.next() < 0.5) digitClues[i] = p.a;                                 // digit-only
     else letterClues[i] = p.b;                                                       // letter-only
+  }
+  // Top up with full reveals (skipping already-full cells) until the solution is unique.
+  let m = k;
+  while (solveComplete({ n, digitClues, letterClues }, 2).count !== 1) {
+    if (m >= total) break; // fully revealed ⇒ unique by construction; guard anyway
+    const i = order[m++];
+    if (digitClues[i] !== null && letterClues[i] !== null) continue;
+    const p = decodePair(sol[i], n)!;
+    digitClues[i] = p.a;
+    letterClues[i] = p.b;
   }
   return { digitClues, letterClues };
 }
@@ -138,7 +158,7 @@ export function generateForDifficulty(prng: PRNG, target: Difficulty, n = 5): Ge
   for (let attempt = 0; attempt < GEN_ATTEMPTS; attempt++) {
     const sol = buildSquare(n, prng);
     if (!sol) throw new Error(`grecolatin: failed to build a square of order ${n}`);
-    const { digitClues, letterClues } = revealPartial(sol, n, count, partial, prng);
+    const { digitClues, letterClues } = revealUnique(sol, n, count, partial, prng);
     const instance: GrecoLatinInstance = { n, digitClues, letterClues };
     const difficulty = rate(instance);
     if (difficulty === target) return { instance, difficulty };
