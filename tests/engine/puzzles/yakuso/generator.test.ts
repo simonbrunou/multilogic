@@ -5,15 +5,18 @@ import { isCompleteSolution, columnSums } from '../../../../src/engine/puzzles/y
 import { createPrng } from '../../../../src/engine/core/prng';
 import { DIFFICULTIES } from '../../../../src/engine/core/types';
 
+// Column totals hidden from the player per difficulty (mirrors the generator's HIDDEN map).
+const HIDDEN: Record<(typeof DIFFICULTIES)[number], number> = { easy: 1, medium: 1, hard: 1, expert: 2 };
+
 describe('yakuso generator', () => {
   for (const d of DIFFICULTIES) {
     it(`${d}: produces a unique instance whose stored solution is valid and reproduces totals`, () => {
       const g = generateForDifficulty(createPrng(`yakuso-${d}-gen`), d);
       // solution is a valid complete YAKUSO grid
       expect(isCompleteSolution(g.instance, g.solution)).toBe(true);
-      // exactly one total is hidden (null); the rest come from the solution
+      // the difficulty's quota of totals is hidden (null); the rest come from the solution
       const sums = columnSums(g.solution, g.instance.rows, g.instance.cols);
-      expect(g.instance.totals.filter((t) => t === null)).toHaveLength(1);
+      expect(g.instance.totals.filter((t) => t === null)).toHaveLength(HIDDEN[d]);
       g.instance.totals.forEach((t, c) => { if (t !== null) expect(t).toBe(sums[c]); });
       // uniquely solvable
       const r = solveComplete(g.instance, 2);

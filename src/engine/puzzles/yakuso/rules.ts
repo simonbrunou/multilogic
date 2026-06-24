@@ -8,29 +8,52 @@ export function columnSums(grid: number[], rows: number, cols: number): number[]
 }
 
 /**
- * The full column totals, with the single hidden total (`null`) reconstructed.
- *
- * Every row owns a distinct digit `d ∈ 1..rows` and places `d` copies of it, so
- * the grand total of all columns is the fixed constant `Σ d²` (d = 1..rows). One
- * hidden total is therefore exactly recoverable as `Σ d² − (sum of the shown
- * totals)`: hiding it costs the player a deduction but removes no information, so
- * the solver and rater treat it as a normal (reconstructed) constraint. With no
- * hidden total the input is returned unchanged.
+ * The fixed grand total of every column: every row owns a distinct digit
+ * `d ∈ 1..rows` and places `d` copies of it, so the sum of all columns is the
+ * constant `Σ d²` (d = 1..rows), independent of the layout.
  */
-export function effectiveTotals(inst: YakusoInstance): number[] {
-  const { rows, totals } = inst;
-  let known = 0;
-  let hidden = -1;
-  for (let c = 0; c < totals.length; c++) {
-    const t = totals[c];
-    if (t === null) hidden = c; else known += t;
-  }
-  if (hidden < 0) return totals as number[];
+function grandTotal(rows: number): number {
   let grand = 0;
   for (let d = 1; d <= rows; d++) grand += d * d;
-  const out = totals.map((t) => t ?? 0);
-  out[hidden] = grand - known;
-  return out;
+  return grand;
+}
+
+/** Sum of the column totals shown to the player (the non-`null` entries). */
+function shownTotal(totals: (number | null)[]): number {
+  let shown = 0;
+  for (const t of totals) if (t !== null) shown += t;
+  return shown;
+}
+
+/**
+ * Per-column upper bound for the solver, rater and conflict checks. A shown
+ * total caps its own column exactly; a hidden column (`null`) is capped by the
+ * **joint hidden budget** `Σ d² − (shown totals)` — the most any one hidden
+ * column could hold, since the hidden columns are non-negative and together sum
+ * to that budget. With a single hidden column the cap equals its true total
+ * (the budget *is* that column), so this generalizes the old reconstruction.
+ */
+export function totalCaps(inst: YakusoInstance): number[] {
+  const budget = grandTotal(inst.rows) - shownTotal(inst.totals);
+  return inst.totals.map((t) => t ?? budget);
+}
+
+/**
+ * Whether the column sums `sums` satisfy `inst`'s totals: every shown total is
+ * matched exactly, and the hidden columns collectively sum to the hidden budget
+ * `Σ d² − (shown totals)`. With one hidden column this pins that column's value
+ * exactly; with several it is a joint constraint (the individual hidden sums
+ * stay ambiguous, which is what makes more hidden totals harder).
+ */
+export function totalsSatisfied(inst: YakusoInstance, sums: number[]): boolean {
+  const { rows, totals } = inst;
+  let hiddenSum = 0;
+  for (let c = 0; c < totals.length; c++) {
+    const t = totals[c];
+    if (t === null) hiddenSum += sums[c];
+    else if (sums[c] !== t) return false;
+  }
+  return hiddenSum === grandTotal(rows) - shownTotal(totals);
 }
 
 /** All size-`k` combinations of `arr` (k ≤ arr.length). */
@@ -75,8 +98,8 @@ export function isCompleteSolution(inst: YakusoInstance, grid: number[]): boolea
     usedDigits.add(digit);
   }
   const sums = columnSums(grid, rows, cols);
-  // Compare against the full totals, reconstructing the one hidden total.
-  return effectiveTotals(inst).every((t, c) => t === sums[c]);
+  // Shown totals must match exactly; the hidden columns must sum to the budget.
+  return totalsSatisfied(inst, sums);
 }
 
 export function serializeInstance(inst: YakusoInstance): string { return JSON.stringify(inst); }
