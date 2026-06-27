@@ -17,3 +17,6 @@ static/puzzles.bundle.json
 
 # Vitest browser failure-debug screenshots
 tests/components/__screenshots__/
+
+.direnv/
+result
