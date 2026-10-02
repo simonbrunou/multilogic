@@ -5,6 +5,11 @@ import { DIFFICULTIES } from '../../src/engine/core/types';
 
 function sig() { return new AbortController().signal; }
 
+// Live generation is CPU-bound and runs close to 2 min per test under coverage even
+// on GitHub-hosted runners; the self-hosted runner (3 low-priority cores, shared
+// host) is slower still. The timeout is a hang guard, not a performance budget.
+const GENERATION_TIMEOUT_MS = 300_000;
+
 describe('difficulty targeting', () => {
   for (const type of ['sudoku', 'tectonic', 'kakuro', 'yakuso'] as const) {
     it(`${type}: easy is easier than expert (achieved effort spread)`, async () => {
@@ -16,7 +21,7 @@ describe('difficulty targeting', () => {
       expect(rank[easy.achievedDifficulty]).toBeLessThanOrEqual(rank[expert.achievedDifficulty]);
       // easy request should actually achieve 'easy'
       expect(easy.achievedDifficulty).toBe('easy');
-    }, 120000);
+    }, GENERATION_TIMEOUT_MS);
 
     it(`${type}: hitsRequested for easy+medium within attempts`, async () => {
       const mod = MODULES[type]!;
@@ -24,6 +29,6 @@ describe('difficulty targeting', () => {
         const r = await mod.generate({ difficulty: d, prng: createPrng(`${type}-${d}-x`), signal: sig() });
         expect(DIFFICULTIES).toContain(r.achievedDifficulty);
       }
-    }, 120000);
+    }, GENERATION_TIMEOUT_MS);
   }
 });
