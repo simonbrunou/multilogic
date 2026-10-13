@@ -17,7 +17,7 @@ jobs:
     name: check · lint · unit · build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run prepare # svelte-kit sync — generates $lib aliases + tsconfig
@@ -34,7 +34,7 @@ jobs:
     name: component + e2e tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run prepare
