@@ -4,7 +4,7 @@
   // underneath it). This surfaces the waiting worker and, when the user accepts, asks it to take
   // over; once it controls the page we reload onto the new version.
   import { onMount } from 'svelte';
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
 
   let waiting = $state<ServiceWorker | null>(null);
   let accepting = $state(false);

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
   let { noteMode, onnote, onundo, onredo, onerase, onhint }:
     { noteMode: boolean; onnote: () => void; onundo: () => void; onredo: () => void; onerase: () => void; onhint: () => void } = $props();
 </script>

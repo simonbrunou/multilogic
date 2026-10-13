@@ -17,7 +17,7 @@ function fakeGame(opts: { cells?: number[]; givens?: number[]; notes?: Map<numbe
 }
 
 test('renders 81 cells', async () => {
-  render(SudokuGrid, { game: fakeGame(), selected: null, onselect: () => {} });
+  await render(SudokuGrid, { game: fakeGame(), selected: null, onselect: () => {} });
   await expect.element(page.getByRole('grid')).toBeInTheDocument();
   expect(page.getByRole('button').elements()).toHaveLength(81);
 });
@@ -25,7 +25,7 @@ test('renders 81 cells', async () => {
 test('shows values and marks given cells', async () => {
   const cells = new Array(81).fill(0);
   cells[0] = 5;
-  render(SudokuGrid, { game: fakeGame({ cells, givens: [0] }), selected: null, onselect: () => {} });
+  await render(SudokuGrid, { game: fakeGame({ cells, givens: [0] }), selected: null, onselect: () => {} });
   const buttons = page.getByRole('button').elements();
   expect(buttons[0].textContent).toBe('5');
   expect(buttons[0].classList.contains('given')).toBe(true);
@@ -34,13 +34,13 @@ test('shows values and marks given cells', async () => {
 
 test('emits the cell index on click', async () => {
   const onselect = vi.fn();
-  render(SudokuGrid, { game: fakeGame(), selected: null, onselect });
+  await render(SudokuGrid, { game: fakeGame(), selected: null, onselect });
   await page.getByRole('button').nth(3).click();
   expect(onselect).toHaveBeenCalledWith(3);
 });
 
 test('highlights the selected cell', async () => {
-  render(SudokuGrid, { game: fakeGame(), selected: 4, onselect: () => {} });
+  await render(SudokuGrid, { game: fakeGame(), selected: 4, onselect: () => {} });
   await expect.element(page.getByRole('grid')).toBeInTheDocument();
   const buttons = page.getByRole('button').elements();
   expect(buttons[4].classList.contains('selected')).toBe(true);
@@ -48,7 +48,7 @@ test('highlights the selected cell', async () => {
 });
 
 test('renders pencil-mark notes for empty cells', async () => {
-  render(SudokuGrid, {
+  await render(SudokuGrid, {
     game: fakeGame({ notes: new Map([[10, [3, 1, 7]]]) }),
     selected: null,
     onselect: () => {}

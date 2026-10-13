@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { t, puzzleTypeLabel } from '$lib/i18n';
-  import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
+  import { t, puzzleTypeLabel } from '#lib/i18n/index.js';
+  import LanguageSwitcher from '#lib/components/LanguageSwitcher.svelte';
 
   const puzzles = ['sudoku', 'tectonic', 'kakuro', 'grecolatin', 'yakuso'];
 </script>

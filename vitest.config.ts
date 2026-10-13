@@ -1,4 +1,3 @@
-import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
 import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { playwright } from '@vitest/browser-playwright';
@@ -9,14 +8,9 @@ import { playwright } from '@vitest/browser-playwright';
 // Coverage is gathered from the `unit` project only (the logic it owns); the UI layer is
 // exercised by the browser project and Playwright e2e instead.
 export default defineConfig({
-  plugins: [svelte()],
-  // Mirror SvelteKit's `$lib` alias so components that import `$lib/...` (e.g. i18n) can be
-  // mounted in isolation by the browser project. The bare `svelte()` plugin doesn't add it.
-  resolve: {
-    alias: {
-      $lib: fileURLToPath(new URL('./src/lib', import.meta.url))
-    }
-  },
+  // The component project needs no preprocessors (Svelte 5 compiles TypeScript natively), and
+  // SvelteKit 3 reads its options from vite.config.ts rather than a svelte.config.js file.
+  plugins: [svelte({ configFile: false })],
   test: {
     passWithNoTests: true,
     projects: [

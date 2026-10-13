@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { TectonicGame } from '../play/tectonic-game';
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
   import { gridKeyboard } from '../play/grid-nav';
 
   let {

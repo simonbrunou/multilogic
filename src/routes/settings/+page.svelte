@@ -1,9 +1,9 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createStorage, type Settings } from '$lib/storage';
-  import { t } from '$lib/i18n';
-  import { setTheme } from '$lib/theme.svelte';
-  import LanguageSwitcher from '$lib/components/LanguageSwitcher.svelte';
+  import { createStorage, type Settings } from '#lib/storage.js';
+  import { t } from '#lib/i18n/index.js';
+  import { setTheme } from '#lib/theme.svelte.js';
+  import LanguageSwitcher from '#lib/components/LanguageSwitcher.svelte';
   let settings = $state<Settings>({ highlightErrors: true, autoNotes: false, theme: 'light' });
   let storage: ReturnType<typeof createStorage> | null = null;
   onMount(() => {

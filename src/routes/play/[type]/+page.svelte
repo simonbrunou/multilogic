@@ -1,18 +1,18 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
   import { page } from '$app/state';
-  import { GameStore } from '$lib/game.svelte';
-  import { generateInstance } from '$lib/load-instance';
-  import { createStorage } from '$lib/storage';
-  import NumberPad from '$lib/components/NumberPad.svelte';
-  import Toolbar from '$lib/components/Toolbar.svelte';
-  import TimerView from '$lib/components/TimerView.svelte';
-  import SolvedBanner from '$lib/components/SolvedBanner.svelte';
+  import { GameStore } from '#lib/game.svelte.js';
+  import { generateInstance } from '#lib/load-instance.js';
+  import { createStorage } from '#lib/storage.js';
+  import NumberPad from '#lib/components/NumberPad.svelte';
+  import Toolbar from '#lib/components/Toolbar.svelte';
+  import TimerView from '#lib/components/TimerView.svelte';
+  import SolvedBanner from '#lib/components/SolvedBanner.svelte';
   import type { Difficulty, PuzzleType } from '../../../engine/core/types';
-  import type { Transport } from '$lib/puzzle-service';
-  import { PLAY_UI } from '$lib/play/registry';
-  import type { SavedGame } from '$lib/storage';
-  import { difficultyLabel, t, puzzleTypeLabel } from '$lib/i18n';
+  import type { Transport } from '#lib/puzzle-service.js';
+  import { PLAY_UI } from '#lib/play/registry.js';
+  import type { SavedGame } from '#lib/storage.js';
+  import { difficultyLabel, t, puzzleTypeLabel } from '#lib/i18n/index.js';
 
   const puzzleType = $derived(page.params.type as PuzzleType);
   const entry = $derived(PLAY_UI[puzzleType]);

@@ -34,7 +34,7 @@ function makeClues() {
 async function renderBoard() {
   const { d, l } = makeClues();
   const store = makeStore(d, l);
-  render(GrecoBoard, { store });
+  await render(GrecoBoard, { store });
   await expect.element(page.getByRole('grid')).toBeInTheDocument();
   const cells = page.getByRole('button').elements().filter((b) => b.getAttribute('data-cell') !== null);
   return { store, cells };

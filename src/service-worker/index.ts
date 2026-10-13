@@ -1,7 +1,3 @@
-/// <reference types="@sveltejs/kit" />
-/// <reference lib="esnext" />
-/// <reference lib="webworker" />
-
 // Offline-first service worker. The app is a static SPA that generates puzzles client-side
 // (with a baked fallback bundle), so once the shell + assets are cached it works fully offline.
 //
@@ -12,12 +8,13 @@
 // router can take over. We do NOT skipWaiting — a new build activates on next cold start, so a
 // running session never has its hashed chunks swapped underneath it.
 
-import { build, files, prerendered, version } from '$service-worker';
-
-const sw = self as unknown as ServiceWorkerGlobalScope;
+import { version } from '$app/env';
+import { assets, immutable, prerendered } from '$app/manifest';
+import { self as sw } from '$app/service-worker';
 
 const CACHE = `ml-cache-${version}`;
-const PRECACHE = [...build, ...files, ...prerendered];
+// Manifest paths are relative to the base path (none here: the app is served from the root).
+const PRECACHE = [...immutable, ...assets, ...prerendered].map(({ path }) => `/${path}`);
 
 sw.addEventListener('install', (event) => {
   event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)));

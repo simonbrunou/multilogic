@@ -20,7 +20,7 @@ const container = (reg: object, controller: unknown = {}) =>
 
 test('renders nothing when no worker is waiting', async () => {
   stubSW(container(noopReg));
-  render(UpdatePrompt);
+  await render(UpdatePrompt);
   await new Promise((r) => setTimeout(r, 30)); // let ready.then settle without surfacing anything
   expect(page.getByRole('status').elements()).toHaveLength(0);
 });
@@ -28,7 +28,7 @@ test('renders nothing when no worker is waiting', async () => {
 test('does not prompt on first install (no controller yet) even with a waiting worker', async () => {
   const worker = { postMessage() {}, state: 'installed' };
   stubSW(container({ ...noopReg, waiting: worker }, null)); // controller null ⇒ first install
-  render(UpdatePrompt);
+  await render(UpdatePrompt);
   await new Promise((r) => setTimeout(r, 30));
   expect(page.getByRole('status').elements()).toHaveLength(0);
 });
@@ -37,7 +37,7 @@ test('shows the prompt for a waiting worker and posts SKIP_WAITING on accept', a
   const posts: unknown[] = [];
   const worker = { postMessage: (m: unknown) => posts.push(m), state: 'installed' };
   stubSW(container({ ...noopReg, waiting: worker }));
-  render(UpdatePrompt);
+  await render(UpdatePrompt);
   await expect.element(page.getByRole('status')).toBeInTheDocument();
   await page.getByRole('button').click();
   expect(posts).toEqual([{ type: 'SKIP_WAITING' }]);

@@ -1,8 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { todayISO } from '$lib/daily';
-  import { createStorage } from '$lib/storage';
-  import { t, puzzleTypeLabel } from '$lib/i18n';
+  import { todayISO } from '#lib/daily.js';
+  import { createStorage } from '#lib/storage.js';
+  import { t, puzzleTypeLabel } from '#lib/i18n/index.js';
 
   const date = todayISO(new Date());
   const keys = ['sudoku', 'tectonic', 'kakuro', 'grecolatin', 'yakuso'];

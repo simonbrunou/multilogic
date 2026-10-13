@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
   let { ms }: { ms: number } = $props();
   const fmt = $derived.by(() => {
     const s = Math.floor(ms / 1000);

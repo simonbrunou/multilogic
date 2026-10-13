@@ -1,6 +1,6 @@
 <script lang="ts">
   import { MARKED_ZERO, AUTO_ZERO, type YakusoGame } from '../play/yakuso-game';
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
   import { gridKeyboard } from '../play/grid-nav';
 
   let {

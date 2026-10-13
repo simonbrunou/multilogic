@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { browser } from '$app/environment';
-	import { initLocale, t } from '$lib/i18n';
-	import { initTheme } from '$lib/theme.svelte';
-	import UpdatePrompt from '$lib/components/UpdatePrompt.svelte';
-	import '$lib/styles/app.css';
+	import { browser } from '$app/env';
+	import { initLocale, t } from '#lib/i18n/index.js';
+	import { initTheme } from '#lib/theme.svelte.js';
+	import UpdatePrompt from '#lib/components/UpdatePrompt.svelte';
+	import '#lib/styles/app.css';
 
 	let { children } = $props();
 
