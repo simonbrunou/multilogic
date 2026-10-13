@@ -1,7 +1,7 @@
 <script lang="ts">
   import type { KakuroGame } from '../play/kakuro-game';
   import type { KakuroClue } from '../../engine/puzzles/kakuro/types';
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
   import { gridKeyboard } from '../play/grid-nav';
 
   let {

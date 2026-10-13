@@ -1,6 +1,6 @@
 <script lang="ts">
   import type { PlayableGame } from '../play/playable';
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
   import { gridKeyboard } from '../play/grid-nav';
   let { game, selected, tick = 0, conflicts = new Set<number>(), highlightErrors = true, onselect }:
     { game: PlayableGame; selected: number | null; tick?: number; conflicts?: Set<number>; highlightErrors?: boolean; onselect: (i: number) => void } = $props();

@@ -15,7 +15,8 @@ static/puzzles.bundle.json
 .fallow/
 .claude/worktrees/
 
-# Vitest browser failure-debug screenshots
+# Vitest browser failure screenshots/attachments and other artifacts (.vitest/ in Vitest 5)
+.vitest/
 tests/components/__screenshots__/
 
 .direnv/

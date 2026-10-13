@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { createStorage, type Stats } from '$lib/storage';
-  import { difficultyLabel, t } from '$lib/i18n';
+  import { createStorage, type Stats } from '#lib/storage.js';
+  import { difficultyLabel, t } from '#lib/i18n/index.js';
   const diffs = ['easy', 'medium', 'hard', 'expert'];
   let rows = $state<{ d: string; s: Stats }[]>([]);
   onMount(() => {

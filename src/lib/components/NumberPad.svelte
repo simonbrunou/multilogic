@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { t } from '$lib/i18n';
+  import { t } from '#lib/i18n/index.js';
   let { onenter, noteMode = false, maxDigit = 9, allowZero = false }: { onenter: (n: number) => void; noteMode?: boolean; maxDigit?: number; allowZero?: boolean } = $props();
   const digits = $derived(Array.from({ length: maxDigit }, (_, i) => i + 1));
   const keys = $derived(allowZero ? [...digits, 0] : digits);

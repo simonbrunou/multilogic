@@ -1,17 +1,17 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from 'svelte';
-  import { GrecoStore } from '$lib/play/greco.svelte';
-  import { generateInstance } from '$lib/load-instance';
-  import { createStorage } from '$lib/storage';
+  import { GrecoStore } from '#lib/play/greco.svelte.js';
+  import { generateInstance } from '#lib/load-instance.js';
+  import { createStorage } from '#lib/storage.js';
   import { getModule } from '../../../engine/puzzles/registry';
-  import GrecoBoard from '$lib/components/GrecoBoard.svelte';
-  import TimerView from '$lib/components/TimerView.svelte';
-  import SolvedBanner from '$lib/components/SolvedBanner.svelte';
+  import GrecoBoard from '#lib/components/GrecoBoard.svelte';
+  import TimerView from '#lib/components/TimerView.svelte';
+  import SolvedBanner from '#lib/components/SolvedBanner.svelte';
   import type { Difficulty } from '../../../engine/core/types';
-  import type { Transport } from '$lib/puzzle-service';
-  import type { SavedGreco } from '$lib/storage';
+  import type { Transport } from '#lib/puzzle-service.js';
+  import type { SavedGreco } from '#lib/storage.js';
   import type { GrecoLatinInstance } from '../../../engine/puzzles/grecolatin/types';
-  import { difficultyLabel, t, puzzleTypeLabel } from '$lib/i18n';
+  import { difficultyLabel, t, puzzleTypeLabel } from '#lib/i18n/index.js';
 
   const store = new GrecoStore();
   let loading = $state(true);

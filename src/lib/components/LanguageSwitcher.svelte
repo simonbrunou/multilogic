@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { locale, setLocale, localeNames, t, type Locale } from '$lib/i18n';
+  import { locale, setLocale, localeNames, t, type Locale } from '#lib/i18n/index.js';
 
   const locales = Object.keys(localeNames) as Locale[];
 </script>

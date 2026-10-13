@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { GrecoStore } from '$lib/play/greco.svelte';
-  import { t } from '$lib/i18n';
-  import { gridKeyboard } from '$lib/play/grid-nav';
+  import type { GrecoStore } from '#lib/play/greco.svelte.js';
+  import { t } from '#lib/i18n/index.js';
+  import { gridKeyboard } from '#lib/play/grid-nav.js';
 
   let { store }: { store: GrecoStore } = $props();
 

@@ -1,14 +1,13 @@
-import type { HandleClientError } from '@sveltejs/kit';
+import type { HandleClientError } from '@sveltejs/kit/hooks';
 
 // Central client-side error capture. SvelteKit calls this for uncaught errors during
 // navigation, `load`, and rendering. Today it logs to the console; this is the single
 // place to forward to a reporter (e.g. GlitchTip / Sentry `captureException`) later
 // without touching any call sites. Component render errors are caught separately by the
 // top-level <svelte:boundary> in +layout.svelte.
-export const handleError: HandleClientError = ({ error, event, status, message }) => {
+export const handleError: HandleClientError = ({ kind, error, event }) => {
   console.error('[multilogic] client error', {
-    status,
-    message,
+    kind,
     path: event.url?.pathname,
     error
   });
