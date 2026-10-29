@@ -20,7 +20,11 @@ export default defineConfig({
           name: 'unit',
           include: ['tests/**/*.test.ts'],
           exclude: ['tests/components/**'],
-          environment: 'node'
+          environment: 'node',
+          // CPU-bound puzzle generation under v8 coverage ran 5-7x slower on the shared
+          // self-hosted CI runner when it was busy (timings in #83). The default is a hang
+          // guard, not a performance budget; tests that pass their own timeout keep it.
+          testTimeout: 60_000
         }
       },
       {
