@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "fallow": {
-      "command": "bunx",
-      "args": ["fallow-mcp"]
+      "command": "npx",
+      "args": ["--yes", "-p", "fallow", "fallow-mcp"]
     }
   }
 }
