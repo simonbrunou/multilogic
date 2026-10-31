@@ -18,6 +18,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - name: bun.lock is the only lockfile
+        # Renovate moves package.json to its npm manager, and stops updating bun.lock, once
+        # another JS lockfile exists (#89). .npmrc stops npm from writing one, not yarn or pnpm.
+        run: |
+          stray=$(git ls-files '*package-lock.json' '*npm-shrinkwrap.json' '*yarn.lock' '*pnpm-lock.yaml')
+          if [ -n "$stray" ]; then
+            echo "bun.lock must be the only lockfile (#89). Remove: $stray" >&2
+            exit 1
+          fi
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run prepare # svelte-kit sync — generates $lib aliases + tsconfig
