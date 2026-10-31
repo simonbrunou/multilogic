@@ -14,6 +14,11 @@
       "matchDepTypes": ["devDependencies"],
       "matchUpdateTypes": ["minor"],
       "automerge": true
+    },
+    {
+      "description": "Keep the engines.bun floor out of the top-level rangeStrategy bump: under bump, Renovate opens a renovate/bun-1.x PR that raises \">=1.1.0\" to the newest Bun on every release, which main never did. auto leaves a range the newest Bun already satisfies alone (#89).",
+      "matchDepTypes": ["engines"],
+      "rangeStrategy": "auto"
     }
   ]
 }
