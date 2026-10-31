@@ -16,8 +16,9 @@
       "automerge": true
     },
     {
-      "description": "Keep the engines.bun floor out of the top-level rangeStrategy bump: under bump, Renovate opens a renovate/bun-1.x PR that raises \">=1.1.0\" to the newest Bun on every release, which main never did. auto leaves a range the newest Bun already satisfies alone (#89).",
+      "description": "Keep the engines.bun floor out of the top-level rangeStrategy bump, since #89 leaves the Bun version pins alone: under bump, a dry run opens a renovate/bun-1.x PR that raises \">=1.1.0\" to the newest Bun, and the dry run on main before #89 did not. auto leaves a range the newest Bun already satisfies alone.",
       "matchDepTypes": ["engines"],
+      "matchDepNames": ["bun"],
       "rangeStrategy": "auto"
     }
   ]
