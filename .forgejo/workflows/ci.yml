@@ -29,6 +29,11 @@ jobs:
             echo "bun.lock must be the only lockfile (#89). Remove: $stray" >&2
             exit 1
           fi
+      # .nvmrc is the one Node pin: railpack builds production on it too, and `bun run`
+      # starts vite, vitest and svelte-check on that Node, not on Bun.
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run prepare # svelte-kit sync — generates $lib aliases + tsconfig
@@ -46,6 +51,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
       - uses: oven-sh/setup-bun@v2
       - run: bun install --frozen-lockfile
       - run: bun run prepare
