@@ -3,7 +3,8 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { playwright } from '@vitest/browser-playwright';
 
 // Two projects:
-//  - `unit`    : fast Node tests for the pure engine + lib logic (the bulk of the suite).
+//  - `unit`    : fast Node tests for the pure engine + lib logic (the bulk of the suite), the
+//                pregen script, and tests/node-pins.test.ts, which reads the repo's Node pins.
 //  - `browser` : real-browser component tests (Svelte 5 mount) via Playwright/Chromium.
 // Coverage is gathered from the `unit` project only (the logic it owns); the UI layer is
 // exercised by the browser project and Playwright e2e instead.

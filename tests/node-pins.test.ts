@@ -8,30 +8,36 @@ import { readFileSync } from 'node:fs';
 
 type PinFiles = { nvmrc: string; packageJson: string; flakeNix: string };
 type PinCheck = { major: number } | { problems: string[] };
-type Pin = { where: string; read: string; major: number };
+type Pin = { where: string; text: string; major: number };
 type PackageJson = Record<string, Record<string, unknown> | undefined>;
 
-// One major, as an npm range: 26, v26, 26.x, 26.13.0, ^26.6.6, ~26.1.0. A range that spans
-// majors (>=24, ^24 || ^26) or names none (*, latest) does not match. sutom's
-// check-node-pins.sh uses the same pattern.
-const ONE_MAJOR = /^[~^]?v?(\d+)(\.(\d+|[xX*])){0,2}(-[0-9A-Za-z.-]+)?$/;
+// One major, as an npm range: 26, v26, 26.x, 26.1.x, 26.13.0, 26.0.0-rc.1, =26.1.0, ^26.6.6,
+// ~26.1.0. Anything else fails: a range that spans majors (>=24, ^24 || ^26), names none
+// (*, latest) or holds two comparators (>=26 <27). Adapted from sutom's ONE_MAJOR pattern in
+// scripts/check-node-pins.sh, which also accepts 24-26 and 26.x.5, two ranges npm rejects.
+const ONE_MAJOR = /^[~^=]?v?(\d+)(\.[xX*](\.[xX*])?|\.\d+(\.[xX*]|\.\d+(-[0-9A-Za-z.-]+)?)?)?$/;
 
 // One version line and nothing else: 26, v26 or 26.13.0, with an optional trailing newline.
 const NVMRC_VERSION = /^v?(\d+)(\.\d+){0,2}(\r?\n)?$/;
 
-// Every nodejs_<major> in the file counts, comments included: a second major anywhere fails.
+// Nix comments: # to the end of the line, and /* ... */. A nodejs_<major> inside one is no pin.
+const NIX_COMMENT = /#.*|\/\*[\s\S]*?\*\//g;
 const FLAKE_NODE = /\bnodejs_(\d+)\b/g;
 
 function readNvmrc(text: string, pins: Pin[], problems: string[]): void {
   const match = NVMRC_VERSION.exec(text);
-  if (match) pins.push({ where: '.nvmrc', read: text.trim(), major: Number(match[1]) });
+  if (match) pins.push({ where: '.nvmrc', text: text.trim(), major: Number(match[1]) });
   else problems.push(`.nvmrc ${JSON.stringify(text)} is not one Node version line such as 26, v26 or 26.13.0`);
 }
 
 function readRange(where: string, value: unknown, pins: Pin[], problems: string[]): void {
-  const match = typeof value === 'string' ? ONE_MAJOR.exec(value) : null;
-  if (match) pins.push({ where, read: value as string, major: Number(match[1]) });
-  else problems.push(`${where} ${JSON.stringify(value)} does not name one Node major`);
+  if (typeof value !== 'string') {
+    problems.push(`${where} is ${JSON.stringify(value)}, not a string`);
+    return;
+  }
+  const match = ONE_MAJOR.exec(value);
+  if (match) pins.push({ where, text: value, major: Number(match[1]) });
+  else problems.push(`${where} ${JSON.stringify(value)} is not a one-major range such as 26.x, ^26.6.6 or ~26.1.0`);
 }
 
 function parseObject(text: string): PackageJson | undefined {
@@ -59,11 +65,12 @@ function readPackageJson(text: string, pins: Pin[], problems: string[]): void {
 }
 
 function readFlakeNix(text: string, pins: Pin[], problems: string[]): void {
-  const names = [...new Set([...text.matchAll(FLAKE_NODE)].map((match) => match[0]))];
+  const code = text.replace(NIX_COMMENT, '');
+  const names = [...new Set([...code.matchAll(FLAKE_NODE)].map((match) => match[0]))];
   const majors = new Set(names.map((name) => Number(name.slice('nodejs_'.length))));
-  if (names.length === 0) problems.push('flake.nix names no nodejs_<major> package');
+  if (names.length === 0) problems.push('flake.nix names no nodejs_<major> package outside a comment');
   else if (majors.size > 1) problems.push(`flake.nix names more than one Node major: ${names.join(', ')}`);
-  else pins.push({ where: 'flake.nix', read: names[0], major: [...majors][0] });
+  else pins.push({ where: 'flake.nix', text: names[0], major: [...majors][0] });
 }
 
 function checkNodePins(files: PinFiles): PinCheck {
@@ -73,7 +80,7 @@ function checkNodePins(files: PinFiles): PinCheck {
   readPackageJson(files.packageJson, pins, problems);
   readFlakeNix(files.flakeNix, pins, problems);
   if (new Set(pins.map((pin) => pin.major)).size > 1) {
-    const list = pins.map((pin) => `${pin.where} ${JSON.stringify(pin.read)} is ${pin.major}`);
+    const list = pins.map((pin) => `${pin.where} ${JSON.stringify(pin.text)} is ${pin.major}`);
     problems.push(`the Node majors differ: ${list.join('; ')}`);
   }
   return problems.length > 0 ? { problems } : { major: pins[0].major };
@@ -96,11 +103,11 @@ function problemsOf(result: PinCheck): string[] {
 
 describe('Node pins name one major', () => {
   it("passes on the repo's own .nvmrc, package.json and flake.nix", () => {
-    const read = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
+    const repoFile = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
     const result = checkNodePins({
-      nvmrc: read('.nvmrc'),
-      packageJson: read('package.json'),
-      flakeNix: read('flake.nix')
+      nvmrc: repoFile('.nvmrc'),
+      packageJson: repoFile('package.json'),
+      flakeNix: repoFile('flake.nix')
     });
     expect(result).toEqual({ major: expect.any(Number) });
   });
@@ -110,7 +117,8 @@ describe('Node pins name one major', () => {
       expect(check({ nvmrc })).toEqual({ major: 26 });
     });
 
-    it.each(['^26.6.6', '~26.1.0', '26.x', '26', '26.*', '26.0.0-rc.1'])('@types/node %j', (range) => {
+    const ranges = ['^26.6.6', '~26.1.0', '=26.1.0', '26.x', '26.x.x', '26.1.x', '26', '26.*', '26.0.0-rc.1'];
+    it.each(ranges)('@types/node %j', (range) => {
       const pkg = packageJson({ devDependencies: { '@types/node': range } });
       expect(check({ packageJson: pkg })).toEqual({ major: 26 });
     });
@@ -125,8 +133,13 @@ describe('Node pins name one major', () => {
       expect(check({ packageJson: packageJson({ engines: { node: '26.x' } }) })).toEqual({ major: 26 });
     });
 
-    it('flake.nix naming the same nodejs_<major> twice', () => {
-      expect(check({ flakeNix: `${FLAKE}# nodejs_26 also builds the site\n` })).toEqual({ major: 26 });
+    it('flake.nix naming nodejs_26 twice', () => {
+      expect(check({ flakeNix: FLAKE.replace('nodejs_26', 'nodejs_26 nodejs_26.pkgs.pnpm') })).toEqual({ major: 26 });
+    });
+
+    it('flake.nix naming another major in a comment', () => {
+      const flakeNix = `# nodejs_24 lacked a fix\n${FLAKE.replace('bun', 'bun /* not nodejs_22 */')}`;
+      expect(check({ flakeNix })).toEqual({ major: 26 });
     });
   });
 
@@ -178,18 +191,19 @@ describe('Node pins name one major', () => {
       ]);
     });
 
-    it.each(['>=24', '*', 'latest', '^24 || ^26', '24 - 26', ''])('@types/node %j', (range) => {
+    const ranges = ['>=24', '*', 'latest', '^24 || ^26', '24 - 26', '>=26 <27', '24-26', '26.x.5', '26-rc', ''];
+    it.each(ranges)('@types/node %j', (range) => {
       const pkg = packageJson({ devDependencies: { '@types/node': range } });
       expect(problemsOf(check({ packageJson: pkg }))).toEqual([
-        `package.json devDependencies @types/node ${JSON.stringify(range)} does not name one Node major`
+        `package.json devDependencies @types/node ${JSON.stringify(range)} is not a one-major range such as 26.x, ^26.6.6 or ~26.1.0`
       ]);
     });
 
     it('@types/node or engines.node that is not a string', () => {
       const pkg = packageJson({ engines: { node: 26 }, dependencies: { '@types/node': null } });
       expect(problemsOf(check({ packageJson: pkg }))).toEqual([
-        'package.json engines.node 26 does not name one Node major',
-        'package.json dependencies @types/node null does not name one Node major'
+        'package.json engines.node is 26, not a string',
+        'package.json dependencies @types/node is null, not a string'
       ]);
     });
 
@@ -197,10 +211,11 @@ describe('Node pins name one major', () => {
       expect(problemsOf(check({ packageJson: text }))).toEqual(['package.json is not a JSON object']);
     });
 
-    it('flake.nix with no nodejs_<major>', () => {
-      expect(problemsOf(check({ flakeNix: FLAKE.replace('nodejs_26', 'nodejs') }))).toEqual([
-        'flake.nix names no nodejs_<major> package'
-      ]);
+    it.each([
+      ['no nodejs_<major>', FLAKE.replace('nodejs_26', 'nodejs')],
+      ['nodejs_26 only in a comment', `# was nodejs_26\n${FLAKE.replace('nodejs_26', 'nodejs')}`]
+    ])('flake.nix with %s', (_name, flakeNix) => {
+      expect(problemsOf(check({ flakeNix }))).toEqual(['flake.nix names no nodejs_<major> package outside a comment']);
     });
 
     it('flake.nix with two different majors', () => {
