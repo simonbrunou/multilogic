@@ -22,7 +22,7 @@
       "rangeStrategy": "auto"
     },
     {
-      "description": "Open no PR for .nvmrc (#81). It names only the Node major: CI's setup-node and railpack on Coolify each pick a release of that major on their own (setup-node takes a cached one before it downloads), so CI and production share the major, not always the patch. Renovate's node versioning reads \"26\" as the single version 26.0.0, so a dry run proposes 26.13.0 now and would open a PR for every Node release, each writing a full version that then pins one release. A new Node major arrives as the @types/node major PR instead: in that PR, set .nvmrc and flake.nix nodejs_<major> to the same major.",
+      "description": "Open no PR for .nvmrc (#81). It names only the Node major: CI's setup-node and railpack on Coolify each pick a release of that major on their own (setup-node takes a cached one before it downloads), so CI and production share the major, not always the patch. Renovate's node versioning reads \"26\" as the single version 26.0.0, so a dry run proposes 26.13.0 now and would open a PR for every Node release, each writing a full version that then pins one release. A new Node major arrives as the @types/node major PR instead: in that PR, set .nvmrc and flake.nix nodejs_<major> to the same major. tests/node-pins.test.ts (#95) fails that PR's CI until they do.",
       "matchManagers": ["nvm"],
       "enabled": false
     }
