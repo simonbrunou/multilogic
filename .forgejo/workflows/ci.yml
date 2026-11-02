@@ -17,7 +17,7 @@ jobs:
     name: check · lint · unit · build
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: bun.lock is the only lockfile
         # Renovate moves package.json to its npm manager, and stops updating bun.lock, once a
         # package-lock.json, npm-shrinkwrap.json, yarn.lock or pnpm-lock.yaml exists (#89).
@@ -34,7 +34,7 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - run: bun install --frozen-lockfile
       - run: bun run prepare # svelte-kit sync — generates $lib aliases + tsconfig
       - name: Type-check (svelte-check)
@@ -50,11 +50,11 @@ jobs:
     name: component + e2e tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
       - run: bun install --frozen-lockfile
       - run: bun run prepare
       - name: Install Chromium
