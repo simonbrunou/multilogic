@@ -16,7 +16,7 @@
       "automerge": true
     },
     {
-      "description": "Auto-merge workflow action minor bumps once CI passes (#101). Each action is pinned by SHA with a # vX.Y.Z comment (#97), so a minor release arrives as a minor PR. Before #97 the floating @vN tags took it at run time with no PR, and the PR's own CI runs the new action before the merge.",
+      "description": "Auto-merge workflow action minor bumps once CI passes (#101). Each action is pinned by SHA with a # vX.Y.Z comment (setup-node since #81, checkout and setup-bun since #97), so a minor release arrives as a minor PR. Before #97, checkout and setup-bun floated on @vN tags that took each minor release at run time with no PR. The PR's own CI runs the new action before the merge.",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["minor"],
       "automerge": true
