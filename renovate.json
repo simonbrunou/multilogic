@@ -16,6 +16,12 @@
       "automerge": true
     },
     {
+      "description": "Auto-merge workflow action minor bumps once CI passes (#101). Each action is pinned by SHA with a # vX.Y.Z comment (#97), so a minor release arrives as a minor PR. Before #97 the floating @vN tags took it at run time with no PR, and the PR's own CI runs the new action before the merge.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor"],
+      "automerge": true
+    },
+    {
       "description": "Keep the engines.bun floor out of the top-level rangeStrategy bump, since #89 leaves the Bun version pins alone: under bump, a dry run opens a renovate/bun-1.x PR that raises \">=1.1.0\" to the newest Bun, and the dry run on main before #89 did not. auto leaves a range the newest Bun already satisfies alone.",
       "matchDepTypes": ["engines"],
       "matchDepNames": ["bun"],
