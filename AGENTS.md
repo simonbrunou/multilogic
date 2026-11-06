@@ -18,6 +18,10 @@ Single-context: one root `GLOSSARY.md` plus `docs/adr/`. See `docs/agents/domain
 
 Read `docs/agents/conventions.md` before editing a grid component (`SudokuGrid`, `KakuroGrid`, `TectonicGrid`, `YakusoGrid`, `GrecoBoard`) or fixing a Safari bug: cell ARIA and button roles, Safari-safe grid CSS, and how to report a fix that no check here can run in WebKit.
 
+## Bun version
+
+`packageManager` in `package.json` is the one Bun pin (#96): CI's `oven-sh/setup-bun` steps and railpack, which builds and serves production on Coolify, both install it. The dev shell takes `bun` from the nixpkgs that `flake.lock` locks, so it can trail the pin by a few patch releases. `nix develop -c bun --version` must still print the pin's major and minor: in the PR that moves the pin to a new minor, run `nix flake update` once nixpkgs carries that minor. A `bun.lock` written on another Bun can resolve differently and still pass `bun install --frozen-lockfile` (#103), so while the dev shell's Bun differs from the pin, write a lock change with `bunx bun@<pin> install`.
+
 ## Merge authority
 
 Agents may merge their own PR without asking once all three hold:

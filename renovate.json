@@ -22,10 +22,15 @@
       "automerge": true
     },
     {
-      "description": "Keep the engines.bun floor out of the top-level rangeStrategy bump, since #89 leaves the Bun version pins alone: under bump, a dry run opens a renovate/bun-1.x PR that raises \">=1.1.0\" to the newest Bun, and the dry run on main before #89 did not. auto leaves a range the newest Bun already satisfies alone.",
+      "description": "Keep the engines.bun floor out of the top-level rangeStrategy bump. The exact Bun pin is the packageManager field in package.json (#96), which CI's setup-bun steps and railpack on Coolify both install; engines.bun only states the floor. Under bump, a dry run opens a renovate/bun-1.x PR that raises \">=1.1.0\" to the newest Bun (#89). auto leaves a range the newest Bun already satisfies alone.",
       "matchDepTypes": ["engines"],
       "matchDepNames": ["bun"],
       "rangeStrategy": "auto"
+    },
+    {
+      "description": "Propose a Bun release for the packageManager pin only once it is 14 days old (#96). Before the pin, railpack resolved engines.bun on Coolify through mise, whose minimum_release_age of 14d held each Bun release back from production for 14 days; mise does not apply that hold to an exact version. Without this rule, the patch automerge rule above would ship a new Bun to production as soon as its PR's CI passes.",
+      "matchDepNames": ["bun"],
+      "minimumReleaseAge": "14 days"
     },
     {
       "description": "Open no PR for .nvmrc (#81). It names only the Node major: CI's setup-node and railpack on Coolify each pick a release of that major on their own (setup-node takes a cached one before it downloads), so CI and production share the major, not always the patch. Renovate's node versioning reads \"26\" as the single version 26.0.0, so a dry run proposes 26.13.0 now and would open a PR for every Node release, each writing a full version that then pins one release. A new Node major arrives as the @types/node major PR instead: in that PR, set .nvmrc and flake.nix nodejs_<major> to the same major. tests/node-pins.test.ts (#95) fails that PR's CI until they do.",
