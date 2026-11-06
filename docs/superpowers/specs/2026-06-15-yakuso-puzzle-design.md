@@ -211,7 +211,7 @@ cell space is interior-only, a hint can never be a totals position. Returns
 **Auto-handled (no change needed), verified:**
 - `scripts/pregen.ts` iterates `Object.entries(MODULES)` → picks up yakuso.
 - `src/worker/{generate.worker,protocol}.ts`, `src/lib/puzzle-service.ts`,
-  `src/lib/share.ts`, `src/lib/storage.ts`, CI/Dockerfile (`pregen && build`).
+  `src/lib/share.ts`, `src/lib/storage.ts`, CI/`railpack.json` (`pregen && build`).
 - Generic dynamic routes `src/routes/play/[type]/+page.svelte` and
   `daily/[type]/+page.svelte` already exist and dispatch via `PLAY_UI`; with the
   `PLAY_UI['yakuso']` entry, **no per-type route files are created**. (Grecolatin

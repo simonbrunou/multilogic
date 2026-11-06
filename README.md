@@ -31,21 +31,10 @@ bun run serve        # serve build/ on $PORT (default 3000)
 ## Deploy
 
 The app builds to a static site served by a tiny portable server (`serve.js`, listens on
-`$PORT`). Two deployment paths are provided:
+`$PORT`, default 3000). Production runs on Coolify, which builds it with Railpack:
+`railpack.json` defines the build/deploy steps (install → `pregen` → `build`, start
+`bun serve.js`), and `railway.json` selects the same Railpack builder on Railway.
 
-### Docker
-
-```bash
-docker build -t multilogic .
-docker run -p 3000:3000 multilogic
-```
-
-Multi-stage build (`Dockerfile`): installs deps + pre-generates the bundle + builds the
-static SPA, then serves `build/` from a slim Bun runtime image.
-
-### Railway (Railpack)
-
-`railway.json` selects the Railpack builder and `railpack.json` defines the build/deploy
-steps (install → `pregen` → `build`, start `bun serve.js`). Railway injects `$PORT`, which
-`serve.js` honors. To deploy the Dockerfile instead, set `build.builder` to `"DOCKERFILE"`
-in `railway.json`.
+Railpack installs the Bun release that `packageManager` in `package.json` names, and the
+Node major in `.nvmrc`. It reads `.dockerignore` as the list of paths it leaves out of the
+build.
