@@ -30,7 +30,10 @@ Agents may merge their own PR without asking once all three hold:
 - CI is green on the pushed SHA (the `ci` and `fallow` workflows);
 - the pushed SHA has no conflict with `origin/main`. Run `git fetch origin` right before merging, then check that `git merge-tree --write-tree origin/main <pushed SHA>` exits 0.
 
-When the branch is behind `main` but has no conflict, merge it as it is. The accepted risk is that two PRs that pass on their own can break `main` together. The CI run on the newest `main` commit shows such a break, so check it after the merge and fix a red one in a new PR.
+When the branch is behind `main` but has no conflict, merge it as it is. The accepted risk is that two PRs that pass on their own can break `main` together. The CI run on the newest `main` commit shows such a break. After the merge, run `git fetch origin`, read the merge SHA from `merge_commit_sha` in `python3 -I ~/.agents/skills/forgejo-issues/scripts/forgejo.py get multilogic#<n>` (`fj pr merge` prints none), then run `git rev-parse <merge SHA>^{tree} <pushed SHA>^{tree}`:
+
+- Two different hashes mean the merge commit holds files CI has not tested together. Wait for that run with `python3 -I ~/.agents/skills/forgejo-issues/scripts/forgejo.py ci multilogic --follow main` and fix a red one in a new PR.
+- The same hash twice means the merge commit holds the files the PR's CI passed, so skip the wait. The PR run checks out the pushed SHA itself, and the `push` run of `ci.yml` repeats both its jobs, `verify` and `browser-e2e`, on those files: no job or step in `ci.yml` has an `if:` or reads the event. `fallow.yml` runs only on `pull_request`, so `main` has no fallow run to wait for in either case.
 
 On a conflict, merge `origin/main` into the branch, resolve it, run `bun install --frozen-lockfile && bun run check && bun run lint && bun run test:coverage && bun run pregen && bun run build`, push, wait for CI on the new head, and check all three conditions again.
 
