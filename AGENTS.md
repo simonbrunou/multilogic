@@ -41,7 +41,7 @@ After every merge, check whether to wait for `main`'s CI run:
    - The same hash twice means the merge commit holds the files the PR's CI passed, since the PR run checks out the pushed SHA itself. Skip the wait when step 4 finds no difference.
 4. On the same hash, read each file in `.forgejo/workflows/` at the pushed SHA (`git show <pushed SHA>:.forgejo/workflows/` lists them). The skip holds only while the `push` run on `main` repeats the PR run's jobs and steps. A workflow that runs only on `pull_request`, as `fallow.yml` does, gives `main` no run to wait for, and a workflow-level `concurrency` group only picks which run a newer push cancels. On any other difference between `push` and `pull_request`, wait for `main`'s run as above even though the hashes match. Look for:
    - an `if:` or a `${{ }}` expression outside a `concurrency` group, `env:` included, that reads any `github.*` value, such as `github.event_name`, `github.ref` or `github.base_ref`;
-   - a step that reads `$GITHUB_EVENT_NAME`, `$GITHUB_REF` or another `$GITHUB_*` variable, in its `run:` or in a repo script it calls (`git grep -n GITHUB_ <pushed SHA> -- ':!.forgejo' ':!*.md'` lists those scripts);
+   - a step that reads `$GITHUB_EVENT_NAME`, `$GITHUB_REF` or another `$GITHUB_*` variable, in its `run:` or in a repo script it calls (`git grep -n GITHUB_ <pushed SHA> -- ':!.forgejo/workflows' ':!*.md'` lists the files to trace, and a hit in a file a step runs means a wait);
    - a `paths`, `paths-ignore`, `branches` or `branches-ignore` filter on one event only;
    - a workflow that runs on `push` alone.
 
