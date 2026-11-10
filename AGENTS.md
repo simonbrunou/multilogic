@@ -40,7 +40,7 @@ After every merge, check whether to wait for `main`'s CI run:
    - Two different hashes mean the merge commit holds files CI has not tested together. Wait for `main`'s run with `python3 -I ~/.agents/skills/forgejo-issues/scripts/forgejo.py ci multilogic --follow main` (on exit 3 the run is still going, so run it again in a new shell call) and fix a red one in a new PR.
    - The same hash twice means the merge commit holds the files the PR's CI passed, since the PR run checks out the pushed SHA itself. Skip the wait when step 4 finds no difference.
 4. On the same hash, read each file in `.forgejo/workflows/` at the pushed SHA (`git show <pushed SHA>:.forgejo/workflows/` lists them). The skip holds only while the `push` run on `main` repeats the PR run's jobs and steps. A workflow that runs only on `pull_request`, as `fallow.yml` does, gives `main` no run to wait for, and a workflow-level `concurrency` group only picks which run a newer push cancels. On any other difference between `push` and `pull_request`, wait for `main`'s run as above even though the hashes match. Look for:
-   - an `if:` or a `${{ }}` expression, at any level and in `env:` too, that reads `github.event_name`, `github.event`, `github.ref` or `github.head_ref`;
+   - an `if:` or a `${{ }}` expression outside a `concurrency` group, `env:` included, that reads any `github.*` value, such as `github.event_name`, `github.ref` or `github.base_ref`;
    - a `run:` that reads `$GITHUB_EVENT_NAME`, `$GITHUB_REF` or another `$GITHUB_*` variable;
    - a `paths`, `paths-ignore`, `branches` or `branches-ignore` filter on one event only;
    - a workflow that runs on `push` alone.
