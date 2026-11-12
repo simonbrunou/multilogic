@@ -1,12 +1,14 @@
 {
 	"compilerOptions": {
-		"module": "ESNext",
-		"target": "ES2022",
-		"moduleResolution": "Bundler",
+		"module": "esnext",
+		"target": "esnext",
+		"moduleResolution": "bundler",
 		"strict": true,
 		"noEmit": true,
-		"lib": ["ES2022"],
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"lib": ["esnext"],
 		"types": ["node"]
 	},
-	"include": ["scripts/**/*.ts"]
+	"include": ["scripts"]
 }

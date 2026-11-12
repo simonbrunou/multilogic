@@ -18,7 +18,7 @@ describe('type-check scope', () => {
     );
   });
 
-  it('tsconfig.json includes the app, its tests, e2e/ and every root config file', () => {
+  it('tsconfig.json includes the app, its tests, e2e/ and the vite, vitest and playwright configs', () => {
     expect(readJson('tsconfig.json')).toEqual({
       extends: '$app/tsconfig',
       compilerOptions: { rewriteRelativeImportExtensions: true, sourceMap: true, strict: true },
@@ -27,18 +27,20 @@ describe('type-check scope', () => {
     });
   });
 
-  it('tsconfig.scripts.json checks scripts/ with Node types and no DOM lib', () => {
+  it("tsconfig.scripts.json checks scripts/ with the app's language rules, Node types and no DOM lib", () => {
     expect(readJson('tsconfig.scripts.json')).toEqual({
       compilerOptions: {
-        module: 'ESNext',
-        target: 'ES2022',
-        moduleResolution: 'Bundler',
+        module: 'esnext',
+        target: 'esnext',
+        moduleResolution: 'bundler',
         strict: true,
         noEmit: true,
-        lib: ['ES2022'],
+        verbatimModuleSyntax: true,
+        isolatedModules: true,
+        lib: ['esnext'],
         types: ['node']
       },
-      include: ['scripts/**/*.ts']
+      include: ['scripts']
     });
   });
 });
