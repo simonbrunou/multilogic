@@ -27,7 +27,7 @@ describe('type-check scope', () => {
     });
   });
 
-  it("tsconfig.scripts.json checks scripts/ with the app's language rules, Node types and no DOM lib", () => {
+  it("tsconfig.scripts.json checks scripts/ with the app's esnext target and lib, its import rules (verbatimModuleSyntax, isolatedModules), Node types and no DOM lib", () => {
     expect(readJson('tsconfig.scripts.json')).toEqual({
       compilerOptions: {
         module: 'esnext',
