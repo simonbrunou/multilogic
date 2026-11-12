@@ -21,8 +21,8 @@
 //   a key or a value as YAML reads it (escapes such as \x24 included, and expressions that name
 //   no `github.` value, such as `steps.<id>.outputs.<x>`, `forgejo.` or `forge.`), and a step
 //   that uses actions/github-script, whose code gets the event;
-// - in any tracked file outside Markdown, a name made of GITHUB, FORGEJO or FORGE and an
-//   underscore, which a script or a local action (`uses: ./path`) could read the event through,
+// - in any tracked file outside Markdown and the workflows on `pull_request` alone (see below), a
+//   name made of GITHUB, FORGEJO or FORGE and an underscore, which a script or a local action (`uses: ./path`) could read the event through,
 //   and the names of the actions toolkit's github module and its event property. Neither this
 //   script nor its test holds one, so both are read.
 //
@@ -30,9 +30,10 @@
 //
 // - A workflow whose `on` names `pull_request` alone, unfiltered or filtered to
 //   `branches: [main]` only, as fallow.yml does: `main` gets no run from it, so its expressions,
-//   `if` keys and jobs pass (fallow.yml's `${{ github.base_ref }}` and its `concurrency` group
-//   among them). Its YAML errors, warnings, tags and aliases are still reported, since they can
-//   hide a trigger.
+//   `if` keys, jobs and runner variable names pass (fallow.yml's `${{ github.base_ref }}` and its
+//   `concurrency` group among them). Its YAML errors, warnings, tags and aliases are still
+//   reported, since they can hide a trigger. A file it runs, such as a script or an action.yml,
+//   is still read.
 // - In a workflow that runs on `push`, `${{ github.ref }}` as the one expression in the string
 //   value of the workflow's top-level `concurrency.group`, as ci.yml has it: the group only
 //   picks which run a newer push cancels. The string form `concurrency: <string>`, a job-level
@@ -93,7 +94,8 @@ const scanned = files.filter(
   (f) => (f.startsWith('.forgejo/') && isYaml(f)) || /(^|\/)action\.ya?ml$/.test(f)
 );
 const differences: string[] = [];
-let prOnlyCount = 0;
+// Workflows on `pull_request` alone, which the repo-wide scan below leaves out too.
+const prOnly: string[] = [];
 if (!workflows.length) differences.push('.forgejo/workflows/: no workflow file');
 
 const isEmpty = (value: unknown) =>
@@ -230,7 +232,7 @@ for (const file of scanned) {
   const isWorkflow = workflows.includes(file);
   const triggers = isWorkflow ? triggersOf(value) : null;
   const full = !(isWorkflow && isPrOnly(triggers));
-  if (!full) prOnlyCount++;
+  if (!full) prOnly.push(file);
   const group = isWorkflow && full ? concurrencyGroup(doc) : undefined;
   walk({ file, lines, full, group }, doc.contents, '');
   if (isWorkflow && full) {
@@ -240,7 +242,8 @@ for (const file of scanned) {
 }
 
 const pattern = [...RUNNER_NAMES, ...EVENT_READS].join('|');
-const hits = git(['grep', '-nE', pattern, commit, '--', '.', ':!*.md'], [0, 1]);
+const skipped = prOnly.map((file) => `:(exclude,literal)${file}`);
+const hits = git(['grep', '-nE', pattern, commit, '--', '.', ':!*.md', ...skipped], [0, 1]);
 for (const hit of hits.split('\n').filter(Boolean)) {
   differences.push(`${hit.replace(`${commit}:`, '')}: reads the event or names a runner variable`);
 }
@@ -255,6 +258,6 @@ if (differences.length) {
 }
 console.log(
   `check-push-repeats-pr: ${short}: the push run repeats the PR run (${workflows.length} ` +
-    `workflow file(s), ${prOnlyCount} of them on pull_request alone, ${scanned.length} file(s) ` +
+    `workflow file(s), ${prOnly.length} of them on pull_request alone, ${scanned.length} file(s) ` +
     'scanned)'
 );

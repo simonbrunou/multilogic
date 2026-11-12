@@ -184,6 +184,9 @@ describe('check-push-repeats-pr passes', () => {
     const fallow = `${baseFallow}\n      - run: echo base\n        if: github.base_ref == 'main'\n`;
     expectPass({ [FALLOW]: fallow });
   });
+  it('a pull_request-only workflow that reads a runner variable', () => {
+    expectPass({ [FALLOW]: `${baseFallow}\n      - run: echo "$${GH}BASE_REF"\n` });
+  });
   it('a pull_request-only workflow in each form of on:', () => {
     for (const on of ['on: pull_request', 'on: [pull_request]', 'on:\n  pull_request:']) {
       const fallow = edit(baseFallow, 'on:\n  pull_request:\n    branches: [main]', on);
@@ -456,13 +459,18 @@ describe('check-push-repeats-pr allows github.ref only in the top-level concurre
       /ci\.yml:13: \.jobs\.verify\.concurrency\.group: an expression: \$\{\{ github\.ref \}\}/
     );
   });
-  it('an expression in cancel-in-progress', () => {
-    const ci = edit(
-      baseCi,
-      'cancel-in-progress: true',
-      "cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}"
+  it('github.ref in cancel-in-progress', () => {
+    const ci = edit(baseCi, 'cancel-in-progress: true', 'cancel-in-progress: ${{ github.ref }}');
+    expectDifference(
+      { [CI]: ci },
+      /ci\.yml:9: \.concurrency\.cancel-in-progress: an expression: \$\{\{ github\.ref \}\}/
     );
-    expectDifference({ [CI]: ci }, /ci\.yml:9: \.concurrency\.cancel-in-progress: an expression/);
+  });
+  it('github.ref in the concurrency.group of a file under .forgejo that is not a workflow', () => {
+    expectDifference(
+      { '.forgejo/shared/x.yml': 'concurrency:\n  group: x-${{ github.ref }}\n' },
+      /\.forgejo\/shared\/x\.yml:2: \.concurrency\.group: an expression: \$\{\{ github\.ref \}\}/
+    );
   });
   it('the string form of concurrency', () => {
     const ci = edit(
@@ -523,6 +531,18 @@ describe('check-push-repeats-pr finds code outside the workflow files', () => {
     expectDifference(
       { 'actions/build/action.yml': action },
       /actions\/build\/action\.yml:5: \.runs\.steps\[0\]\.if: an if:/
+    );
+  });
+  it('a workflow on push whose step reads a runner variable', () => {
+    expectDifference(
+      { [CI]: ciWith(`      - run: echo "$${GH}REF"`) },
+      /\.forgejo\/workflows\/ci\.yml:18:.*names a runner variable/
+    );
+  });
+  it('a workflow on push beside a pull_request-only one whose name is a glob that matches it', () => {
+    expectDifference(
+      { [CI]: ciWith(`      - run: echo "$${GH}REF"`), '.forgejo/workflows/[c]i.yml': baseFallow },
+      /\.forgejo\/workflows\/ci\.yml:18:.*names a runner variable/
     );
   });
   it('a script that reads the ref from the runner', () => {
