@@ -9,7 +9,8 @@
 		"src",
 		"vite.config.ts",
 		"playwright.config.ts",
-		"tests"
+		"tests",
+		"scripts"
 	],
 	"exclude": [
 		"src/service-worker"
