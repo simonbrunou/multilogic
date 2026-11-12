@@ -8,8 +8,10 @@
 	"include": [
 		"src",
 		"vite.config.ts",
+		"vitest.config.ts",
 		"playwright.config.ts",
-		"tests"
+		"tests",
+		"e2e"
 	],
 	"exclude": [
 		"src/service-worker"

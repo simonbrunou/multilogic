@@ -1,0 +1,14 @@
+{
+	"compilerOptions": {
+		"module": "esnext",
+		"target": "esnext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"noEmit": true,
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"lib": ["esnext"],
+		"types": ["node"]
+	},
+	"include": ["scripts"]
+}
