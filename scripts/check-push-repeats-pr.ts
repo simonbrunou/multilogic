@@ -22,18 +22,21 @@
 //   no `github.` value, such as `steps.<id>.outputs.<x>`, `forgejo.` or `forge.`), and a step
 //   that uses actions/github-script, whose code gets the event;
 // - in any tracked file outside Markdown and the workflows on `pull_request` alone (see below), a
-//   name made of GITHUB, FORGEJO or FORGE and an underscore, which a script or a local action (`uses: ./path`) could read the event through,
-//   and the names of the actions toolkit's github module and its event property. Neither this
-//   script nor its test holds one, so both are read.
+//   name made of GITHUB, FORGEJO or FORGE and an underscore, which a script or a local action
+//   (`uses: ./path`) could read the event through, and the names of the actions toolkit's github
+//   module and its event property. Neither this script nor its test holds one, so both are read.
+//   It drops the caller's GIT_*_PATHSPECS variables, which would change the files git reads;
+// - a file name that is not UTF-8, which this script cannot read.
 //
 // It allows the differences this repo's CI keeps on purpose, and nothing wider:
 //
 // - A workflow whose `on` names `pull_request` alone, unfiltered or filtered to
 //   `branches: [main]` only, as fallow.yml does: `main` gets no run from it, so its expressions,
-//   `if` keys, jobs and runner variable names pass (fallow.yml's `${{ github.base_ref }}` and its
-//   `concurrency` group among them). Its YAML errors, warnings, tags and aliases are still
-//   reported, since they can hide a trigger. A file it runs, such as a script or an action.yml,
-//   is still read.
+//   `if` keys and jobs pass, and the repo-wide scan above skips the file (fallow.yml's
+//   `${{ github.base_ref }}` and its `concurrency` group pass so). Its YAML errors, warnings,
+//   tags and aliases are still reported, since they can hide a trigger. The files its steps
+//   run, such as a script or an action.yml, are still read. An action.yml or action.yaml never
+//   counts as such a workflow, since a step on `push` can run it with `uses:`.
 // - In a workflow that runs on `push`, `${{ github.ref }}` as the one expression in the string
 //   value of the workflow's top-level `concurrency.group`, as ci.yml has it: the group only
 //   picks which run a newer push cancels. The string form `concurrency: <string>`, a job-level
@@ -45,8 +48,8 @@
 // It cannot see code that branches on commit metadata (the push run checks out `main` at the
 // merge commit, whose subject, SHA and parents differ from the pushed SHA's), what a third-party
 // action (`uses: owner/repo@ref`) does with the event, code that the runner or its image runs in
-// every step, or code that reads the event by a route the list above leaves out. Such code
-// passes.
+// every step, a step on `push` that runs a workflow on `pull_request` alone as a script, or code
+// that reads the event by a route the list above leaves out. Such code passes.
 //
 // Exit 0: no difference, so the push run repeats the PR run. Exit 1: it printed a difference, so
 // wait on main's run. Exit 2: git failed, the SHA is unknown or Bun cannot load the `yaml`
@@ -75,26 +78,41 @@ const YAML = await import('yaml').catch(() =>
   fail('cannot load the yaml package; run bun install first')
 );
 
+// The caller's pathspec settings: GIT_ICASE_PATHSPECS=1 would make `:!*.md` skip a.MD as well.
+const GIT_ENV = Object.fromEntries(
+  Object.entries(process.env).filter(
+    ([name]) => !/^GIT_(LITERAL|GLOB|NOGLOB|ICASE)_PATHSPECS$/.test(name)
+  )
+);
 let cwd = process.cwd();
-function git(gitArgs: string[], okCodes = [0]): string {
-  const proc = spawnSync('git', gitArgs, { cwd, encoding: 'utf8', maxBuffer: 1 << 28 });
+function gitBytes(gitArgs: string[], okCodes = [0]): Buffer {
+  const proc = spawnSync('git', gitArgs, { cwd, env: GIT_ENV, maxBuffer: 1 << 28 });
   if (proc.error || !okCodes.includes(proc.status ?? -1)) {
-    fail(`git ${gitArgs.join(' ')} failed: ${(proc.error?.message ?? proc.stderr).trim()}`);
+    fail(`git ${gitArgs.join(' ')} failed: ${(proc.error?.message ?? String(proc.stderr)).trim()}`);
   }
   return proc.stdout;
 }
+const git = (gitArgs: string[], okCodes = [0]) => gitBytes(gitArgs, okCodes).toString('utf8');
 
 cwd = git(['rev-parse', '--show-toplevel']).trim();
 const commit = git(['rev-parse', '--verify', '--quiet', `${args[0]}^{commit}`], [0, 1]).trim();
 if (!commit) fail(`unknown commit: ${args[0]}`);
-const files = git(['ls-tree', '-r', '--name-only', '-z', commit]).split('\0').filter(Boolean);
-const isYaml = (f: string) => /\.ya?ml$/.test(f);
-const workflows = files.filter((f) => f.startsWith('.forgejo/workflows/') && isYaml(f));
-const scanned = files.filter(
-  (f) => (f.startsWith('.forgejo/') && isYaml(f)) || /(^|\/)action\.ya?ml$/.test(f)
-);
 const differences: string[] = [];
-// Workflows on `pull_request` alone, which the repo-wide scan below leaves out too.
+const tree = gitBytes(['ls-tree', '-r', '--name-only', '-z', commit]);
+let names: string;
+try {
+  names = new TextDecoder('utf-8', { fatal: true }).decode(tree);
+} catch {
+  // Decoded with U+FFFD, two names can read as one, and `git show` then reads the wrong file.
+  differences.push(`${commit}: a file name that is not UTF-8, which this script cannot read`);
+  names = tree.toString('utf8');
+}
+const files = names.split('\0').filter(Boolean);
+const isYaml = (f: string) => /\.ya?ml$/.test(f);
+const isAction = (f: string) => /(^|\/)action\.ya?ml$/.test(f);
+const workflows = files.filter((f) => f.startsWith('.forgejo/workflows/') && isYaml(f));
+const scanned = files.filter((f) => (f.startsWith('.forgejo/') && isYaml(f)) || isAction(f));
+// Workflows on `pull_request` alone, which the repo-wide scan below skips too.
 const prOnly: string[] = [];
 if (!workflows.length) differences.push('.forgejo/workflows/: no workflow file');
 
@@ -231,7 +249,7 @@ for (const file of scanned) {
   }
   const isWorkflow = workflows.includes(file);
   const triggers = isWorkflow ? triggersOf(value) : null;
-  const full = !(isWorkflow && isPrOnly(triggers));
+  const full = !(isWorkflow && !isAction(file) && isPrOnly(triggers));
   if (!full) prOnly.push(file);
   const group = isWorkflow && full ? concurrencyGroup(doc) : undefined;
   walk({ file, lines, full, group }, doc.contents, '');
@@ -242,10 +260,22 @@ for (const file of scanned) {
 }
 
 const pattern = [...RUNNER_NAMES, ...EVENT_READS].join('|');
-const skipped = prOnly.map((file) => `:(exclude,literal)${file}`);
-const hits = git(['grep', '-nE', pattern, commit, '--', '.', ':!*.md', ...skipped], [0, 1]);
-for (const hit of hits.split('\n').filter(Boolean)) {
-  differences.push(`${hit.replace(`${commit}:`, '')}: reads the event or names a runner variable`);
+// The matching files by exact name, so skipping a workflow on `pull_request` alone skips no folder
+// of the same name, as a pathspec would.
+const matched = git(['grep', '-lzE', pattern, commit, '--', '.', ':!*.md'], [0, 1])
+  .split('\0')
+  .filter(Boolean)
+  .map((hit) => hit.slice(commit.length + 1))
+  .filter((file) => !prOnly.includes(file));
+for (const file of matched) {
+  const hits = git(['grep', '-nE', pattern, commit, '--', `:(literal)${file}`], [0, 1]);
+  const lines = hits.split('\n').filter(Boolean);
+  // A name that is not UTF-8 reads back as another name, which matches no file.
+  if (!lines.length) lines.push(file);
+  for (const hit of lines) {
+    const where = hit.replace(`${commit}:`, '');
+    differences.push(`${where}: reads the event or names a runner variable`);
+  }
 }
 
 const short = commit.slice(0, 8);

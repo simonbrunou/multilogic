@@ -87,18 +87,30 @@ const base: Record<string, string> = {
   'scripts/build.sh': 'echo build\n'
 };
 
-function run(command: string, args: string[], cwd: string) {
-  const proc = spawnSync(command, args, { cwd, env: ENV, encoding: 'utf8' });
+function run(command: string, args: string[], cwd: string, env = ENV, input?: string) {
+  const proc = spawnSync(command, args, { cwd, env, encoding: 'utf8', input });
   if (proc.error) throw proc.error;
   return { exitCode: proc.status, out: proc.stdout + proc.stderr };
 }
 
+type Git = (args: string[], input?: string) => string;
+type Options = {
+  script?: string;
+  subdir?: string;
+  bunArgs?: string[];
+  // Set for the script only, not for the git calls that build the repo.
+  env?: Record<string, string>;
+  // Writes a commit that the working tree cannot hold and returns its SHA.
+  rewrite?: (git: Git, dir: string) => string;
+};
+
+const AUTHOR = ['-c', 'user.name=t', '-c', 'user.email=t@example.invalid'];
 let count = 0;
 // Commits `files` over the base repo (a null value deletes a base file) and runs `script` on
 // that commit from `subdir` of the repo.
 function check(
   files: Record<string, string | null> = {},
-  { script = SCRIPT, subdir = '', bunArgs = [] as string[] } = {}
+  { script = SCRIPT, subdir = '', bunArgs = [], env = {}, rewrite }: Options = {}
 ) {
   const dir = join(root, String(count++));
   for (const [file, content] of Object.entries({ ...base, ...files })) {
@@ -106,16 +118,16 @@ function check(
     mkdirSync(dirname(join(dir, file)), { recursive: true });
     writeFileSync(join(dir, file), content);
   }
-  const git = (...args: string[]) => {
-    const { exitCode, out } = run('git', args, dir);
+  const git: Git = (args, input) => {
+    const { exitCode, out } = run('git', args, dir, ENV, input);
     if (exitCode !== 0) throw new Error(`git ${args.join(' ')}: ${out}`);
     return out;
   };
-  git('init', '-q', '-b', 'main');
-  git('add', '-A');
-  git('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qm', 'c');
-  const sha = git('rev-parse', 'HEAD').trim();
-  return run('bun', [...bunArgs, script, sha], join(dir, subdir));
+  git(['init', '-q', '-b', 'main']);
+  git(['add', '-A']);
+  git([...AUTHOR, 'commit', '-qm', 'c']);
+  const sha = rewrite ? rewrite(git, dir) : git(['rev-parse', 'HEAD']).trim();
+  return run('bun', [...bunArgs, script, sha], join(dir, subdir), { ...ENV, ...env });
 }
 
 // Replaces `from` in `text`, failing the test when `from` is not there, so a case never runs on
@@ -130,7 +142,7 @@ function ciWith(...extraSteps: string[]) {
   return `${baseCi}\n${extraSteps.join('\n')}\n`;
 }
 
-function expectPass(files: Record<string, string | null>, options?: { subdir?: string }) {
+function expectPass(files: Record<string, string | null>, options?: Options) {
   const { exitCode, out } = check(files, options);
   expect(out).toMatch(/the push run repeats the PR run/);
   expect(exitCode).toBe(0);
@@ -139,7 +151,7 @@ function expectPass(files: Record<string, string | null>, options?: { subdir?: s
 function expectDifference(
   files: Record<string, string | null>,
   pattern: RegExp,
-  options?: { subdir?: string }
+  options?: Options
 ) {
   const { exitCode, out } = check(files, options);
   expect(out).toMatch(pattern);
@@ -186,6 +198,12 @@ describe('check-push-repeats-pr passes', () => {
   });
   it('a pull_request-only workflow that reads a runner variable', () => {
     expectPass({ [FALLOW]: `${baseFallow}\n      - run: echo "$${GH}BASE_REF"\n` });
+  });
+  it("Markdown anywhere, whatever pathspec variables the caller's environment sets", () => {
+    const docs = { 'docs/notes.md': `Steps read ${GH}REF.\n` };
+    for (const name of ['LITERAL', 'GLOB', 'NOGLOB', 'ICASE']) {
+      expectPass(docs, { env: { [`GIT_${name}_PATHSPECS`]: '1' } });
+    }
   });
   it('a pull_request-only workflow in each form of on:', () => {
     for (const on of ['on: pull_request', 'on: [pull_request]', 'on:\n  pull_request:']) {
@@ -543,6 +561,62 @@ describe('check-push-repeats-pr finds code outside the workflow files', () => {
     expectDifference(
       { [CI]: ciWith(`      - run: echo "$${GH}REF"`), '.forgejo/workflows/[c]i.yml': baseFallow },
       /\.forgejo\/workflows\/ci\.yml:18:.*names a runner variable/
+    );
+  });
+  it('a folder named like a pull_request-only workflow, holding a script that reads the ref', () => {
+    // Git refuses such a tree from the working tree (fsck: duplicateEntries), but a runner checks
+    // out the folder, so build it by hand.
+    const rewrite = (git: Git) => {
+      const pr = git(['hash-object', '-w', '--stdin'], baseFallow).trim();
+      const sh = git(['hash-object', '-w', '--stdin'], `echo "$${GH}REF"\n`).trim();
+      const folder = git(['mktree'], `100644 blob ${sh}\trun.sh\n`).trim();
+      const entries = `100644 blob ${pr}\tx.yml\n040000 tree ${folder}\tx.yml\n`;
+      const workflows = git(['mktree'], git(['ls-tree', 'HEAD:.forgejo/workflows']) + entries);
+      const forgejo = git(['mktree'], `040000 tree ${workflows.trim()}\tworkflows\n`).trim();
+      const top = git(['ls-tree', 'HEAD']).replace(/^.*\t\.forgejo\n/m, '');
+      const tree = git(['mktree'], `${top}040000 tree ${forgejo}\t.forgejo\n`).trim();
+      expect(git(['ls-tree', '-r', '--name-only', tree])).toMatch(/workflows\/x\.yml\n.*workflows\/x\.yml\/run\.sh/);
+      return git([...AUTHOR, 'commit-tree', tree, '-p', 'HEAD', '-m', 'dup']).trim();
+    };
+    expectDifference(
+      {},
+      /\.forgejo\/workflows\/x\.yml\/run\.sh:1:.*names a runner variable/,
+      { rewrite }
+    );
+  });
+  it('a file name that is not UTF-8', () => {
+    const rewrite = (git: Git, dir: string) => {
+      const name = Buffer.concat([Buffer.from(join(dir, 'a')), Buffer.from([0xff]), Buffer.from('.sh')]);
+      writeFileSync(name, `echo "$${GH}REF"\n`);
+      git(['add', '-A']);
+      git([...AUTHOR, 'commit', '-qm', 'latin-1 name']);
+      return git(['rev-parse', 'HEAD']).trim();
+    };
+    expectDifference(
+      {},
+      /: a file name that is not UTF-8, which this script cannot read\n[\s\S]*a�\.sh: reads the event or names a runner variable/,
+      { rewrite }
+    );
+  });
+  it("a .MD file that reads the ref, when the caller sets GIT_ICASE_PATHSPECS", () => {
+    expectDifference(
+      { 'scripts/hook.MD': `echo "$${GH}REF"\n` },
+      /scripts\/hook\.MD:1:.*names a runner variable/,
+      { env: { GIT_ICASE_PATHSPECS: '1' } }
+    );
+  });
+  it('an action.yml under .forgejo/workflows that names pull_request alone', () => {
+    const action = [
+      'on: pull_request',
+      'runs:',
+      '  using: composite',
+      '  steps:',
+      `    - run: echo "$${GH}REF"`,
+      "      if: github.event_name == 'push'"
+    ].join('\n');
+    expectDifference(
+      { [CI]: ciWith('      - uses: ./.forgejo/workflows/act'), '.forgejo/workflows/act/action.yml': action },
+      /act\/action\.yml:6: \.runs\.steps\[0\]\.if: an if:[\s\S]*act\/action\.yml:5:.*names a runner variable/
     );
   });
   it('a script that reads the ref from the runner', () => {
