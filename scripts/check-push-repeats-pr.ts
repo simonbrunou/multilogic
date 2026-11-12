@@ -29,9 +29,10 @@
 // It allows the differences this repo's CI keeps on purpose, and nothing wider:
 //
 // - A workflow whose `on` names `pull_request` alone, unfiltered or filtered to
-//   `branches: [main]` only, as fallow.yml does: `main` gets no run from it, so its jobs are not
-//   scanned (fallow.yml's `${{ github.base_ref }}` and its `concurrency` group pass). Its YAML
-//   errors, warnings, tags and aliases are still reported, since they can hide a trigger.
+//   `branches: [main]` only, as fallow.yml does: `main` gets no run from it, so its expressions,
+//   `if` keys and jobs pass (fallow.yml's `${{ github.base_ref }}` and its `concurrency` group
+//   among them). Its YAML errors, warnings, tags and aliases are still reported, since they can
+//   hide a trigger.
 // - In a workflow that runs on `push`, `${{ github.ref }}` as the one expression in the string
 //   value of the workflow's top-level `concurrency.group`, as ci.yml has it: the group only
 //   picks which run a newer push cancels. The string form `concurrency: <string>`, a job-level
@@ -47,8 +48,10 @@
 // passes.
 //
 // Exit 0: no difference, so the push run repeats the PR run. Exit 1: it printed a difference, so
-// wait on main's run. Exit 2: git failed, the SHA is unknown or the `yaml` devDependency is
-// missing; wait too. tests/scripts/check-push-repeats-pr.test.ts holds one case per difference.
+// wait on main's run. Exit 2: git failed, the SHA is unknown or Bun cannot load the `yaml`
+// devDependency, as from a node_modules installed before it was added (where Bun finds no
+// node_modules at all, it fetches the package itself); wait too.
+// tests/scripts/check-push-repeats-pr.test.ts holds one case per difference.
 import { spawnSync } from 'node:child_process';
 import type { Document, LineCounter, Node, Scalar } from 'yaml';
 
