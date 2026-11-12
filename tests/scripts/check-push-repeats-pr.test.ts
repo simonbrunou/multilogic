@@ -584,6 +584,20 @@ describe('check-push-repeats-pr finds code outside the workflow files', () => {
       { rewrite }
     );
   });
+  it('two files of one name: a pull_request-only workflow, then a script that reads the ref', () => {
+    const rewrite = (git: Git) => {
+      const pr = git(['hash-object', '-w', '--stdin'], baseFallow).trim();
+      const sh = git(['hash-object', '-w', '--stdin'], `echo "$${GH}REF"\n`).trim();
+      const entries = `100644 blob ${pr}\tx.yml\n100644 blob ${sh}\tx.yml\n`;
+      const workflows = git(['mktree'], git(['ls-tree', 'HEAD:.forgejo/workflows']) + entries);
+      const forgejo = git(['mktree'], `040000 tree ${workflows.trim()}\tworkflows\n`).trim();
+      const top = git(['ls-tree', 'HEAD']).replace(/^.*\t\.forgejo\n/m, '');
+      const tree = git(['mktree'], `${top}040000 tree ${forgejo}\t.forgejo\n`).trim();
+      expect(git(['ls-tree', '-r', '--name-only', tree])).toMatch(/workflows\/x\.yml\n.*workflows\/x\.yml\n/);
+      return git([...AUTHOR, 'commit-tree', tree, '-p', 'HEAD', '-m', 'dup']).trim();
+    };
+    expectDifference({}, /: a file name the tree holds twice, which this script cannot read/, { rewrite });
+  });
   it('a file name that is not UTF-8', () => {
     const rewrite = (git: Git, dir: string) => {
       const name = Buffer.concat([Buffer.from(join(dir, 'a')), Buffer.from([0xff]), Buffer.from('.sh')]);

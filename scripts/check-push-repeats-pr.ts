@@ -26,7 +26,7 @@
 //   (`uses: ./path`) could read the event through, and the names of the actions toolkit's github
 //   module and its event property. Neither this script nor its test holds one, so both are read.
 //   It drops the caller's GIT_*_PATHSPECS variables, which would change the files git reads;
-// - a file name that is not UTF-8, which this script cannot read.
+// - a file name that is not UTF-8, or that the tree holds twice, which this script cannot read.
 //
 // It allows the differences this repo's CI keeps on purpose, and nothing wider:
 //
@@ -108,6 +108,11 @@ try {
   names = tree.toString('utf8');
 }
 const files = names.split('\0').filter(Boolean);
+// A tree git fsck rejects (duplicateEntries) can hold two files of one name; `git show` and
+// `git grep` read one of them, and a checkout may take the other.
+if (new Set(files).size !== files.length) {
+  differences.push(`${commit}: a file name the tree holds twice, which this script cannot read`);
+}
 const isYaml = (f: string) => /\.ya?ml$/.test(f);
 const isAction = (f: string) => /(^|\/)action\.ya?ml$/.test(f);
 const workflows = files.filter((f) => f.startsWith('.forgejo/workflows/') && isYaml(f));
