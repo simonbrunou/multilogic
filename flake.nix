@@ -12,8 +12,9 @@
       # warns when the two leave the same major.minor (#111). See AGENTS.md "Bun version".
       shellBun = pkgs.bun.version;
       pin = (builtins.fromJSON (builtins.readFile ./package.json)).packageManager or null;
-      # bun@1.4.4, also with a corepack hash or a prerelease: bun@1.4.4+sha512.<hex>, bun@1.5.0-canary.1
-      pinMatch = if builtins.isString pin then builtins.match "bun@(([0-9]+)\\.([0-9]+)\\.[0-9]+)([-+].*)?" pin else null;
+      # bun@1.4.4, also with a prerelease or a corepack hash: bun@1.5.0-canary.1, bun@1.4.4+sha512.<hex>.
+      # pinVersion keeps the prerelease and drops the hash.
+      pinMatch = if builtins.isString pin then builtins.match "bun@(([0-9]+)\\.([0-9]+)\\.[0-9]+(-[^+]+)?)(\\+.*)?" pin else null;
       pinVersion = builtins.elemAt pinMatch 0;
       pinMinor = "${builtins.elemAt pinMatch 1}.${builtins.elemAt pinMatch 2}";
       bunWarning =
