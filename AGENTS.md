@@ -20,7 +20,12 @@ Read `docs/agents/conventions.md` before editing a grid component (`SudokuGrid`,
 
 ## Bun version
 
-`packageManager` in `package.json` is the one Bun pin (#96): CI's `oven-sh/setup-bun` steps and railpack, which builds and serves production on Coolify, both install it. The dev shell takes `bun` from the nixpkgs that `flake.lock` locks, so it can trail the pin by a few patch releases. `nix develop -c bun --version` must still print the pin's major and minor: in the PR that moves the pin to a new minor, run `nix flake update` once nixpkgs carries that minor. A `bun.lock` written on another Bun can resolve differently and still pass `bun install --frozen-lockfile` (#103), so while the dev shell's Bun differs from the pin, write a lock change with `bunx bun@<pin> install`.
+`packageManager` in `package.json` is the one Bun pin (#96): CI's `oven-sh/setup-bun` steps and railpack, which builds and serves production on Coolify, both install it. The dev shell takes `bun` from the nixpkgs that `flake.lock` locks, so it can trail the pin by a few patch releases. A different major or minor needs a fix, and `flake.nix` prints an `evaluation warning` naming both versions and the fix on each dev shell evaluation (#111). It also warns when `packageManager` is not `bun@<version>`. The shell still runs, and CI never sees the warning, since no workflow runs nix. The fixes:
+
+- nixpkgs behind the pin, as after a Bun minor PR: run `nix flake update` once nixpkgs carries that minor.
+- nixpkgs ahead of the pin, as after a `nix flake update`: move the pin to the shell's minor, or keep `flake.lock` on a nixpkgs that carries the pin's minor.
+
+direnv caches the shell and prints the warning only on the load that re-evaluates it; `.envrc` watches `package.json` so that a pin change re-evaluates. Under direnv, run `nix develop -c bun --version` to see the warning again. A `bun.lock` written on another Bun can resolve differently and still pass `bun install --frozen-lockfile` (#103), so while the dev shell's Bun differs from the pin, write a lock change with `bunx bun@<pin> install`.
 
 ## Merge authority
 
