@@ -273,7 +273,7 @@ describe('readBunPins', () => {
     });
   });
 
-  describe('rule 6: each stage holds exactly the instructions it holds today', () => {
+  describe('rule 6: each stage holds only the instructions it holds today', () => {
     const IN_BUILD = 'in the build stage';
     const IN_RUNTIME = 'in the runtime stage';
 
@@ -310,6 +310,14 @@ describe('readBunPins', () => {
       ['APT_REFRESH with a short month', 14, 'ARG APT_REFRESH=2026-1-23'],
       ['APT_REFRESH with a short year', 14, 'ARG APT_REFRESH=26-11-23'],
       ['text before the APT_REFRESH ARG', 14, 'x ARG APT_REFRESH=2026-11-23'],
+      ['APT_REFRESH with a five-digit year', 14, 'ARG APT_REFRESH=20260-11-23'],
+      ['APT_REFRESH with a three-digit month', 14, 'ARG APT_REFRESH=2026-111-23'],
+      ['APT_REFRESH with a three-digit day', 14, 'ARG APT_REFRESH=2026-11-233'],
+      ['APT_REFRESH with a slash after the year', 14, 'ARG APT_REFRESH=2026/11-23'],
+      ['APT_REFRESH with a slash after the month', 14, 'ARG APT_REFRESH=2026-11/23'],
+      ['APT_REFRESH with a letter in the year', 14, 'ARG APT_REFRESH=20a6-11-23'],
+      ['APT_REFRESH with a letter in the month', 14, 'ARG APT_REFRESH=2026-1a-23'],
+      ['APT_REFRESH with a letter in the day', 14, 'ARG APT_REFRESH=2026-11-2a'],
       ['APT_REFRESH with text after the date', 14, 'ARG APT_REFRESH=2026-11-23 x'],
       ['APT_REFRESH with text before the date', 14, 'ARG APT_REFRESH=x2026-11-23'],
       ['another ARG with a date', 14, 'ARG OTHER=2026-11-23'],
@@ -323,6 +331,8 @@ describe('readBunPins', () => {
       ['COPY of another path from build', 16, 'COPY --from=build /app /app'],
       ['COPY of build/ to another path', 16, 'COPY --from=build /app/build ./other'],
       ['COPY of serve.js to another path', 17, 'COPY --from=build /app/serve.js ./other'],
+      ['COPY of build/ from the bun stage', 16, 'COPY --from=bun /app/build ./build'],
+      ['COPY of serve.js from the bun stage', 17, 'COPY --from=bun /app/serve.js ./'],
       ['a trailing space', 18, 'EXPOSE 3000 '],
       ['a leading space', 18, ' EXPOSE 3000'],
       ['a line of spaces', 18, '   '],
@@ -338,6 +348,8 @@ describe('readBunPins', () => {
       ['a Node image in COPY --from', 4, 'COPY --from=node:24 /usr/local/bin/node /usr/local/bin/node'],
       ['an unknown stage in COPY --from', 4, 'COPY --from=other /usr/local/bin/bun /usr/local/bin/bun'],
       ['the bun binary to another path', 4, 'COPY --from=bun /usr/local/bin/bun /tmp/bun'],
+      ['the bun binary from its own stage', 4, 'COPY --from=build /usr/local/bin/bun /usr/local/bin/bun'],
+      ['build/ from the bun stage', 4, 'COPY --from=bun /app/build ./build'],
       ['a RUN that pulls an image', 9, 'RUN docker pull oven/bun:1.4.3'],
       ['a RUN that names Node', 9, 'RUN docker pull node:24'],
       ['a mount from another image', 9, 'RUN --mount=type=bind,from=node:24,target=/n true'],
