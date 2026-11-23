@@ -15,14 +15,11 @@
 //      `FROM oven/bun:<x.y.z> AS <name>`, `FROM node:<major>-slim AS <name>` or
 //      `FROM oven/bun:<x.y.z>-slim`. The file holds exactly one of each, in that order, and the
 //      two names differ.
-//   6. Any other non-comment line holding `oven/bun`, `node:`, or `from` in any case, fails,
-//      except `COPY --from=<name> <rest>` after the stage called <name>, where <rest> holds
-//      none of them.
+//   6. Every other non-comment line is empty or, character for character, one of the
+//      instructions its stage holds today (BUILD_LINES, RUNTIME_LINES, the COPY --from lines and
+//      `ARG APT_REFRESH=<yyyy-mm-dd>`). The bun stage and the lines before it hold none.
 //   7. package.json's `packageManager` is a string `bun@<x.y.z>` and nothing else.
 //   8. Both oven/bun tags name the `packageManager` version.
-//   9. No non-comment line holds a backslash, and only a `CMD [` line holds a quote. BuildKit
-//      strips quotes and backslashes from an instruction's flags, so `COPY --fr"o"m=` is a
-//      `--from` that rule 6 would not see.
 // Add a test to tests/scripts/docker-pins.test.ts for each form this reader learns to accept or
 // reject.
 
@@ -41,6 +38,21 @@ const STAGES: { key: StageKey; form: string; pattern: RegExp }[] = [
   { key: 'runtime', form: 'FROM oven/bun:<x.y.z>-slim', pattern: new RegExp(`^FROM oven/bun:(${VERSION})-slim$`) }
 ];
 const PACKAGE_MANAGER = new RegExp(`^bun@(${VERSION})$`);
+const BUILD_LINES = new Set([
+  'WORKDIR /app',
+  'COPY package.json bun.lock .npmrc ./',
+  'RUN bun install --frozen-lockfile',
+  'COPY . .',
+  'RUN bun run pregen && bun run build'
+]);
+const RUNTIME_LINES = new Set([
+  'WORKDIR /app',
+  'ENV NODE_ENV=production',
+  'RUN echo Debian packages refreshed ${APT_REFRESH} && apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*',
+  'EXPOSE 3000',
+  'CMD ["bun", "serve.js"]'
+]);
+const APT_REFRESH = /^ARG APT_REFRESH=[0-9]{4}-[0-9]{2}-[0-9]{2}$/;
 
 function readLineForm(text: string, at: string, shown: string, problems: string[]): void {
   // Rule 1.
@@ -88,13 +100,29 @@ function readFrom(text: string, index: number, found: DockerfilePins): void {
   found[key] = { line: index + 1, tag, name };
 }
 
-// Rule 6.
+function isStageInstruction(text: string, stage: StageKey | undefined, found: DockerfilePins): boolean {
+  const copies = (from: Stage | undefined, paths: string) => from !== undefined && text === `COPY --from=${from.name} ${paths}`;
+  if (stage === 'build') return BUILD_LINES.has(text) || copies(found.bun, '/usr/local/bin/bun /usr/local/bin/bun');
+  if (stage === 'runtime') {
+    return (
+      RUNTIME_LINES.has(text) ||
+      APT_REFRESH.test(text) ||
+      copies(found.build, '/app/build ./build') ||
+      copies(found.build, '/app/serve.js ./')
+    );
+  }
+  return false;
+}
+
+// Rule 6. Stages are recorded in file order, so the last one recorded holds this line.
 function readOtherLine(text: string, at: string, shown: string, found: DockerfilePins): void {
-  let rest = text;
-  const copy = text.match(/^COPY --from=(\S+) /);
-  if (copy && (copy[1] === found.bun?.name || copy[1] === found.build?.name)) rest = text.slice(copy[0].length);
-  if (/from|oven\/bun|node:/i.test(rest)) {
-    found.problems.push(`${at}: ${shown} names oven/bun, node: or "from" outside the three FROM lines and a COPY --from=<stage>`);
+  if (text === '') return;
+  const stage = [...STAGES].reverse().find(({ key }) => found[key])?.key;
+  if (!isStageInstruction(text, stage, found)) {
+    const where = stage ? `in the ${stage} stage` : 'before the first FROM';
+    found.problems.push(
+      `${at}: ${shown} is not an instruction form read ${where}; scripts/docker-pins.ts reads only the forms the Dockerfile uses today`
+    );
   }
 }
 
@@ -111,11 +139,6 @@ export function readDockerfilePins(dockerfile: string): DockerfilePins {
         found.problems.push(`${at}: ${shown} has the form of a parser directive (# name=value)`);
       }
       return;
-    }
-
-    // Rule 9.
-    if (text.includes('\\') || (/["']/.test(text) && !text.startsWith('CMD ['))) {
-      found.problems.push(`${at}: ${shown} holds a backslash, or a quote outside a CMD [...] line, which BuildKit strips from flags`);
     }
 
     if (text.replace(/^ +/, '').split(' ')[0].toUpperCase() === 'FROM') readFrom(text, index, found);

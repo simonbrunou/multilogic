@@ -21,7 +21,7 @@ const DOCKERFILE = [
   'WORKDIR /app',
   'ENV NODE_ENV=production', // 13
   'ARG APT_REFRESH=2026-11-23',
-  'RUN echo Debian packages refreshed ${APT_REFRESH} && apt-get update && apt-get upgrade -y', // 15
+  'RUN echo Debian packages refreshed ${APT_REFRESH} && apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*', // 15
   'COPY --from=build /app/build ./build', // 16
   'COPY --from=build /app/serve.js ./',
   'EXPOSE 3000', // 18
@@ -55,7 +55,9 @@ function pm(packageManager: unknown): string {
   return JSON.stringify({ name: 'multilogic', packageManager });
 }
 
-const escaped = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function notAForm(line: number, text: string, where: string): string {
+  return `Dockerfile line ${line}: ${JSON.stringify(text)} is not an instruction form read ${where}; scripts/docker-pins.ts reads only the forms the Dockerfile uses today`;
+}
 
 describe('readBunPins', () => {
   it("reads the repo's own Dockerfile and package.json as one version", () => {
@@ -158,7 +160,7 @@ describe('readBunPins', () => {
 
   it('rule 3: fails on a heredoc', () => {
     const dockerfile = withLine(9, 'RUN <<EOF\nbun run build\nEOF');
-    expect(problems(dockerfile)).toEqual(['Dockerfile line 9: "RUN <<EOF" holds a heredoc (<<)']);
+    expect(problems(dockerfile)).toContainEqual('Dockerfile line 9: "RUN <<EOF" holds a heredoc (<<)');
   });
 
   describe('rule 4: no parser directive', () => {
@@ -249,6 +251,12 @@ describe('readBunPins', () => {
       );
     });
 
+    it('fails on the runtime stage before the bun stage', () => {
+      expect(problems('FROM oven/bun:1.4.4-slim\nFROM oven/bun:1.4.4 AS bun\nFROM node:26-slim AS build\n')).toContainEqual(
+        'Dockerfile line 2: the bun stage "FROM oven/bun:1.4.4 AS bun" follows the runtime stage on line 1'
+      );
+    });
+
     it('fails when the bun and Node stages share a name', () => {
       const dockerfile = withLine(3, 'FROM node:26-slim AS bun');
       expect(problems(dockerfile)).toContainEqual(
@@ -265,49 +273,122 @@ describe('readBunPins', () => {
     });
   });
 
-  describe('rule 6: pins appear only on the FROM lines and COPY --from=<stage>', () => {
+  describe('rule 6: each stage holds exactly the instructions it holds today', () => {
+    const IN_BUILD = 'in the build stage';
+    const IN_RUNTIME = 'in the runtime stage';
+
+    it.each([
+      ['an ENTRYPOINT without quotes', 19, 'ENTRYPOINT [bun]'],
+      ['a shell-form CMD', 19, 'CMD bun serve.js'],
+      ['an exec-form ENTRYPOINT', 19, 'ENTRYPOINT ["bun"]'],
+      ['a shell-form CMD with quotes', 19, 'CMD "bun" serve.js'],
+      ['a CMD with another program', 19, 'CMD ["node", "serve.js"]'],
+      ['a CMD with another file', 19, 'CMD ["bun", "other.js"]'],
+      ['a CMD with text after it', 19, 'CMD ["bun", "serve.js"] x'],
+      ['a CMD without the space', 19, 'CMD ["bun","serve.js"]'],
+      ['a backslash on a CMD [ line', 19, 'CMD ["bun", ".\\/serve.js"]'],
+      ['a lowercase cmd', 19, 'cmd ["bun", "serve.js"]'],
+      ['another port', 18, 'EXPOSE 3001'],
+      ['another NODE_ENV', 13, 'ENV NODE_ENV=development'],
+      ['another ENV', 13, 'ENV A=b'],
+      ['another WORKDIR', 12, 'WORKDIR /other'],
+      ['a USER', 18, 'USER bun'],
+      ['a LABEL', 18, 'LABEL a=b'],
+      ['a VOLUME', 18, 'VOLUME /data'],
+      ['a HEALTHCHECK', 18, 'HEALTHCHECK NONE'],
+      ['a SHELL', 18, 'SHELL ["/bin/sh"]'],
+      ['a STOPSIGNAL', 18, 'STOPSIGNAL SIGTERM'],
+      ['an ONBUILD', 18, 'ONBUILD RUN true'],
+      ['ONBUILD FROM', 18, 'ONBUILD FROM oven/bun:1.4.3'],
+      ['an ADD', 18, 'ADD . .'],
+      ['another RUN', 15, 'RUN true'],
+      ['the apt RUN without its cleanup', 15, 'RUN echo Debian packages refreshed ${APT_REFRESH} && apt-get update && apt-get upgrade -y'],
+      ['a quoted ARG value', 14, 'ARG A="x"'],
+      ['APT_REFRESH without a value', 14, 'ARG APT_REFRESH'],
+      ['APT_REFRESH with a word', 14, 'ARG APT_REFRESH=today'],
+      ['APT_REFRESH with a short date', 14, 'ARG APT_REFRESH=2026-11-2'],
+      ['APT_REFRESH with a short month', 14, 'ARG APT_REFRESH=2026-1-23'],
+      ['APT_REFRESH with a short year', 14, 'ARG APT_REFRESH=26-11-23'],
+      ['text before the APT_REFRESH ARG', 14, 'x ARG APT_REFRESH=2026-11-23'],
+      ['APT_REFRESH with text after the date', 14, 'ARG APT_REFRESH=2026-11-23 x'],
+      ['APT_REFRESH with text before the date', 14, 'ARG APT_REFRESH=x2026-11-23'],
+      ['another ARG with a date', 14, 'ARG OTHER=2026-11-23'],
+      ['an unknown stage in COPY --from', 16, 'COPY --from=other /app/build ./build'],
+      ['an image in COPY --from', 16, 'COPY --from=oven/bun:1.4.3 /app/build ./build'],
+      ['a second --from', 16, 'COPY --from=build --from=other /app/build ./build'],
+      ['a lowercase copy --from=build', 16, 'copy --from=build /app/build ./build'],
+      ['a double-quoted --from', 16, 'COPY --fr"o"m=oven/b"u"n:1.4.3 /usr/local/bin/bun /usr/local/bin/'],
+      ['a single-quoted --from', 16, "COPY --fr'o'm=node:24 /a /b"],
+      ['a backslash-escaped --from', 16, 'COPY --fr\\om=node:24 /a /b'],
+      ['COPY of another path from build', 16, 'COPY --from=build /app /app'],
+      ['COPY of build/ to another path', 16, 'COPY --from=build /app/build ./other'],
+      ['COPY of serve.js to another path', 17, 'COPY --from=build /app/serve.js ./other'],
+      ['a trailing space', 18, 'EXPOSE 3000 '],
+      ['a leading space', 18, ' EXPOSE 3000'],
+      ['a line of spaces', 18, '   '],
+      ['a build-stage COPY', 18, 'COPY . .'],
+      ['a build-stage RUN', 18, 'RUN bun install --frozen-lockfile'],
+      ['the bun COPY', 18, 'COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun']
+    ])('fails in the runtime stage on %s', (_, line, text) => {
+      expect(problems(withLine(line, text))).toContainEqual(notAForm(line, text, IN_RUNTIME));
+    });
+
     it.each([
       ['an image in COPY --from', 4, 'COPY --from=oven/bun:1.4.3 /usr/local/bin/bun /usr/local/bin/bun'],
       ['a Node image in COPY --from', 4, 'COPY --from=node:24 /usr/local/bin/node /usr/local/bin/node'],
-      ['an unknown stage in COPY --from', 16, 'COPY --from=other /app/build ./build'],
-      ['a second --from on a COPY --from=build line', 16, 'COPY --from=build --from=other /app/build ./build'],
-      ['a stage used before its FROM', 2, 'COPY --from=build /app/build ./build'],
-      ['a lowercase copy --from=build', 16, 'copy --from=build /app/build ./build'],
-      ['ONBUILD FROM', 18, 'ONBUILD FROM oven/bun:1.4.3'],
-      ['ONBUILD FROM with another image', 18, 'ONBUILD FROM debian:13'],
-      ['oven/bun on a RUN line', 9, 'RUN docker pull oven/bun:1.4.3'],
-      ['a node: image on a RUN line', 9, 'RUN docker pull node:24'],
-      ['a mount from another image', 9, 'RUN --mount=type=bind,from=node:24,target=/n true']
-    ])('fails on %s', (_, line, text) => {
-      expect(problems(withLine(line, text))).toContainEqual(
-        expect.stringMatching(
-          new RegExp(`^Dockerfile line ${line}: ${escaped(JSON.stringify(text))} names oven/bun, node: or "from" outside`)
-        )
-      );
+      ['an unknown stage in COPY --from', 4, 'COPY --from=other /usr/local/bin/bun /usr/local/bin/bun'],
+      ['the bun binary to another path', 4, 'COPY --from=bun /usr/local/bin/bun /tmp/bun'],
+      ['a RUN that pulls an image', 9, 'RUN docker pull oven/bun:1.4.3'],
+      ['a RUN that names Node', 9, 'RUN docker pull node:24'],
+      ['a mount from another image', 9, 'RUN --mount=type=bind,from=node:24,target=/n true'],
+      ['a quoted from= inside a RUN --mount', 9, 'RUN --mount=type=bind,fr"o"m=node:24,target=/n true'],
+      ['the install without its flag', 7, 'RUN bun install'],
+      ['the install with text after it', 7, 'RUN bun install --frozen-lockfile --production'],
+      ['a build line with a trailing space', 7, 'RUN bun install --frozen-lockfile '],
+      ['a build line with a leading space', 7, ' RUN bun install --frozen-lockfile'],
+      ['a lowercase build line', 8, 'copy . .'],
+      ['the build without pregen', 9, 'RUN bun run build'],
+      ['a narrower manifest COPY', 6, 'COPY package.json ./'],
+      ['COPY . to another path', 8, 'COPY . /app'],
+      ['a runtime ENV', 8, 'ENV NODE_ENV=production'],
+      ['the runtime CMD', 8, 'CMD ["bun", "serve.js"]'],
+      ['the runtime EXPOSE', 8, 'EXPOSE 3000'],
+      ['the APT_REFRESH ARG', 8, 'ARG APT_REFRESH=2026-11-23'],
+      ['the runtime apt RUN', 8, 'RUN echo Debian packages refreshed ${APT_REFRESH} && apt-get update && apt-get upgrade -y && rm -rf /var/lib/apt/lists/*'],
+      ['a COPY from its own stage', 8, 'COPY --from=build /app/build ./build']
+    ])('fails in the build stage on %s', (_, line, text) => {
+      expect(problems(withLine(line, text))).toContainEqual(notAForm(line, text, IN_BUILD));
     });
 
-    it.each([
-      ['the bun stage', 'COPY --from=bun /usr/local/bin/bun /usr/local/bin/bun'],
-      ['the build stage', 'COPY --from=build /app/serve.js ./']
-    ])('accepts COPY --from= %s', (_, text) => {
-      expect(readBunPins(withLine(17, text), PACKAGE)).toEqual({ version: '1.4.4' });
+    it.each(['WORKDIR /app', 'COPY . .', 'CMD ["bun", "serve.js"]'])('fails on %s in the bun stage', (text) => {
+      expect(problems(withLine(2, text))).toContainEqual(notAForm(2, text, 'in the bun stage'));
     });
-  });
 
-  describe('rule 9: no backslash, and quotes only on a CMD [ line', () => {
-    it.each([
-      ['a double-quoted --from', 'COPY --fr"o"m=oven/b"u"n:1.4.3 /usr/local/bin/bun /usr/local/bin/'],
-      ['a single-quoted --from', "COPY --fr'o'm=node:24 /a /b"],
-      ['a backslash-escaped --from', 'COPY --fr\\om=node:24 /a /b'],
-      ['a quoted from= inside a RUN --mount', 'RUN --mount=type=bind,fr"o"m=node:24,target=/n true'],
-      ['a quoted ARG value', 'ARG A="x"'],
-      ['a shell-form CMD with quotes', 'CMD "bun" serve.js'],
-      ['an exec-form ENTRYPOINT', 'ENTRYPOINT ["bun"]'],
-      ['a backslash on a CMD [ line', 'CMD ["bun", ".\\/serve.js"]']
-    ])('fails on %s', (_, text) => {
-      expect(problems(withLine(19, text))).toContainEqual(
-        `Dockerfile line 19: ${JSON.stringify(text)} holds a backslash, or a quote outside a CMD [...] line, which BuildKit strips from flags`
-      );
+    it.each(['ARG BUN=1.4.4', 'WORKDIR /app'])('fails on %s before the first FROM', (text) => {
+      expect(problems(insertBefore(1, text))).toContainEqual(notAForm(1, text, 'before the first FROM'));
+    });
+
+    it('accepts a new APT_REFRESH date', () => {
+      expect(readBunPins(withLine(14, 'ARG APT_REFRESH=2027-01-02'), PACKAGE)).toEqual({ version: '1.4.4' });
+    });
+
+    it('reads the COPY --from lines by the names the stages carry', () => {
+      const dockerfile = DOCKERFILE.replace('AS bun', 'AS tool')
+        .replace('--from=bun', '--from=tool')
+        .replace('AS build', 'AS compile')
+        .replaceAll('--from=build', '--from=compile');
+      expect(readBunPins(dockerfile, PACKAGE)).toEqual({ version: '1.4.4' });
+    });
+
+    it('fails on a COPY --from=<bun> once the bun stage is missing', () => {
+      const text = 'COPY --from=undefined /usr/local/bin/bun /usr/local/bin/bun';
+      expect(problems(withLine(4, text).replace('FROM oven/bun:1.4.4 AS bun', ''))).toContainEqual(notAForm(4, text, IN_BUILD));
+    });
+
+    it('fails on a COPY --from=<build> once the build stage is missing', () => {
+      const text = 'COPY --from=undefined /app/build ./build';
+      const dockerfile = withLine(16, text).replace('FROM node:26-slim AS build', '');
+      expect(problems(dockerfile)).toContainEqual(notAForm(16, text, IN_RUNTIME));
     });
   });
 });
