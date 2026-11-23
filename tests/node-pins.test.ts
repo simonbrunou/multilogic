@@ -1,12 +1,14 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
+import { readDockerfilePins } from '../scripts/docker-pins';
 
-// Three files pin Node (#95): .nvmrc (CI's setup-node and railpack read it), the @types/node
-// range in package.json and the dev shell's nodejs_<major> in flake.nix. Renovate opens no
-// PR for .nvmrc, so a new Node major arrives as an @types/node major PR alone: this check
-// fails that PR until .nvmrc and flake.nix name the same major. It has no skip switch.
+// Four files pin Node (#95): .nvmrc (CI's setup-node and railpack read it), the @types/node
+// range in package.json, the dev shell's nodejs_<major> in flake.nix and the Dockerfile's
+// node:<major>-slim build stage. Renovate opens no PR for .nvmrc or that tag, so a new Node
+// major arrives as an @types/node major PR alone: this check fails that PR until .nvmrc,
+// flake.nix and the Dockerfile name the same major. It has no skip switch.
 
-type PinFiles = { nvmrc: string; packageJson: string; flakeNix: string };
+type PinFiles = { nvmrc: string; packageJson: string; flakeNix: string; dockerfile: string };
 type PinCheck = { major: number } | { problems: string[] };
 type Pin = { where: string; text: string; major: number };
 type PackageJson = Record<string, Record<string, unknown> | undefined>;
@@ -73,12 +75,23 @@ function readFlakeNix(text: string, pins: Pin[], problems: string[]): void {
   else pins.push({ where: 'flake.nix', text: names[0], major: [...majors][0] });
 }
 
+// scripts/docker-pins.ts reports every form it cannot read, so an unreadable Dockerfile fails here too.
+function readDockerfile(text: string, pins: Pin[], problems: string[]): void {
+  const found = readDockerfilePins(text);
+  problems.push(...found.problems);
+  if (found.build) {
+    const { line, tag } = found.build;
+    pins.push({ where: `Dockerfile line ${line}`, text: `node:${tag}-slim`, major: Number(tag) });
+  }
+}
+
 function checkNodePins(files: PinFiles): PinCheck {
   const pins: Pin[] = [];
   const problems: string[] = [];
   readNvmrc(files.nvmrc, pins, problems);
   readPackageJson(files.packageJson, pins, problems);
   readFlakeNix(files.flakeNix, pins, problems);
+  readDockerfile(files.dockerfile, pins, problems);
   if (new Set(pins.map((pin) => pin.major)).size > 1) {
     const list = pins.map((pin) => `${pin.where} ${JSON.stringify(pin.text)} is ${pin.major}`);
     problems.push(`the Node majors differ: ${list.join('; ')}`);
@@ -88,13 +101,14 @@ function checkNodePins(files: PinFiles): PinCheck {
 
 const NVMRC = '26\n';
 const FLAKE = 'devShells.x86_64-linux.default = pkgs.mkShell {\n  packages = with pkgs; [ nodejs_26 bun ];\n};\n';
+const DOCKERFILE = 'FROM oven/bun:1.4.4 AS bun\nFROM node:26-slim AS build\nFROM oven/bun:1.4.4-slim\n';
 
 function packageJson(fields: Record<string, unknown> = {}): string {
   return JSON.stringify({ devDependencies: { '@types/node': '^26.6.6' }, ...fields });
 }
 
 function check(overrides: Partial<PinFiles>): PinCheck {
-  return checkNodePins({ nvmrc: NVMRC, packageJson: packageJson(), flakeNix: FLAKE, ...overrides });
+  return checkNodePins({ nvmrc: NVMRC, packageJson: packageJson(), flakeNix: FLAKE, dockerfile: DOCKERFILE, ...overrides });
 }
 
 function problemsOf(result: PinCheck): string[] {
@@ -102,12 +116,13 @@ function problemsOf(result: PinCheck): string[] {
 }
 
 describe('Node pins name one major', () => {
-  it("passes on the repo's own .nvmrc, package.json and flake.nix", () => {
+  it("passes on the repo's own .nvmrc, package.json, flake.nix and Dockerfile", () => {
     const repoFile = (path: string) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
     const result = checkNodePins({
       nvmrc: repoFile('.nvmrc'),
       packageJson: repoFile('package.json'),
-      flakeNix: repoFile('flake.nix')
+      flakeNix: repoFile('flake.nix'),
+      dockerfile: repoFile('Dockerfile')
     });
     expect(result).toEqual({ major: expect.any(Number) });
   });
@@ -146,27 +161,34 @@ describe('Node pins name one major', () => {
   describe('different majors', () => {
     it('.nvmrc names another major', () => {
       expect(problemsOf(check({ nvmrc: '24\n' }))).toEqual([
-        'the Node majors differ: .nvmrc "24" is 24; package.json devDependencies @types/node "^26.6.6" is 26; flake.nix "nodejs_26" is 26'
+        'the Node majors differ: .nvmrc "24" is 24; package.json devDependencies @types/node "^26.6.6" is 26; flake.nix "nodejs_26" is 26; Dockerfile line 2 "node:26-slim" is 26'
       ]);
     });
 
     it('@types/node names another major', () => {
       const pkg = packageJson({ devDependencies: { '@types/node': '^27.0.1' } });
       expect(problemsOf(check({ packageJson: pkg }))).toEqual([
-        'the Node majors differ: .nvmrc "26" is 26; package.json devDependencies @types/node "^27.0.1" is 27; flake.nix "nodejs_26" is 26'
+        'the Node majors differ: .nvmrc "26" is 26; package.json devDependencies @types/node "^27.0.1" is 27; flake.nix "nodejs_26" is 26; Dockerfile line 2 "node:26-slim" is 26'
       ]);
     });
 
     it('flake.nix names another major', () => {
       expect(problemsOf(check({ flakeNix: FLAKE.replace('nodejs_26', 'nodejs_24') }))).toEqual([
-        'the Node majors differ: .nvmrc "26" is 26; package.json devDependencies @types/node "^26.6.6" is 26; flake.nix "nodejs_24" is 24'
+        'the Node majors differ: .nvmrc "26" is 26; package.json devDependencies @types/node "^26.6.6" is 26; flake.nix "nodejs_24" is 24; Dockerfile line 2 "node:26-slim" is 26'
+      ]);
+    });
+
+    it('the Dockerfile names another major', () => {
+      const dockerfile = DOCKERFILE.replace('node:26-slim', 'node:24-slim');
+      expect(problemsOf(check({ dockerfile }))).toEqual([
+        'the Node majors differ: .nvmrc "26" is 26; package.json devDependencies @types/node "^26.6.6" is 26; flake.nix "nodejs_26" is 26; Dockerfile line 2 "node:24-slim" is 24'
       ]);
     });
 
     it('engines.node names another major', () => {
       const pkg = packageJson({ engines: { node: '^24.12.0' } });
       expect(problemsOf(check({ packageJson: pkg }))).toEqual([
-        'the Node majors differ: .nvmrc "26" is 26; package.json engines.node "^24.12.0" is 24; package.json devDependencies @types/node "^26.6.6" is 26; flake.nix "nodejs_26" is 26'
+        'the Node majors differ: .nvmrc "26" is 26; package.json engines.node "^24.12.0" is 24; package.json devDependencies @types/node "^26.6.6" is 26; flake.nix "nodejs_26" is 26; Dockerfile line 2 "node:26-slim" is 26'
       ]);
     });
   });
@@ -216,6 +238,18 @@ describe('Node pins name one major', () => {
       ['nodejs_26 only in a comment', `# was nodejs_26\n${FLAKE.replace('nodejs_26', 'nodejs')}`]
     ])('flake.nix with %s', (_name, flakeNix) => {
       expect(problemsOf(check({ flakeNix }))).toEqual(['flake.nix names no nodejs_<major> package outside a comment']);
+    });
+
+    it('a Dockerfile without a Node stage', () => {
+      const dockerfile = DOCKERFILE.replace('FROM node:26-slim AS build\n', '');
+      expect(problemsOf(check({ dockerfile }))).toEqual(['Dockerfile: no build stage "FROM node:<major>-slim AS <name>"']);
+    });
+
+    it('a Dockerfile Node tag in a form the reader does not read', () => {
+      const dockerfile = DOCKERFILE.replace('node:26-slim', 'node:lts-slim');
+      expect(problemsOf(check({ dockerfile }))).toContainEqual(
+        expect.stringContaining('Dockerfile line 2: "FROM node:lts-slim AS build" is not')
+      );
     });
 
     it('flake.nix with two different majors', () => {

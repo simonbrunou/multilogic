@@ -18,9 +18,15 @@ Single-context: one root `GLOSSARY.md` plus `docs/adr/`. See `docs/agents/domain
 
 Read `docs/agents/conventions.md` before editing a grid component (`SudokuGrid`, `KakuroGrid`, `TectonicGrid`, `YakusoGrid`, `GrecoBoard`) or fixing a Safari bug: cell ARIA and button roles, Safari-safe grid CSS, and how to report a fix that no check here can run in WebKit.
 
+## Production build
+
+Coolify's `build_pack` setting picks what builds production: `railpack` reads `railpack.json`, `dockerfile` reads `Dockerfile`. Keep both working, since rolling back is a change of that setting. Each runs `bun install --frozen-lockfile`, `bun run pregen` and `bun run build`, then serves `build/` with `bun serve.js` on port 3000, so a change to one of those steps goes in both files. `.dockerignore` applies to both.
+
+The Dockerfile's runtime stage runs `apt-get upgrade`, and BuildKit reuses that layer from its cache. When a scan flags a Debian package that a fresh upgrade fixes, set `ARG APT_REFRESH` in the `Dockerfile` to today's date to rebuild it.
+
 ## Bun version
 
-`packageManager` in `package.json` is the one Bun pin (#96): CI's `oven-sh/setup-bun` steps and railpack, which builds and serves production on Coolify, both install it. The dev shell takes `bun` from the nixpkgs that `flake.lock` locks, so it can trail the pin by a few patch releases. A different major or minor needs a fix, and `flake.nix` prints an `evaluation warning` naming both versions and the fix on each dev shell evaluation (#111). It also warns when `packageManager` is not `bun@<version>`. The shell still runs, and CI never sees the warning, since no workflow runs nix. The fixes:
+`packageManager` in `package.json` is the Bun pin (#96): CI's `oven-sh/setup-bun` steps and a Railpack build install it. The `Dockerfile` repeats it in its two `oven/bun` tags and repeats the `.nvmrc` major in its `node:<major>-slim` tag. `tests/scripts/docker-pins.test.ts` and `tests/node-pins.test.ts` fail CI while they differ. Renovate moves `packageManager` and both `oven/bun` tags in one PR, 14 days after a Bun release; it opens no PR for `.nvmrc` or the `node` tag, so a new Node major arrives as the `@types/node` major PR, which sets all of them. The dev shell takes `bun` from the nixpkgs that `flake.lock` locks, so it can trail the pin by a few patch releases. A different major or minor needs a fix, and `flake.nix` prints an `evaluation warning` naming both versions and the fix on each dev shell evaluation (#111). It also warns when `packageManager` is not `bun@<version>`. The shell still runs, and CI never sees the warning, since no workflow runs nix. The fixes:
 
 - nixpkgs behind the pin, as after a Bun minor PR: run `nix flake update` once nixpkgs carries that minor.
 - nixpkgs ahead of the pin, as after a `nix flake update`: move the pin to the shell's minor, or keep `flake.lock` on a nixpkgs that carries the pin's minor.

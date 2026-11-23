@@ -29,8 +29,9 @@ jobs:
             echo "bun.lock must be the only lockfile (#89). Remove: $stray" >&2
             exit 1
           fi
-      # .nvmrc is the one Node pin: railpack builds production on it too, and `bun run`
-      # starts vite, vitest and svelte-check on that Node, not on Bun.
+      # .nvmrc is the Node pin: a Railpack build reads it, the Dockerfile's node tag repeats it
+      # (tests/node-pins.test.ts), and `bun run` starts vite, vitest and svelte-check on that
+      # Node, not on Bun.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: .nvmrc

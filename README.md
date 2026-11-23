@@ -31,10 +31,13 @@ bun run serve        # serve build/ on $PORT (default 3000)
 ## Deploy
 
 The app builds to a static site served by a tiny portable server (`serve.js`, listens on
-`$PORT`, default 3000). Production runs on Coolify, which builds it with Railpack:
-`railpack.json` defines the build/deploy steps (install → `pregen` → `build`, start
-`bun serve.js`), and `railway.json` selects the same Railpack builder on Railway.
+`$PORT`, default 3000). Production runs on Coolify, whose `build_pack` setting picks one of
+two builds with the same steps (install → `pregen` → `build`, start `bun serve.js`):
 
-Railpack installs the Bun release that `packageManager` in `package.json` names, and the
-Node major in `.nvmrc`. It reads `.dockerignore` as the list of paths it leaves out of the
-build.
+- `dockerfile`: `Dockerfile` builds on Node with the pinned Bun, then ships `oven/bun`'s slim
+  image with `build/` and `serve.js` added.
+- `railpack`: `railpack.json` defines the steps, and `railway.json` selects the same Railpack
+  builder on Railway. Railpack installs the Bun release that `packageManager` in
+  `package.json` names, and the Node major in `.nvmrc`.
+
+Both read `.dockerignore` as the list of paths they leave out of the build.
