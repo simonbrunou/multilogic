@@ -7,8 +7,8 @@
       pkgs = import nixpkgs { inherit system; };
       inherit (pkgs) lib;
 
-      # packageManager in package.json is the one Bun pin (#96), and the shell's bun comes from
-      # the nixpkgs that flake.lock locks. Every shell entry (nix develop, nix develop -c, direnv)
+      # packageManager in package.json is the Bun pin (#96), which the Dockerfile's tags repeat,
+      # and the shell's bun comes from the nixpkgs that flake.lock locks. Every shell entry (nix develop, nix develop -c, direnv)
       # warns when the two leave the same major.minor (#111). See AGENTS.md "Bun version".
       shellBun = pkgs.bun.version;
       pin = (builtins.fromJSON (builtins.readFile ./package.json)).packageManager or null;
