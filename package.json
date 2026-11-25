@@ -29,7 +29,7 @@
 		"@eslint/js": "^10.0.1",
 		"@playwright/test": "^1.65.1",
 		"@sveltejs/adapter-static": "^4.0.1",
-		"@sveltejs/kit": "^3.4.0",
+		"@sveltejs/kit": "^3.4.1",
 		"@sveltejs/vite-plugin-svelte": "^7.3.2",
 		"@types/node": "^26.6.10",
 		"@vitest/browser": "^5.1.2",
